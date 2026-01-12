@@ -1,0 +1,21 @@
+GEM
+  specs:
+    bigdecimal (3.2.3)
+    csv (3.3.5)
+    httparty (0.23.1)
+      csv
+      mini_mime (>= 1.0.0)
+      multi_xml (>= 0.5.2)
+    mini_mime (1.1.5)
+    multi_xml (0.7.2)
+      bigdecimal (~> 3.1)
+
+PLATFORMS
+  arm64-darwin-21
+  ruby
+
+DEPENDENCIES
+  httparty
+
+BUNDLED WITH
+   2.5.7
