@@ -26,6 +26,23 @@ func main() {
 		log.Fatalf("NewStreamParser: %v", err)
 	}
 
+	// Map to store entity index -> ability name
+	// Note: This is a simplified approach. In practice, extracting ability names
+	// from PacketEntities can be complex and may require additional parsing.
+	// entityToAbilityName := make(map[uint32]string)
+	// var entityMapMutex sync.RWMutex
+
+	// Build entity index to ability name mapping
+	// Note: Extracting ability names from PacketEntities in manta v1.4.7 is complex
+	// because PacketEntities contains encoded entity deltas. A practical workaround
+	// is to use entity indices directly from combat log entries.
+
+	// Discovery mode: Set to true to log all ability casts for debugging
+	discoveryMode := false
+	if discoveryMode {
+		log.Printf("Discovery mode: Logging all ability casts")
+	}
+
 	// 1) Heartbeat: ticks
 	ticks := 0
 	p.Callbacks.OnCNETMsg_Tick(func(m *dota.CNETMsg_Tick) error {
@@ -59,21 +76,54 @@ func main() {
 	// 	return nil
 	// })
 
+	// Counter for filtered abilities
+	qopScreamCount := 0
+
 	p.Callbacks.OnCMsgDOTACombatLogEntry(func(m *dota.CMsgDOTACombatLogEntry) error {
 		ctype := m.GetType()
-		attackerName := m.GetAttackerName()
-		targetName := m.GetTargetName()
+		inflictorName := m.GetInflictorName() // Entity index of the ability/item
 		damageSourceName := m.GetDamageSourceName()
-		inflictorName := m.GetInflictorName()
-		isAttackerIllusion := m.GetIsAttackerIllusion()
-		isAttackerHero := m.GetIsAttackerHero()
-		isTargetIllusion := m.GetIsTargetIllusion()
-		isTargetHero := m.GetIsTargetHero()
-		isVisibleRadiant := m.GetIsVisibleRadiant()
-		isVisibleDire := m.GetIsVisibleDire()
-		value := m.GetValue()
-		// Print everything first so you can see what keys/values look like in YOUR version
-		log.Printf("CombatLogEntry type=%d attackerName=%d targetName=%d damageSourceName=%d inflictorName=%d isAttackerIllusion=%d isAttackerHero=%d isTargetIllusion=%d isTargetHero=%d isVisibleRadiant=%d isVisibleDire=%d value=%d", ctype, attackerName, targetName, damageSourceName, inflictorName, isAttackerIllusion, isAttackerHero, isTargetIllusion, isTargetHero, isVisibleRadiant, isVisibleDire, value)
+		targetName := m.GetTargetName()
+
+		// Filter for ability casts (QoP Scream is typically DOTA_COMBATLOG_ABILITY or DOTA_COMBATLOG_DAMAGE)
+		if ctype == dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_ABILITY ||
+			ctype == dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DAMAGE ||
+			ctype == dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_ITEM {
+
+			// Look up ability names using stringtables
+			inflictorAbilityName, inflictorOk := p.LookupStringByIndex("CombatLogNames", int32(inflictorName))
+			damageSourceAbilityName, _ := p.LookupStringByIndex("CombatLogNames", int32(damageSourceName))
+			targetAbilityName, _ := p.LookupStringByIndex("CombatLogNames", int32(targetName))
+
+			// Check if either inflictor or damage source is QoP Scream
+			isFiletered := false
+			// QoP Scream
+			// qopScreamAbilityName := "queenofpain_scream_of_pain"
+			// if inflictorOk && inflictorAbilityName == qopScreamAbilityName {
+			// 	isFiletered = true
+			// }
+			// if damageSourceOk && damageSourceAbilityName == qopScreamAbilityName {
+			// 	isFiletered = true
+			// }
+			// PT switch
+			if inflictorOk && inflictorAbilityName == "item_power_treads" {
+				isFiletered = true
+			}
+			// attackerName := m.GetAttackerName()
+			// attackerStringName, attackerOk := p.LookupStringByIndex("CombatLogNames", int32(attackerName))
+			// if attackerOk && attackerStringName == "npc_dota_hero_puck" && inflictorOk && inflictorAbilityName != "dota_unknown" {
+			// 	isFiletered = true
+			// }
+
+			if isFiletered {
+				qopScreamCount++
+				timestamp := m.GetTimestamp()
+				attackerName := m.GetAttackerName()
+
+				log.Printf("[Filtered Ability #%d] Type=%d, Timestamp=%.2f, Attacker=%d, Inflictor=%d (%s), DamageSource=%d (%s), Target=%d (%s)",
+					qopScreamCount, ctype, timestamp, attackerName, inflictorName, inflictorAbilityName, damageSourceName, damageSourceAbilityName, targetName, targetAbilityName)
+			}
+		}
 
 		return nil
 	})
@@ -84,4 +134,5 @@ func main() {
 	}
 
 	log.Printf("Parse Complete!")
+	log.Printf("Total QoP Scream ability instances found: %d", qopScreamCount)
 }
