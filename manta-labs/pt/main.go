@@ -21,6 +21,11 @@ type PTUsage struct {
 	Inflictor uint32
 }
 
+type HeroRef struct {
+	ClassName string
+	EntityIdx uint32
+}
+
 func guessHeroClassFromNPC(npc string) string {
 	const prefix = "npc_dota_hero_"
 	if !strings.HasPrefix(npc, prefix) {
@@ -63,7 +68,19 @@ func fDump(w io.Writer, e *manta.Entity) {
 	_dump(w, e.String(), e.Map())
 }
 
+var PT_I_STAT_STRING = []string{"str", "int", "agi"}
+
+type PuckSnapshot struct {
+	Tick      uint32
+	Time      float32
+	MaxHealth int32
+	MaxMana   float32
+	HasHealth bool
+	HasMana   bool
+}
+
 func main() {
+
 	f, err := os.Open("../replay1.dem")
 	if err != nil {
 		log.Fatalf("open: %v", err)
@@ -94,7 +111,19 @@ func main() {
 		log.Fatalf("NewStreamParser: %v", err)
 	}
 
+	// Used to convert parser ticks -> seconds for entity events.
+	// Will be populated from CSVCMsg_ServerInfo when available.
+	tickInterval := float32(0.033333335) // fallback (30 ticks/sec)
+	p.Callbacks.OnCSVCMsg_ServerInfo(func(m *dota.CSVCMsg_ServerInfo) error {
+		if ti := m.GetTickInterval(); ti > 0 {
+			tickInterval = ti
+			log.Printf("Tick interval: %f", tickInterval)
+		}
+		return nil
+	})
+
 	pt_usages := make([]PTUsage, 0, 256)
+	playerIDToHero := make(map[uint32]HeroRef, 16)
 
 	p.Callbacks.OnCMsgDOTACombatLogEntry(func(m *dota.CMsgDOTACombatLogEntry) error {
 		ctype := m.GetType()
@@ -121,12 +150,13 @@ func main() {
 				realAttackerName, _ := p.LookupStringByIndex("CombatLogNames", int32(attackerName))
 
 				pt_usage := PTUsage{
-					Timestamp: timestamp,
+					Timestamp: timestamp - 10, // 10 secs is prob the start game screen
 					Hero:      realAttackerName,
 					Attacker:  attackerName,
 					Inflictor: inflictorName,
 				}
 				pt_usages = append(pt_usages, pt_usage)
+				// log.Printf("PT Usage: %+v", pt_usage)
 
 				// log.Printf("[Filtered Ability] Type=%d, Timestamp=%.2f, Attacker=%d, Inflictor=%d (%s), DamageSource=%d (%s), Target=%d (%s)",
 				// 	ctype, timestamp, attackerName, inflictorName, inflictorAbilityName, damageSourceName, damageSourceAbilityName, targetName,
@@ -179,15 +209,99 @@ func main() {
 	listToFind := []uint32{9340920, 3574043, 4246443, 7308954, 6671105, 15354432, 16777215, 13339623, 16777215, 5491033, 16777215, 16777215, 16777215, 16777215, 16777215, 5130626, 838124, 4295331, 16777215, 16777215, 16777215, 16777215, 16777215, 16777215, 4571519}
 	foundHandleMap := make(map[uint32]string)
 
+	var puckPrev *PuckSnapshot
+	var puckCur *PuckSnapshot
+
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
+		entityTick := p.Tick
+		entityTime := float32(entityTick) * tickInterval
+
 		if e == nil {
 			return nil
 		}
 		cn := e.GetClassName()
 
+		// Build playerID -> hero mapping from hero entities.
+		// This is what you want for translating item.m_iPlayerOwnerID -> hero.
+		if strings.HasPrefix(cn, "CDOTA_Unit_Hero_") {
+			if pidAny, ok := e.Map()["m_iPlayerID"]; ok {
+				if pid, ok := pidAny.(uint32); ok {
+					playerIDToHero[pid] = HeroRef{
+						ClassName: cn,
+						EntityIdx: uint32(e.GetIndex()),
+					}
+				}
+			}
+		}
+
 		if cn == "CDOTA_Item_PowerTreads" {
-			log.Printf("Found Power Treads entity %d: %s", e.GetIndex(), e.String())
+			ownerID := uint32(0)
+			if v, ok := e.GetUint32("m_iPlayerOwnerID"); ok {
+				ownerID = v
+			} else {
+				log.Printf("PT OnEntity tick=%d: missing m_iPlayerOwnerID on %s", entityTick, e.String())
+			}
+
+			ownerHero := ""
+			if hr, ok := playerIDToHero[ownerID]; ok {
+				ownerHero = hr.ClassName
+			}
+
+			// log.Printf("Found Power Treads entity %d: %s (m_iPlayerOwnerID=%d hero=%s)", e.GetIndex(), e.String(), ownerID, ownerHero)
 			spew.Fdump(fCombinedDump, e.Map())
+
+			// lets check for any PT usages in the last 0.1 second for the same hero
+			for _, pt_usage := range pt_usages {
+				heroClassName := guessHeroClassFromNPC(pt_usage.Hero)
+
+				toAttr, okAttr := e.GetInt32("m_iStat")
+				assembledAt, okAssembledAt := e.GetFloat32("m_flAssembledTime")
+
+				// NOTE: don't index PT_I_STAT_STRING unless we validated bounds.
+				attrString := "unknown"
+				if okAttr && toAttr >= 0 && int(toAttr) < len(PT_I_STAT_STRING) {
+					attrString = PT_I_STAT_STRING[int(toAttr)]
+				}
+
+				// Only attempt correlation if we have assembled time.
+				if heroClassName == ownerHero && okAssembledAt && pt_usage.Timestamp > assembledAt-0.01 {
+					if okAttr {
+						log.Printf("%s: uses Power Treads at %.3f changing attribute to %s (ticktime %.3f)", ownerHero, pt_usage.Timestamp, attrString, entityTime)
+					} else {
+						log.Printf("%s: uses Power Treads at %.3f (ticktime %.3f) [m_iStat missing]", ownerHero, pt_usage.Timestamp, entityTime)
+					}
+
+					// IMPORTANT: max health/mana are hero fields, not item fields.
+					if ownerHero == "CDOTA_Unit_Hero_Puck" && puckPrev != nil && puckCur != nil && puckPrev.HasHealth && puckCur.HasHealth && puckPrev.HasMana && puckCur.HasMana {
+						log.Printf("Puck snapshot delta: maxHealth %d -> %d, maxMana %.3f -> %.3f (prevT=%.3fs curT=%.3fs)",
+							puckPrev.MaxHealth, puckCur.MaxHealth,
+							puckPrev.MaxMana, puckCur.MaxMana,
+							puckPrev.Time, puckCur.Time,
+						)
+					}
+				}
+			}
+		}
+
+		if cn == "CDOTA_Unit_Hero_Puck" {
+			puckPrev = puckCur
+
+			s := &PuckSnapshot{Tick: entityTick, Time: entityTime}
+			if v, ok := e.GetInt32("m_iMaxHealth"); ok {
+				s.MaxHealth = v
+				s.HasHealth = true
+			}
+			if v, ok := e.GetFloat32("m_flMaxMana"); ok {
+				s.MaxMana = v
+				s.HasMana = true
+			}
+			puckCur = s
+
+			// if s.HasHealth && s.HasMana {
+			// 	log.Printf("Puck updated (ticktime %.3f): maxHealth=%d maxMana=%.3f", entityTime, s.MaxHealth, s.MaxMana)
+			// } else {
+			// 	log.Printf("Puck updated (ticktime %.3f): hasMaxHealth=%v hasMaxMana=%v", entityTime, s.HasHealth, s.HasMana)
+			// }
 		}
 
 		for _, handle := range listToFind {
@@ -206,14 +320,14 @@ func main() {
 	}
 
 	// Print Found Handle Map
-	for handle, className := range foundHandleMap {
-		log.Printf("Found handle: %d, class: %s", handle, className)
-	}
+	// for handle, className := range foundHandleMap {
+	// 	log.Printf("Found handle: %d, class: %s", handle, className)
+	// }
 
 	// Print PT Usages
-	for _, pt_usage := range pt_usages {
-		log.Printf("PT Usage: %+v", pt_usage)
-	}
+	// for _, pt_usage := range pt_usages {
+	// 	log.Printf("PT Usage: %+v", pt_usage)
+	// }
 
 	log.Printf("Parse Complete!")
 }

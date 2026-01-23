@@ -1,0 +1,4 @@
+**/*.log
+*.log
+./old/manta.log
+/big-replays/*

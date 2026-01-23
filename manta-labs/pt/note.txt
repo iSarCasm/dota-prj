@@ -1,0 +1,173 @@
+ (string) (len=13) "m_hItems.0000": (uint32) 9340920,
+ (string) (len=13) "m_hItems.0001": (uint32) 3574043,
+ (string) (len=13) "m_hItems.0002": (uint32) 4246443,
+ (string) (len=13) "m_hItems.0003": (uint32) 7308954,
+ (string) (len=13) "m_hItems.0004": (uint32) 6671105,
+ (string) (len=13) "m_hItems.0005": (uint32) 15354432,
+ (string) (len=13) "m_hItems.0006": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0007": (uint32) 13339623,
+ (string) (len=13) "m_hItems.0008": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0009": (uint32) 5491033,
+ (string) (len=13) "m_hItems.0010": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0011": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0012": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0013": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0014": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0015": (uint32) 5130626,
+ (string) (len=13) "m_hItems.0016": (uint32) 838124,
+ (string) (len=13) "m_hItems.0017": (uint32) 4295331,
+ (string) (len=13) "m_hItems.0018": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0019": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0020": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0021": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0022": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0023": (uint32) 16777215,
+ (string) (len=13) "m_hItems.0024": (uint32) 16777215, 
+
+
+2026/01/21 22:57:50 Found handle: 3574043, class: CDOTA_Item_EmptyBottle
+2026/01/21 22:57:50 Found handle: 4246443, class: CDOTA_Item_PowerTreads
+2026/01/21 22:57:50 Found handle: 13339623, class: CDOTA_Item_MagicWand
+2026/01/21 22:57:50 Found handle: 838124, class: CDOTA_Item_ManaDraught
+2026/01/21 22:57:50 Found handle: 5491033, class: CDOTA_Item_Perseverance
+2026/01/21 22:57:50 Found handle: 4571519, class: CDOTA_Ability_Seasonal_Summon_Penguin
+2026/01/21 22:57:50 Found handle: 6671105, class: CDOTA_Item_Witch_Blade
+2026/01/21 22:57:50 Found handle: 9340920, class: CDOTA_Item_BlinkDagger
+2026/01/21 22:57:50 Found handle: 5130626, class: CDOTA_Item_TeleportScroll
+2026/01/21 22:57:50 Found handle: 4295331, class: CDOTA_Item_Enhancement_Vampiric
+2026/01/21 22:57:50 Found handle: 7308954, class: CDOTA_Item_Cyclone
+2026/01/21 22:57:50 Found handle: 15354432, class: CDOTA_Item_UltimateOrb
+
+
+
+ 16777215 is a 3 byte uint max
+
+
+ main.fDump: 2987 <CDOTA_Item_PowerTreads>(map[string]interface {}) (len=99) {
+ (string) (len=36) "CBodyComponent.m_hierarchyAttachName": (uint64) 0,
+ (string) (len=21) "CBodyComponent.m_name": (uint64) 0,
+ (string) (len=13) "m_MoveCollide": (uint32) 0,
+ (string) (len=10) "m_MoveType": (uint32) 0,
+ (string) (len=12) "m_bActivated": (bool) true,
+ (string) (len=12) "m_bAlertable": (bool) false,
+ (string) (len=15) "m_bAltCastState": (bool) false,
+ (string) (len=20) "m_bAnimatedEveryTick": (bool) true,
+ (string) (len=16) "m_bAutoCastState": (bool) false,
+ (string) (len=16) "m_bCanBeConsumed": (bool) false,
+ (string) (len=26) "m_bCanBeUsedOutOfInventory": (bool) false,
+ (string) (len=15) "m_bCastOnPickup": (bool) false,
+ (string) (len=13) "m_bCombinable": (bool) true,
+ (string) (len=16) "m_bCombineLocked": (bool) false,
+ (string) (len=18) "m_bCreepHeroPickup": (bool) false,
+ (string) (len=17) "m_bDisassemblable": (bool) false,
+ (string) (len=19) "m_bDisplayOwnership": (bool) false,
+ (string) (len=12) "m_bDroppable": (bool) true,
+ (string) (len=18) "m_bForceUnsellable": (bool) false,
+ (string) (len=17) "m_bFrozenCooldown": (bool) false,
+ (string) (len=21) "m_bGloballyCombinable": (bool) false,
+ (string) (len=17) "m_bGrantedByFacet": (bool) false,
+ (string) (len=18) "m_bGravityDisabled": (bool) false,
+ (string) (len=9) "m_bHidden": (bool) false,
+ (string) (len=17) "m_bInAbilityPhase": (bool) false,
+ (string) (len=23) "m_bInIndefiniteCooldown": (bool) false,
+ (string) (len=20) "m_bInitiallySellable": (bool) false,
+ (string) (len=22) "m_bIsNeutralActiveDrop": (bool) false,
+ (string) (len=23) "m_bIsNeutralPassiveDrop": (bool) false,
+ (string) (len=16) "m_bIsUpgradeable": (bool) false,
+ (string) (len=14) "m_bItemEnabled": (bool) false,
+ (string) (len=11) "m_bKillable": (bool) true,
+ (string) (len=14) "m_bMarkForSell": (bool) false,
+ (string) (len=19) "m_bNeverDisassemble": (bool) false,
+ (string) (len=23) "m_bOnlyPlayerHeroPickup": (bool) false,
+ (string) (len=12) "m_bPermanent": (bool) true,
+ (string) (len=14) "m_bPurchasable": (bool) true,
+ (string) (len=21) "m_bPurchasedWhileDead": (bool) false,
+ (string) (len=9) "m_bRecipe": (bool) false,
+ (string) (len=24) "m_bRecipeConsumesCharges": (bool) false,
+ (string) (len=21) "m_bRefCountsModifiers": (bool) false,
+ (string) (len=13) "m_bReflection": (bool) false,
+ (string) (len=13) "m_bReplicated": (bool) false,
+ (string) (len=18) "m_bRequiresCharges": (bool) false,
+ (string) (len=11) "m_bSellable": (bool) true,
+ (string) (len=16) "m_bShowOnMinimap": (bool) false,
+ (string) (len=12) "m_bStackable": (bool) false,
+ (string) (len=12) "m_bStealable": (bool) true,
+ (string) (len=9) "m_bStolen": (bool) false,
+ (string) (len=14) "m_bToggleState": (bool) false,
+ (string) (len=21) "m_bUpgradeRecommended": (bool) false,
+ (string) (len=36) "m_fAbilityChargeRestoreTimeRemaining": (float32) -1e+06,
+ (string) (len=11) "m_fCooldown": (float32) 0,
+ (string) (len=10) "m_fEffects": (uint64) 16,
+ (string) (len=23) "m_flAbilityMuteDuration": (float32) 0,
+ (string) (len=12) "m_flAnimTime": (interface {}) <nil>,
+ (string) (len=17) "m_flAssembledTime": (float32) 594.8667,
+ (string) (len=17) "m_flCastStartTime": (float32) 0,
+ (string) (len=20) "m_flChannelStartTime": (float32) 0,
+ (string) (len=18) "m_flCooldownLength": (float32) 0,
+ (string) (len=14) "m_flElasticity": (float32) 1,
+ (string) (len=14) "m_flEnableTime": (float32) 0,
+ (string) (len=16) "m_flGravityScale": (float32) 1,
+ (string) (len=19) "m_flMinimapIconSize": (float32) 0,
+ (string) (len=22) "m_flNavIgnoreUntilTime": (float32) 0,
+ (string) (len=21) "m_flOverrideCastPoint": (float32) -1,
+ (string) (len=16) "m_flPurchaseTime": (float32) 424.46667,
+ (string) (len=15) "m_flReclaimTime": (float32) 0,
+ (string) (len=28) "m_flTotalExtendedChannelTime": (float32) 0,
+ (string) (len=15) "m_hEffectEntity": (uint64) 16777215,
+ (string) (len=26) "m_hHiddenAbilityForDisplay": (uint64) 16777215,
+ (string) (len=17) "m_iCurrentCharges": (int32) 0,
+ (string) (len=15) "m_iDirtyButtons": (int32) 2,
+ (string) (len=17) "m_iInitialCharges": (int32) 0,
+ (string) (len=8) "m_iLevel": (int32) 1,
+ (string) (len=11) "m_iManaCost": (int32) 0,
+ (string) (len=16) "m_iPlayerOwnerID": (uint32) 10,
+ (string) (len=19) "m_iSecondaryCharges": (int32) 0,
+ (string) (len=14) "m_iSharability": (int32) 2,
+ (string) (len=15) "m_iStackableMax": (int32) 0,
+ (string) (len=7) "m_iStat": (int32) 1,
+ (string) (len=10) "m_iTeamNum": (uint64) 3,
+ (string) (len=19) "m_iValuelessCharges": (int32) 0,
+ (string) (len=17) "m_nAbilityBarType": (uint32) 0,
+ (string) (len=24) "m_nAbilityCurrentCharges": (int32) 0,
+ (string) (len=12) "m_nBloodType": (uint64) 1,
+ (string) (len=15) "m_nHeroFacetKey": (uint64) 0,
+ (string) (len=32) "m_nLevelsBetweenUpgradesOverride": (int32) -1,
+ (string) (len=19) "m_nMaxLevelOverride": (int32) -1,
+ (string) (len=18) "m_nNeutralDropTeam": (int32) 0,
+ (string) (len=15) "m_nPlatformType": (uint32) 0,
+ (string) (len=24) "m_nRequiredLevelOverride": (int32) 6,
+ (string) (len=13) "m_nSubclassID": (interface {}) <nil>,
+ (string) (len=14) "m_nUpgradeGoal": (int32) 0,
+ (string) (len=18) "m_nUpgradeProgress": (int32) 0,
+ (string) (len=31) "m_pEntity.m_nameStringableIndex": (int32) 549,
+ (string) (len=26) "m_pReflectionSourceAbility": (uint64) 16777215,
+ (string) (len=12) "m_takedamage": (uint32) 0,
+ (string) (len=22) "m_ubInterpolationFrame": (uint64) 0
+}
+
+
+m_iStat -> this is probably the attr of an item, and m_flAssembledTime is updated on every switch
+0 = str, 1 = int, 2 = agi
+
+
+interesting callbacks:
+onCUserMessageRequestInventory
+
+onCDOTAUserMsg_LocationPing
+onCDOTAUserMsg_ItemPurchased
+onCDOTAUserMsg_Ping
+onCDOTAUserMsg_ItemAlert
+onCDOTAUserMsg_AbilityPing
+onCDOTAUserMsg_CourierKilledAlert
+onCDOTAUserMsg_BuyBackStateAlert
+onCDOTAUserMsg_QuickBuyAlert
+onCDOTAUserMsg_HPManaAlert
+onCDOTAUserMsg_GlyphAlert
+onCDOTAUserMsg_XPAlert
+onCDOTAUserMsg_TipAlert
+
+onCDOTAUserMsg_TE_UnitAnimation
+onCDOTAUserMsg_TE_UnitAnimationEnd
+
+onCDOTAUserMsg_TE_Projectile
+onCDOTAUserMsg_TE_ProjectileLoc
