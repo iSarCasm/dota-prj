@@ -1,0 +1,30 @@
+<div>
+  <h1 style="font-size: 2rem; margin-bottom: 2rem; font-weight: bold;">Match History</h1>
+
+  <div style="border: 1px solid #ffffff;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid #ffffff;">
+          <th style="padding: 1rem; text-align: left; border-right: 1px solid #ffffff;">Match ID</th>
+          <th style="padding: 1rem; text-align: left; border-right: 1px solid #ffffff;">Hero</th>
+          <th style="padding: 1rem; text-align: left; border-right: 1px solid #ffffff;">Matchup</th>
+          <th style="padding: 1rem; text-align: left; border-right: 1px solid #ffffff;">Duration</th>
+          <th style="padding: 1rem; text-align: left;">Link</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @matches.each do |match| %>
+          <tr style="border-bottom: 1px solid #ffffff;">
+            <td style="padding: 1rem; border-right: 1px solid #ffffff;"><%= match[:id] %></td>
+            <td style="padding: 1rem; border-right: 1px solid #ffffff;"><%= match[:hero] %></td>
+            <td style="padding: 1rem; border-right: 1px solid #ffffff;"><%= match[:hero_matchup] %></td>
+            <td style="padding: 1rem; border-right: 1px solid #ffffff;"><%= match[:duration] %></td>
+            <td style="padding: 1rem;">
+              <%= link_to "View", match_path(match[:id]), style: "color: #ffffff; text-decoration: underline;" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
