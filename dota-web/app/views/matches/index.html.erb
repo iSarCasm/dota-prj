@@ -26,9 +26,7 @@
             <td style="padding: 1rem; border-right: 1px solid #ffffff;"><%= match[:id] %></td>
             <td style="padding: 1rem; border-right: 1px solid #ffffff;">
               <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <% if match[:hero_img].present? %>
-                  <%= image_tag("https://api.opendota.com#{match[:hero_img]}", alt: match[:hero_name], style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
-                <% end %>
+                <%= dota_named_image_tag(match[:hero_name], folders: ["hero_icons"], alt: match[:hero_name], style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
                 <div><%= match[:hero_name] %></div>
               </div>
             </td>

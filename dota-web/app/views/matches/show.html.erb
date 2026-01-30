@@ -57,9 +57,7 @@
       </div>
 
       <div style="display: flex; align-items: center; gap: 1rem;">
-        <% if @match_summary[:hero_img].present? %>
-          <%= image_tag("https://api.opendota.com#{@match_summary[:hero_img]}", alt: @match_summary[:hero_name], style: "width: 112px; height: 64px; object-fit: cover; border: 1px solid #333;") %>
-        <% end %>
+        <%= dota_named_image_tag(@match_summary[:hero_name], folders: ["hero_icons"], alt: @match_summary[:hero_name], style: "width: 112px; height: 64px; object-fit: cover; border: 1px solid #333;") %>
         <div>
           <div style="margin-bottom: 0.25rem;"><strong>Your Hero:</strong> <%= @match_summary[:hero_name] || "Unknown" %></div>
           <% if @me.present? %>
@@ -89,9 +87,7 @@
           <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
             <% Array(@me_summary[:items]).each do |item| %>
               <div title="<%= item[:name] %>" style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid #333; padding: 0.25rem 0.5rem;">
-                <% if item[:img].present? %>
-                  <%= image_tag("https://api.opendota.com#{item[:img]}", alt: item[:name], style: "width: 32px; height: 24px; object-fit: cover;") %>
-                <% end %>
+                <%= dota_named_image_tag(item[:name], folders: ["item_icons", "neutral_item_icons", "recipe_item_icons"], alt: item[:name], style: "width: 32px; height: 24px; object-fit: cover;") %>
                 <div><%= item[:name] %></div>
               </div>
             <% end %>
@@ -107,9 +103,7 @@
           <% hero = Rails.configuration.x.constants.heroes[p["hero_id"].to_s] %>
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.1);">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <% if hero&.dig("img").present? %>
-                <%= image_tag("https://api.opendota.com#{hero["img"]}", alt: hero["localized_name"], style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
-              <% end %>
+              <%= dota_named_image_tag(hero&.dig("localized_name"), folders: ["hero_icons"], alt: hero&.dig("localized_name"), style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
               <div><%= hero&.dig("localized_name") || "Unknown" %></div>
             </div>
             <div style="opacity: 0.85;"><%= p["kills"] %>/<%= p["deaths"] %>/<%= p["assists"] %></div>
@@ -123,9 +117,7 @@
           <% hero = Rails.configuration.x.constants.heroes[p["hero_id"].to_s] %>
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.1);">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <% if hero&.dig("img").present? %>
-                <%= image_tag("https://api.opendota.com#{hero["img"]}", alt: hero["localized_name"], style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
-              <% end %>
+              <%= dota_named_image_tag(hero&.dig("localized_name"), folders: ["hero_icons"], alt: hero&.dig("localized_name"), style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
               <div><%= hero&.dig("localized_name") || "Unknown" %></div>
             </div>
             <div style="opacity: 0.85;"><%= p["kills"] %>/<%= p["deaths"] %>/<%= p["assists"] %></div>
