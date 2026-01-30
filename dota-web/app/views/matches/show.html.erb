@@ -80,6 +80,12 @@
           <div><strong>Last Hits / Denies:</strong> <%= @me_summary[:last_hits] || "-" %> / <%= @me_summary[:denies] || "-" %></div>
           <div><strong>Hero Damage:</strong> <%= @me_summary[:hero_damage] || "-" %></div>
           <div><strong>Tower Damage:</strong> <%= @me_summary[:tower_damage] || "-" %></div>
+          <div><strong>Hero Healing:</strong> <%= @me["hero_healing"] || "-" %></div>
+          <div><strong>Net Worth:</strong> <%= @me["net_worth"] || "-" %></div>
+          <div><strong>Level:</strong> <%= @me["level"] || "-" %></div>
+          <div><strong>Gold / Gold Spent:</strong> <%= @me["gold"] || "-" %> / <%= @me["gold_spent"] || "-" %></div>
+          <div><strong>Kill Streak:</strong> <%= @me["kill_streak"] || "-" %></div>
+          <div><strong>Stuns:</strong> <%= @me["stuns"] || "-" %></div>
         </div>
 
         <div style="margin-top: 1.5rem;">
@@ -92,6 +98,30 @@
               </div>
             <% end %>
           </div>
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+          <details>
+            <summary style="cursor: pointer; text-decoration: underline;">All fields for your player record (OpenDota)</summary>
+            <div style="margin-top: 0.75rem;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tbody>
+                  <% @me.sort_by { |k, _| k.to_s }.each do |key, value| %>
+                    <tr style="border-top: 1px solid rgba(255,255,255,0.1);">
+                      <td style="padding: 0.5rem; vertical-align: top; width: 240px; border-right: 1px solid rgba(255,255,255,0.1);"><strong><%= key %></strong></td>
+                      <td style="padding: 0.5rem;">
+                        <% if value.is_a?(Hash) || value.is_a?(Array) %>
+                          <pre style="white-space: pre-wrap; margin: 0;"><%= JSON.pretty_generate(value) rescue value.inspect %></pre>
+                        <% else %>
+                          <%= value %>
+                        <% end %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </details>
         </div>
       <% end %>
     </div>
@@ -124,6 +154,14 @@
           </div>
         <% end %>
       </div>
+    </div>
+
+    <div style="border: 1px solid #ffffff; padding: 2rem; margin-top: 2rem;">
+      <h2 style="font-size: 1.25rem; margin-bottom: 1rem; font-weight: bold;">All match details (raw OpenDota JSON)</h2>
+      <details>
+        <summary style="cursor: pointer; text-decoration: underline;">Show raw payload</summary>
+        <pre style="margin-top: 1rem; white-space: pre-wrap; overflow: auto; max-height: 70vh; border: 1px solid rgba(255,255,255,0.2); padding: 1rem;"><%= JSON.pretty_generate(@match_details) rescue @match_details.inspect %></pre>
+      </details>
     </div>
   <% end %>
 </div>
