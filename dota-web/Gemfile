@@ -46,6 +46,8 @@ gem 'devise'
 
 gem 'openssl'
 
+gem 'httparty'
+
 gem 'omniauth-rails_csrf_protection'
 gem 'omniauth-steam'
 

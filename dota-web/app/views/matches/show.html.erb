@@ -5,39 +5,133 @@
 
   <h1 style="font-size: 2rem; margin-bottom: 2rem; font-weight: bold;">Match Details</h1>
 
-  <div style="border: 1px solid #ffffff; padding: 2rem;">
-    <div style="margin-bottom: 1rem;">
-      <strong>Match ID:</strong> <%= @match[:id] %>
+  <% if flash[:alert].present? %>
+    <div style="margin-bottom: 1rem; padding: 0.75rem 1rem; border: 1px solid #ff6b6b; color: #ff6b6b;">
+      <%= flash[:alert] %>
     </div>
-    <div style="margin-bottom: 1rem;">
-      <strong>Hero:</strong> <%= @match[:hero] %>
+  <% end %>
+
+  <% if @match_details.blank? %>
+    <div style="border: 1px solid #ffffff; padding: 2rem;">
+      Could not load match details.
     </div>
-    <div style="margin-bottom: 1rem;">
-      <strong>Hero Matchup:</strong> <%= @match[:hero_matchup] %>
+  <% else %>
+    <div style="border: 1px solid #ffffff; padding: 2rem; margin-bottom: 2rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+          <div style="margin-bottom: 0.5rem;">
+            <strong>Match ID:</strong> <%= @match_summary[:id] %>
+          </div>
+          <div style="margin-bottom: 0.5rem;">
+            <strong>Duration:</strong> <%= @match_summary[:duration] || "-" %>
+          </div>
+          <div style="margin-bottom: 0.5rem;">
+            <strong>Started:</strong>
+            <% if @match_summary[:start_time].present? %>
+              <%= Time.at(@match_summary[:start_time].to_i).utc.strftime("%Y-%m-%d %H:%M UTC") %>
+            <% else %>
+              -
+            <% end %>
+          </div>
+        </div>
+
+        <div style="text-align: right;">
+          <div style="margin-bottom: 0.5rem;">
+            <strong>Score:</strong>
+            <%= @match_summary[:radiant_score] %> - <%= @match_summary[:dire_score] %>
+            (<%= @match_summary[:radiant_win] ? "Radiant Victory" : "Dire Victory" %>)
+          </div>
+          <div style="margin-bottom: 0.5rem;">
+            <strong>Game Mode:</strong> <%= @match_summary[:game_mode] || "-" %>
+          </div>
+          <div style="margin-bottom: 0.5rem;">
+            <strong>Lobby Type:</strong> <%= @match_summary[:lobby_type] || "-" %>
+          </div>
+          <div style="margin-bottom: 0.5rem;">
+            <strong>Region:</strong> <%= @match_summary[:region] || "-" %>
+          </div>
+          <div>
+            <strong>Patch:</strong> <%= @match_summary[:patch] || "-" %>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <% if @match_summary[:hero_img].present? %>
+          <%= image_tag("https://api.opendota.com#{@match_summary[:hero_img]}", alt: @match_summary[:hero_name], style: "width: 112px; height: 64px; object-fit: cover; border: 1px solid #333;") %>
+        <% end %>
+        <div>
+          <div style="margin-bottom: 0.25rem;"><strong>Your Hero:</strong> <%= @match_summary[:hero_name] || "Unknown" %></div>
+          <% if @me.present? %>
+            <div><strong>Your Slot:</strong> <%= @me["player_slot"] %> (<%= @me["isRadiant"] ? "Radiant" : "Dire" %>)</div>
+          <% end %>
+        </div>
+      </div>
     </div>
-    <div style="margin-bottom: 1rem;">
-      <strong>Duration:</strong> <%= @match[:duration] %>
+
+    <div style="border: 1px solid #ffffff; padding: 2rem; margin-bottom: 2rem;">
+      <h2 style="font-size: 1.25rem; margin-bottom: 1rem; font-weight: bold;">Your Performance</h2>
+
+      <% if @me.blank? %>
+        <div>Could not find your player record in this match.</div>
+      <% else %>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 2rem;">
+          <div><strong>K/D/A:</strong> <%= @me_summary[:kda] || "-" %></div>
+          <div><strong>GPM:</strong> <%= @me_summary[:gpm] || "-" %></div>
+          <div><strong>XPM:</strong> <%= @me_summary[:xpm] || "-" %></div>
+          <div><strong>Last Hits / Denies:</strong> <%= @me_summary[:last_hits] || "-" %> / <%= @me_summary[:denies] || "-" %></div>
+          <div><strong>Hero Damage:</strong> <%= @me_summary[:hero_damage] || "-" %></div>
+          <div><strong>Tower Damage:</strong> <%= @me_summary[:tower_damage] || "-" %></div>
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+          <strong>Items:</strong>
+          <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            <% Array(@me_summary[:items]).each do |item| %>
+              <div title="<%= item[:name] %>" style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid #333; padding: 0.25rem 0.5rem;">
+                <% if item[:img].present? %>
+                  <%= image_tag("https://api.opendota.com#{item[:img]}", alt: item[:name], style: "width: 32px; height: 24px; object-fit: cover;") %>
+                <% end %>
+                <div><%= item[:name] %></div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
     </div>
-    <div style="margin-bottom: 1rem;">
-      <strong>Result:</strong> <%= @match[:result] %>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;">
+      <div style="border: 1px solid #ffffff; padding: 1.5rem;">
+        <h2 style="font-size: 1.25rem; margin-bottom: 1rem; font-weight: bold;">Radiant</h2>
+        <% @radiant_players.each do |p| %>
+          <% hero = Rails.configuration.x.constants.heroes[p["hero_id"].to_s] %>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <% if hero&.dig("img").present? %>
+                <%= image_tag("https://api.opendota.com#{hero["img"]}", alt: hero["localized_name"], style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
+              <% end %>
+              <div><%= hero&.dig("localized_name") || "Unknown" %></div>
+            </div>
+            <div style="opacity: 0.85;"><%= p["kills"] %>/<%= p["deaths"] %>/<%= p["assists"] %></div>
+          </div>
+        <% end %>
+      </div>
+
+      <div style="border: 1px solid #ffffff; padding: 1.5rem;">
+        <h2 style="font-size: 1.25rem; margin-bottom: 1rem; font-weight: bold;">Dire</h2>
+        <% @dire_players.each do |p| %>
+          <% hero = Rails.configuration.x.constants.heroes[p["hero_id"].to_s] %>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <% if hero&.dig("img").present? %>
+                <%= image_tag("https://api.opendota.com#{hero["img"]}", alt: hero["localized_name"], style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
+              <% end %>
+              <div><%= hero&.dig("localized_name") || "Unknown" %></div>
+            </div>
+            <div style="opacity: 0.85;"><%= p["kills"] %>/<%= p["deaths"] %>/<%= p["assists"] %></div>
+          </div>
+        <% end %>
+      </div>
     </div>
-    <div style="margin-bottom: 1rem;">
-      <strong>KDA:</strong> <%= @match[:kda] %>
-    </div>
-    <div style="margin-bottom: 1rem;">
-      <strong>GPM:</strong> <%= @match[:gpm] %>
-    </div>
-    <div style="margin-bottom: 1rem;">
-      <strong>XPM:</strong> <%= @match[:xpm] %>
-    </div>
-    <div style="margin-bottom: 1rem;">
-      <strong>Hero Damage:</strong> <%= @match[:hero_damage] %>
-    </div>
-    <div style="margin-bottom: 1rem;">
-      <strong>Tower Damage:</strong> <%= @match[:tower_damage] %>
-    </div>
-    <div>
-      <strong>Last Hits:</strong> <%= @match[:last_hits] %>
-    </div>
-  </div>
+  <% end %>
 </div>
