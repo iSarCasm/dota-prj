@@ -1,6 +1,6 @@
 <div>
   <div style="margin-bottom: 2rem;">
-    <%= link_to "← Back to Match History", matches_path, style: "color: #ffffff; text-decoration: underline;" %>
+    <%= link_to "← Back to Match History", matches_path(playerid: params[:playerid]), style: "color: #ffffff; text-decoration: underline;" %>
   </div>
 
   <h1 style="font-size: 2rem; margin-bottom: 2rem; font-weight: bold;">Match Details</h1>
@@ -28,7 +28,11 @@
           <div style="margin-bottom: 0.5rem;">
             <strong>Started:</strong>
             <% if @match_summary[:start_time].present? %>
-              <%= Time.at(@match_summary[:start_time].to_i).utc.strftime("%Y-%m-%d %H:%M UTC") %>
+              <% started_at_utc = Time.at(@match_summary[:start_time].to_i).utc %>
+              <span data-localize-utc data-epoch="<%= @match_summary[:start_time].to_i %>">
+                <%= started_at_utc.strftime("%Y-%m-%d %H:%M UTC") %>
+              </span>
+              (<%= time_ago_in_words(started_at_utc) %> ago)
             <% else %>
               -
             <% end %>
@@ -128,7 +132,9 @@
 
     <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;">
       <div style="border: 1px solid #ffffff; padding: 1.5rem;">
-        <h2 style="font-size: 1.25rem; margin-bottom: 1rem; font-weight: bold;">Radiant</h2>
+        <h2 style="font-size: 1.25rem; margin-bottom: 1rem; font-weight: bold;">
+          Radiant<%= @match_summary[:radiant_win] ? " (Victory)" : "" %>
+        </h2>
         <% @radiant_players.each do |p| %>
           <% hero = Rails.configuration.x.constants.heroes[p["hero_id"].to_s] %>
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.1);">
@@ -142,7 +148,9 @@
       </div>
 
       <div style="border: 1px solid #ffffff; padding: 1.5rem;">
-        <h2 style="font-size: 1.25rem; margin-bottom: 1rem; font-weight: bold;">Dire</h2>
+        <h2 style="font-size: 1.25rem; margin-bottom: 1rem; font-weight: bold;">
+          Dire<%= @match_summary[:radiant_win] ? "" : " (Victory)" %>
+        </h2>
         <% @dire_players.each do |p| %>
           <% hero = Rails.configuration.x.constants.heroes[p["hero_id"].to_s] %>
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.1);">

@@ -35,13 +35,17 @@
             <td style="padding: 1rem; border-right: 1px solid #ffffff;"><%= match[:kda] || "-" %></td>
             <td style="padding: 1rem; border-right: 1px solid #ffffff;">
               <% if match[:start_time].present? %>
-                <%= Time.at(match[:start_time].to_i).utc.strftime("%Y-%m-%d %H:%M UTC") %>
+                <% started_at_utc = Time.at(match[:start_time].to_i).utc %>
+                <span data-localize-utc data-epoch="<%= match[:start_time].to_i %>">
+                  <%= started_at_utc.strftime("%Y-%m-%d %H:%M UTC") %>
+                </span>
+                (<%= time_ago_in_words(started_at_utc) %> ago)
               <% else %>
                 -
               <% end %>
             </td>
             <td style="padding: 1rem;">
-              <%= link_to "View", match_path(match[:id]), style: "color: #ffffff; text-decoration: underline;" %>
+              <%= link_to "View", match_path(match[:id], playerid: params[:playerid]), style: "color: #ffffff; text-decoration: underline;" %>
             </td>
           </tr>
         <% end %>

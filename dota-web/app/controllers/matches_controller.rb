@@ -4,9 +4,11 @@ class MatchesController < ApplicationController
   def index
     api = OpenDotaApi.new
 
+    steam_id = steam64id_for(params[:playerid]) || current_user.steam_id
+
     matches =
       begin
-        api.get_player_matches(account_id: current_user.steam_id)
+        api.get_player_matches(account_id: steam_id)
       rescue StandardError => e
         Rails.logger.error("[MatchesController#index] OpenDotaApi error: #{e.class}: #{e.message}")
         flash.now[:alert] = "Could not load matches from OpenDota."
@@ -31,6 +33,8 @@ class MatchesController < ApplicationController
   def show
     api = OpenDotaApi.new
 
+    steam_id = steam64id_for(params[:playerid]) || current_user.steam_id
+
     @match_details =
       begin
         api.get_match_details(match_id: params[:id])
@@ -42,7 +46,7 @@ class MatchesController < ApplicationController
 
     return if @match_details.blank?
 
-    my_account_id32 = api.steam64id_to_32id(steam64id: current_user.steam_id)
+    my_account_id32 = api.steam64id_to_32id(steam64id: steam_id)
     players = Array(@match_details["players"])
     @me = players.find { |p| p["account_id"].to_i == my_account_id32.to_i }
 
@@ -146,6 +150,18 @@ class MatchesController < ApplicationController
     return nil if key.blank?
 
     constants.items[key]
+  end
+
+  # Accepts either SteamID64 or Steam "account id" (32-bit).
+  # Returns SteamID64 as an Integer, or nil if blank/invalid.
+  def steam64id_for(value)
+    return nil if value.blank?
+
+    id = value.to_s.strip.to_i
+    return nil if id <= 0
+
+    steam64_base = 76_561_197_960_265_728
+    id < steam64_base ? (steam64_base + id) : id
   end
 
   def player_items(player)
