@@ -1,0 +1,43 @@
+<div>
+  <div style="margin-bottom: 2rem;">
+    <%= link_to "← Back to Match History", matches_path, style: "color: #ffffff; text-decoration: underline;" %>
+  </div>
+
+  <h1 style="font-size: 2rem; margin-bottom: 2rem; font-weight: bold;">Match Details</h1>
+
+  <div style="border: 1px solid #ffffff; padding: 2rem;">
+    <div style="margin-bottom: 1rem;">
+      <strong>Match ID:</strong> <%= @match[:id] %>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <strong>Hero:</strong> <%= @match[:hero] %>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <strong>Hero Matchup:</strong> <%= @match[:hero_matchup] %>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <strong>Duration:</strong> <%= @match[:duration] %>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <strong>Result:</strong> <%= @match[:result] %>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <strong>KDA:</strong> <%= @match[:kda] %>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <strong>GPM:</strong> <%= @match[:gpm] %>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <strong>XPM:</strong> <%= @match[:xpm] %>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <strong>Hero Damage:</strong> <%= @match[:hero_damage] %>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <strong>Tower Damage:</strong> <%= @match[:tower_damage] %>
+    </div>
+    <div>
+      <strong>Last Hits:</strong> <%= @match[:last_hits] %>
+    </div>
+  </div>
+</div>

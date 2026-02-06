@@ -1,0 +1,9 @@
+<div style="text-align: center; margin-top: 4rem;">
+  <%= button_to user_steam_omniauth_authorize_path,
+      class: "inline-flex items-center py-3 px-6 border-2 border-white text-white hover:bg-white hover:text-black transition-colors",
+      style: "font-family: 'Courier New', Courier, monospace; background: transparent; cursor: pointer;",
+      data: { turbo: false } do %>
+    <%= image_tag "https://store.steampowered.com/favicon.ico", style: "height: 20px; width: 20px; margin-right: 10px;" %>
+    Sign in with Steam
+  <% end %>
+</div>
