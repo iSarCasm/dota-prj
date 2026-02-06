@@ -80,8 +80,12 @@ type PuckSnapshot struct {
 }
 
 func main() {
+	replayPath := "../replay1.dem"
+	if len(os.Args) > 1 {
+		replayPath = os.Args[1]
+	}
 
-	f, err := os.Open("../replay1.dem")
+	f, err := os.Open(replayPath)
 	if err != nil {
 		log.Fatalf("open: %v", err)
 	}

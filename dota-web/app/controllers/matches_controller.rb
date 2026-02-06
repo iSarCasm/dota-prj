@@ -30,6 +30,17 @@ class MatchesController < ApplicationController
     end
   end
 
+  def analyze
+    match_id = params[:id].to_s
+    api = OpenDotaApi.new
+    steam_id = steam64id_for(params[:playerid]) || current_user.steam_id
+    account_id_32 = api.steam64id_to_32id(steam64id: steam_id).to_s
+    dota_match = DotaMatch.create!(match_id: match_id, players: [account_id_32], status: "init")
+    MatchAnalysisJob.perform_later(dota_match.id)
+    redirect_to match_path(match_id, playerid: params[:playerid]),
+                notice: "Match analysis started for match #{match_id}."
+  end
+
   def show
     api = OpenDotaApi.new
 
@@ -45,6 +56,8 @@ class MatchesController < ApplicationController
       end
 
     return if @match_details.blank?
+
+    @dota_match = DotaMatch.where(match_id: params[:id]).order(created_at: :desc).first
 
     my_account_id32 = api.steam64id_to_32id(steam64id: steam_id)
     players = Array(@match_details["players"])

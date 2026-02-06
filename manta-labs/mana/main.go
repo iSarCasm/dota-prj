@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"unicode"
 
@@ -45,11 +46,50 @@ func guessHeroClassFromNPC(npc string) string {
 	return b.String()
 }
 
-func main() {
+// heroNameToClass maps a hero name (e.g. "Puck", "keeper_of_the_light") to CDOTA_Unit_Hero_* class name.
+func heroNameToClass(heroName string) string {
+	heroName = strings.TrimSpace(strings.ReplaceAll(heroName, " ", "_"))
+	if heroName == "" {
+		return ""
+	}
+	parts := strings.Split(heroName, "_")
+	titled := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p == "" {
+			continue
+		}
+		r := []rune(strings.ToLower(p))
+		if len(r) > 0 {
+			r[0] = unicode.ToUpper(r[0])
+			titled = append(titled, string(r))
+		}
+	}
+	return "CDOTA_Unit_Hero_" + strings.Join(titled, "_")
+}
 
-	f, err := os.Open("../replay1.dem")
+func main() {
+	if len(os.Args) != 5 {
+		log.Fatalf("usage: %s <match_id> <hero_name> <replay_path> <output_dir>", os.Args[0])
+	}
+	matchID := os.Args[1]
+	heroName := os.Args[2]
+	replayPath := os.Args[3]
+	outputDir := os.Args[4]
+
+	manaTickInterval := 30 // record mana every 30 ticks
+
+	heroClass := heroNameToClass(heroName)
+	if heroClass == "" {
+		log.Fatalf("invalid hero name: %q", heroName)
+	}
+
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		log.Fatalf("mkdir output dir: %v", err)
+	}
+
+	f, err := os.Open(replayPath)
 	if err != nil {
-		log.Fatalf("open: %v", err)
+		log.Fatalf("open replay: %v", err)
 	}
 	defer f.Close()
 
@@ -95,16 +135,19 @@ func main() {
 			}
 		}
 
-		if cn == "CDOTA_Unit_Hero_Puck" {
+		if cn == heroClass {
 			maxMana, ok := e.GetFloat32("m_flMaxMana")
 			if !ok {
-				log.Printf("Puck mana: missing m_flMaxMana")
+				log.Printf("%s mana: missing m_flMaxMana", heroClass)
+				return nil
+			}
+			if entityTick%uint32(manaTickInterval) != 0 {
 				return nil
 			}
 
 			mana, ok := e.GetFloat32("m_flMana")
 			if !ok {
-				log.Printf("Puck mana: missing m_flMana")
+				log.Printf("%s mana: missing m_flMana", heroClass)
 				return nil
 			}
 			s := &ManaSnapshot{Tick: entityTick, Time: entityTime, Mana: mana, MaxMana: maxMana, ManaPercent: mana / maxMana * 100}
@@ -121,16 +164,25 @@ func main() {
 		log.Fatalf("parse error: %v", err)
 	}
 
-	// Dump all mana snapshots into a CSV file
-	fManaCSV, err := os.Create("mana.csv")
-	if err != nil {
-		log.Fatalf("create mana.csv: %v", err)
-	}
-	defer fManaCSV.Close()
-
+	// Build mana as array of arrays: [ [tick, time, mana, max_mana, mana_percent], ... ]
+	manaRows := make([][]interface{}, 0, len(allManaSnapshots))
 	for _, s := range allManaSnapshots {
-		fManaCSV.WriteString(fmt.Sprintf("%d,%f,%f,%f,%f\n", s.Tick, s.Time, s.Mana, s.MaxMana, s.ManaPercent))
+		manaRows = append(manaRows, []interface{}{s.Tick, s.Time, s.Mana, s.MaxMana, s.ManaPercent})
+	}
+	out := map[string]interface{}{"mana": manaRows}
+
+	jsonPath := filepath.Join(outputDir, matchID+"_output.json")
+	fJSON, err := os.Create(jsonPath)
+	if err != nil {
+		log.Fatalf("create %s: %v", jsonPath, err)
+	}
+	defer fJSON.Close()
+
+	enc := json.NewEncoder(fJSON)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(out); err != nil {
+		log.Fatalf("encode JSON: %v", err)
 	}
 
-	log.Printf("Parse Complete!")
+	log.Printf("Parse complete: match_id=%s hero=%s -> %s (%d rows)", matchID, heroName, jsonPath, len(allManaSnapshots))
 }

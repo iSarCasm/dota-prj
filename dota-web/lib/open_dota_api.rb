@@ -55,9 +55,15 @@ class OpenDotaApi
     JSON.parse(response.body)
   end
 
-  def download_replay(replay_url:)
+  def download_replay(replay_url:, file_name: 'replay.dem')
     response = HTTParty.get(replay_url)
-    File.write("replay.dem", response.body)
+    File.binwrite(file_name, response.body)
+  end
+
+  # POST /request/{match_id}
+  def request_parse(match_id:)
+    response = HTTParty.post("#{@base_url}/request/#{match_id}")
+    JSON.parse(response.body)
   end
 
   def steam64id_to_32id(steam64id:)

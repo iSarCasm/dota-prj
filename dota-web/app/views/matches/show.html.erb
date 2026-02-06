@@ -5,6 +5,11 @@
 
   <h1 style="font-size: 2rem; margin-bottom: 2rem; font-weight: bold;">Match Details</h1>
 
+  <% if flash[:notice].present? %>
+    <div style="margin-bottom: 1rem; padding: 0.75rem 1rem; border: 1px solid #51cf66; color: #51cf66;">
+      <%= flash[:notice] %>
+    </div>
+  <% end %>
   <% if flash[:alert].present? %>
     <div style="margin-bottom: 1rem; padding: 0.75rem 1rem; border: 1px solid #ff6b6b; color: #ff6b6b;">
       <%= flash[:alert] %>
@@ -16,6 +21,14 @@
       Could not load match details.
     </div>
   <% else %>
+    <div style="margin-bottom: 2rem;">
+      <%= button_to "Analyze",
+          analyze_match_path(@match_summary[:id], playerid: params[:playerid]),
+          method: :post,
+          class: "analyze-button",
+          style: "display: inline-block; padding: 1rem 2.5rem; font-size: 1.25rem; font-weight: bold; background: #228be6; color: #fff; border: none; border-radius: 0.5rem; cursor: pointer; text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" %>
+    </div>
+
     <div style="border: 1px solid #ffffff; padding: 2rem; margin-bottom: 2rem;">
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
         <div>
@@ -162,6 +175,96 @@
           </div>
         <% end %>
       </div>
+    </div>
+
+    <div style="border: 1px solid #ffffff; padding: 2rem; margin-top: 2rem;">
+      <h2 style="font-size: 1.25rem; margin-bottom: 1rem; font-weight: bold;">Match analysis output</h2>
+      <% if @dota_match.present? && @dota_match.output.present? %>
+        <% mana_data = @dota_match.output["mana"] %>
+        <% if mana_data.present? && mana_data.is_a?(Array) && mana_data.any? %>
+          <h3 style="font-size: 1rem; margin-bottom: 0.75rem; font-weight: bold;">Mana % over time</h3>
+          <div style="margin-bottom: 1.5rem; max-width: 100%;">
+            <canvas id="mana-chart" width="400" height="300" style="max-width: 100%; height: auto;"></canvas>
+          </div>
+          <script>
+            window.MANA_CHART_DATA = <%= raw @dota_match.output.to_json %>;
+          </script>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+          <script>
+            (function() {
+              var data = window.MANA_CHART_DATA;
+              if (!data || !data.mana || !data.mana.length) return;
+              var rows = data.mana;
+              var labels = rows.map(function(r) { return Math.round(r[1] / 60); });
+              var manaPctValues = rows.map(function(r) { return r[4]; });
+              var manaActualValues = rows.map(function(r) { return r[2]; });
+              var ctx = document.getElementById('mana-chart');
+              if (!ctx) return;
+              ctx = ctx.getContext('2d');
+              new Chart(ctx, {
+                type: 'line',
+                data: {
+                  labels: labels,
+                  datasets: [
+                    {
+                      label: 'Mana %',
+                      data: manaPctValues,
+                      borderColor: 'rgb(34, 139, 230)',
+                      backgroundColor: 'rgba(34, 139, 230, 0.1)',
+                      fill: true,
+                      tension: 0.2
+                    }
+                  ]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: true,
+                  plugins: {
+                    legend: {
+                      labels: { color: '#ffffff' }
+                    },
+                    tooltip: {
+                      callbacks: {
+                        title: function(context) {
+                          var idx = context[0] && context[0].dataIndex;
+                          if (idx != null && manaActualValues[idx] != null) {
+                            return 'Mana: ' + Math.round(manaActualValues[idx] * 100) / 100;
+                          }
+                          return context[0] && context[0].label != null ? context[0].label : '';
+                        },
+                        label: function(context) {
+                          var pct = context.parsed && context.parsed.y != null ? context.parsed.y : '';
+                          return (pct !== '' ? pct + '%' : '');
+                        }
+                      }
+                    }
+                  },
+                  scales: {
+                    x: {
+                      title: { display: true, text: 'Time (min)', color: '#ffffff' },
+                      ticks: { color: 'rgba(255,255,255,0.8)' },
+                      grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    y: {
+                      min: 0,
+                      max: 100,
+                      title: { display: true, text: 'Mana %', color: '#ffffff' },
+                      ticks: { color: 'rgba(255,255,255,0.8)' },
+                      grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                  }
+                }
+              });
+            })();
+          </script>
+        <% end %>
+        <details>
+          <summary style="cursor: pointer; text-decoration: underline;">Show analysis output (raw JSON)</summary>
+          <pre style="margin-top: 1rem; white-space: pre-wrap; overflow: auto; max-height: 70vh; border: 1px solid rgba(255,255,255,0.2); padding: 1rem;"><%= JSON.pretty_generate(@dota_match.output) rescue @dota_match.output.inspect %></pre>
+        </details>
+      <% else %>
+        <p style="opacity: 0.85;">No analysis output yet. Click "Analyze" to run match analysis.</p>
+      <% end %>
     </div>
 
     <div style="border: 1px solid #ffffff; padding: 2rem; margin-top: 2rem;">

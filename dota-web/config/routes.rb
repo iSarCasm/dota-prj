@@ -17,5 +17,9 @@ Rails.application.routes.draw do
   #
   root "home#index"
 
-  resources :matches, only: [:index, :show]
+  resources :matches, only: [:index, :show] do
+    member do
+      post :analyze
+    end
+  end
 end

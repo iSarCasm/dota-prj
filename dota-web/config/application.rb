@@ -29,7 +29,10 @@ module DotaWeb
       config.x.constants[key] = JSON.parse(File.read(path))
     end
 
-    # Configuration for the application, engines, and railties goes here.
+    # Use Sidekiq for background jobs
+  config.active_job.queue_adapter = :sidekiq
+
+  # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.

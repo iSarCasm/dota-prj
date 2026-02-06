@@ -10,9 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_27_002654) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_06_032854) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "dota_matches", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "match_id", null: false
+    t.json "output", default: {}
+    t.string "players", default: [], array: true
+    t.string "replay_file"
+    t.string "status", null: false
+    t.datetime "updated_at", null: false
+    t.index ["match_id"], name: "index_dota_matches_on_match_id"
+    t.index ["status"], name: "index_dota_matches_on_status"
+  end
 
   create_table "users", force: :cascade do |t|
     t.datetime "confirmation_sent_at"
