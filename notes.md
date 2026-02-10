@@ -70,3 +70,13 @@ PT has 3 uses:
 1. IGNORE ILLUSIONS
 2. remove pause times
 3.
+
+
+
+
+
+
+
+"m_pGameRules.m_flGameStartTime": (float32) 274.7667,
+"m_pGameRules.m_flHeroPickStateTransitionTime": (float32) 140.70001,
+(string) (len=33) "m_pGameRules.m_flPreGameStartTime": (float32) 184.76668,

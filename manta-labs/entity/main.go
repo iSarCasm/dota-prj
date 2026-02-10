@@ -76,9 +76,9 @@ func main() {
 	}
 
 	// illusion stuff
-	lastOwnerEntity := uint32(0)
-	lastOwnerNPC := uint32(0)
-	lastCreateTime := float32(0)
+	// lastOwnerEntity := uint32(0)
+	// lastOwnerNPC := uint32(0)
+	// lastCreateTime := float32(0)
 
 	// Maintain our best-effort hero lookup index as entity updates stream in.
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
@@ -90,40 +90,40 @@ func main() {
 		entityStats[cn]++
 
 		if _, ok := unitDumpLogs[cn]; ok {
-			// fDump(unitDumpLogs[cn], e)
+			fDump(unitDumpLogs[cn], e)
 
 			// Print illusion specific stuff
-			isClone, _ := e.GetBool("m_bIsClone")
-			isPhantom, _ := e.GetBool("m_bIsPhantom")
-			m_bIsSummoned, _ := e.GetBool("m_bIsSummoned")
-			m_bCanUseWards, _ := e.GetBool("m_bCanUseWards")
-			m_hOwnerEntity, _ := e.GetUint32("m_hOwnerEntity")
-			m_hOwnerNPC, _ := e.GetUint32("m_hOwnerNPC")
-			m_flCreateTime, _ := e.GetFloat32("m_flCreateTime")
-			if isClone {
-				fmt.Println("Is Clone: ", isClone)
-			}
-			if isPhantom {
-				fmt.Println("Is Phantom: ", isPhantom)
-			}
-			if m_bIsSummoned {
-				fmt.Println("Is Summoned: ", m_bIsSummoned)
-			}
-			if !m_bCanUseWards {
-				fmt.Println("Is Illusion: ", m_bCanUseWards)
-			}
-			if m_hOwnerEntity != lastOwnerEntity {
-				lastOwnerEntity = m_hOwnerEntity
-				fmt.Println("Last Owner Entity: ", lastOwnerEntity)
-			}
-			if m_hOwnerNPC != lastOwnerNPC {
-				lastOwnerNPC = m_hOwnerNPC
-				fmt.Println("Last Owner NPC: ", lastOwnerNPC)
-			}
-			if m_flCreateTime != lastCreateTime {
-				lastCreateTime = m_flCreateTime
-				fmt.Println("Last Create Time: ", lastCreateTime)
-			}
+			// isClone, _ := e.GetBool("m_bIsClone")
+			// isPhantom, _ := e.GetBool("m_bIsPhantom")
+			// m_bIsSummoned, _ := e.GetBool("m_bIsSummoned")
+			// m_bCanUseWards, _ := e.GetBool("m_bCanUseWards")
+			// m_hOwnerEntity, _ := e.GetUint32("m_hOwnerEntity")
+			// m_hOwnerNPC, _ := e.GetUint32("m_hOwnerNPC")
+			// m_flCreateTime, _ := e.GetFloat32("m_flCreateTime")
+			// if isClone {
+			// 	fmt.Println("Is Clone: ", isClone)
+			// }
+			// if isPhantom {
+			// 	fmt.Println("Is Phantom: ", isPhantom)
+			// }
+			// if m_bIsSummoned {
+			// 	fmt.Println("Is Summoned: ", m_bIsSummoned)
+			// }
+			// if !m_bCanUseWards {
+			// 	fmt.Println("Is Illusion: ", m_bCanUseWards)
+			// }
+			// if m_hOwnerEntity != lastOwnerEntity {
+			// 	lastOwnerEntity = m_hOwnerEntity
+			// 	fmt.Println("Last Owner Entity: ", lastOwnerEntity)
+			// }
+			// if m_hOwnerNPC != lastOwnerNPC {
+			// 	lastOwnerNPC = m_hOwnerNPC
+			// 	fmt.Println("Last Owner NPC: ", lastOwnerNPC)
+			// }
+			// if m_flCreateTime != lastCreateTime {
+			// 	lastCreateTime = m_flCreateTime
+			// 	fmt.Println("Last Create Time: ", lastCreateTime)
+			// }
 		}
 
 		return nil

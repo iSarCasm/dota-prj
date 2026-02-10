@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -93,6 +92,9 @@ func main() {
 
 	manaTickInterval := 30 // record mana every 30 ticks
 
+	// Globals
+	gameStartTime := float32(0)
+
 	heroClass := heroNameToClass(heroName)
 	if heroClass == "" {
 		log.Fatalf("invalid hero name: %q", heroName)
@@ -135,9 +137,9 @@ func main() {
 		// 	log.Printf("tick=%d", m.GetTick())
 		// }
 
-		time := float32(m.GetTick()) * tickInterval
-		prettyTime := fmt.Sprintf("%d:%02d", int(time/60), int(time)%60)
-		log.Printf("tick=%d, time=%f, pretty time=%s", m.GetTick(), time, prettyTime)
+		// time := float32(m.GetTick()) * tickInterval
+		// prettyTime := fmt.Sprintf("%d:%02d", int(time/60), int(time)%60)
+		// log.Printf("tick=%d, time=%f, pretty time=%s", m.GetTick(), time, prettyTime)
 		return nil
 	})
 
@@ -149,6 +151,10 @@ func main() {
 			return nil
 		}
 		cn := e.GetClassName()
+
+		if gameStartTime == 0 && cn == "CDOTAGamerulesProxy" {
+			gameStartTime, _ = e.GetFloat32("m_pGameRules.m_flGameStartTime")
+		}
 
 		// Build playerID -> hero mapping from hero entities.
 		// This is what you want for translating item.m_iPlayerOwnerID -> hero.
@@ -164,9 +170,17 @@ func main() {
 		}
 
 		if cn == heroClass && isRealHero(e) {
+			// Position debug
+			// CBodyComponent.m_cellX
+			// cellX, ok := e.GetUint64("CBodyComponent.m_cellX")
+			// // pritn every 1000 ticks
+			// if entityTick%10 == 0 {
+			// 	log.Printf("[%d] %s Cell X: %d", entityTick, heroClass, cellX)
+			// }
+
 			maxMana, ok := e.GetFloat32("m_flMaxMana")
 			if !ok {
-				log.Printf("%s mana: missing m_flMaxMana", heroClass)
+				// log.Printf("%s mana: missing m_flMaxMana", heroClass)
 				return nil
 			}
 			if entityTick%uint32(manaTickInterval) != 0 {
@@ -178,9 +192,9 @@ func main() {
 				log.Printf("%s mana: missing m_flMana", heroClass)
 				return nil
 			}
-			s := &ManaSnapshot{Tick: entityTick, Time: entityTime, Mana: mana, MaxMana: maxMana, ManaPercent: mana / maxMana * 100}
+			s := &ManaSnapshot{Tick: entityTick, Time: entityTime - gameStartTime, Mana: mana, MaxMana: maxMana, ManaPercent: mana / maxMana * 100}
 			allManaSnapshots = append(allManaSnapshots, s)
-			log.Printf("[%d] %s mana: %f / %f (%.2f%%)", entityTick, heroClass, mana, maxMana, mana/maxMana*100)
+			// log.Printf("[%d] %s mana: %f / %f (%.2f%%)", entityTick, heroClass, mana, maxMana, mana/maxMana*100)
 			return nil
 		}
 
