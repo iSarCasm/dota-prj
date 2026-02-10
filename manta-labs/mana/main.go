@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -67,6 +68,20 @@ func heroNameToClass(heroName string) string {
 	return "CDOTA_Unit_Hero_" + strings.Join(titled, "_")
 }
 
+func isRealHero(e *manta.Entity) bool {
+	// isClone, ok1 := e.GetBool("m_bIsClone")
+	// isPhantom, ok2 := e.GetBool("m_bIsPhantom")
+	// if !ok1 || !ok2 {
+	// 	return true
+	// }
+	// return !isClone && !isPhantom
+	// Code above does not do shit
+
+	// Real heroes are created in the begging of the game
+	m_flCreateTime, _ := e.GetFloat32("m_flCreateTime")
+	return m_flCreateTime < 150
+}
+
 func main() {
 	if len(os.Args) != 5 {
 		log.Fatalf("usage: %s <match_id> <hero_name> <replay_path> <output_dir>", os.Args[0])
@@ -113,6 +128,19 @@ func main() {
 
 	allManaSnapshots := make([]*ManaSnapshot, 0, 1024)
 
+	ticks := 0
+	p.Callbacks.OnCNETMsg_Tick(func(m *dota.CNETMsg_Tick) error {
+		ticks++
+		// if ticks == 1 || ticks%3000 == 0 { // every ~3000 ticks just to prove progress
+		// 	log.Printf("tick=%d", m.GetTick())
+		// }
+
+		time := float32(m.GetTick()) * tickInterval
+		prettyTime := fmt.Sprintf("%d:%02d", int(time/60), int(time)%60)
+		log.Printf("tick=%d, time=%f, pretty time=%s", m.GetTick(), time, prettyTime)
+		return nil
+	})
+
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
 		entityTick := p.Tick
 		entityTime := float32(entityTick) * tickInterval
@@ -135,7 +163,7 @@ func main() {
 			}
 		}
 
-		if cn == heroClass {
+		if cn == heroClass && isRealHero(e) {
 			maxMana, ok := e.GetFloat32("m_flMaxMana")
 			if !ok {
 				log.Printf("%s mana: missing m_flMaxMana", heroClass)
@@ -152,7 +180,7 @@ func main() {
 			}
 			s := &ManaSnapshot{Tick: entityTick, Time: entityTime, Mana: mana, MaxMana: maxMana, ManaPercent: mana / maxMana * 100}
 			allManaSnapshots = append(allManaSnapshots, s)
-			// log.Printf("Puck mana: %f / %f (%.2f%%)", mana, maxMana, mana/maxMana*100)
+			log.Printf("[%d] %s mana: %f / %f (%.2f%%)", entityTick, heroClass, mana, maxMana, mana/maxMana*100)
 			return nil
 		}
 

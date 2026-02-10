@@ -64,3 +64,9 @@ PT has 3 uses:
 4. MAIN ATTR = when farming/damaging (and not spending mana or being damanged)
 5. NON-STR = when healing (and not being damaged and not DPS-ing for STR-heroes)
 6. NON-INT = when gaining mana (and not using mana and not DPS-ing for INT-heroes)
+
+
+
+1. IGNORE ILLUSIONS
+2. remove pause times
+3.
