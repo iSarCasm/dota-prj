@@ -154,6 +154,7 @@ func main() {
 
 		if gameStartTime == 0 && cn == "CDOTAGamerulesProxy" {
 			gameStartTime, _ = e.GetFloat32("m_pGameRules.m_flGameStartTime")
+			// log.Printf("Game start time: %f", gameStartTime)
 		}
 
 		// Build playerID -> hero mapping from hero entities.
@@ -192,7 +193,7 @@ func main() {
 				log.Printf("%s mana: missing m_flMana", heroClass)
 				return nil
 			}
-			s := &ManaSnapshot{Tick: entityTick, Time: entityTime - gameStartTime, Mana: mana, MaxMana: maxMana, ManaPercent: mana / maxMana * 100}
+			s := &ManaSnapshot{Tick: entityTick, Time: entityTime, Mana: mana, MaxMana: maxMana, ManaPercent: mana / maxMana * 100}
 			allManaSnapshots = append(allManaSnapshots, s)
 			// log.Printf("[%d] %s mana: %f / %f (%.2f%%)", entityTick, heroClass, mana, maxMana, mana/maxMana*100)
 			return nil
@@ -212,6 +213,7 @@ func main() {
 		manaRows = append(manaRows, []interface{}{s.Tick, s.Time, s.Mana, s.MaxMana, s.ManaPercent})
 	}
 	out := map[string]interface{}{"mana": manaRows}
+	out["gameStartTime"] = gameStartTime
 
 	jsonPath := filepath.Join(outputDir, matchID+"_output.json")
 	fJSON, err := os.Create(jsonPath)

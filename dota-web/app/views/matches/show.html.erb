@@ -195,7 +195,8 @@
               var data = window.MANA_CHART_DATA;
               if (!data || !data.mana || !data.mana.length) return;
               var rows = data.mana;
-              var labels = rows.map(function(r) { return Math.round(r[1] / 60); });
+              var startTime = data.gameStartTime;
+              var labels = rows.map(function(r) { return Math.round((r[1] - startTime) / 60); });
               var manaPctValues = rows.map(function(r) { return r[4]; });
               var manaActualValues = rows.map(function(r) { return r[2]; });
               var ctx = document.getElementById('mana-chart');
@@ -212,7 +213,9 @@
                       borderColor: 'rgb(34, 139, 230)',
                       backgroundColor: 'rgba(34, 139, 230, 0.1)',
                       fill: true,
-                      tension: 0.2
+                      tension: 0.2,
+                      pointRadius: 0,
+                      pointHoverRadius: 4
                     }
                   ]
                 },
@@ -224,17 +227,20 @@
                       labels: { color: '#ffffff' }
                     },
                     tooltip: {
+                      intersect: false,
+                      mode: 'index',
                       callbacks: {
                         title: function(context) {
                           var idx = context[0] && context[0].dataIndex;
-                          if (idx != null && manaActualValues[idx] != null) {
-                            return 'Mana: ' + Math.round(manaActualValues[idx] * 100) / 100;
-                          }
-                          return context[0] && context[0].label != null ? context[0].label : '';
+                          if (idx == null) return context[0] && context[0].label != null ? context[0].label : '';
+                          var sec = rows[idx] && rows[idx][1];
+                          var fullTime = (sec != null) ? (Math.floor(sec / 60) + 'm ' + Math.round(sec % 60) + 's') : '';
+                          var manaStr = (manaActualValues[idx] != null) ? ('Mana: ' + Math.round(manaActualValues[idx] * 100) / 100) : '';
+                          return [fullTime, manaStr].filter(Boolean).join(' · ');
                         },
                         label: function(context) {
                           var pct = context.parsed && context.parsed.y != null ? context.parsed.y : '';
-                          return (pct !== '' ? pct + '%' : '');
+                          return (pct !== '' ? Math.round(pct) + '%' : '');
                         }
                       }
                     }
