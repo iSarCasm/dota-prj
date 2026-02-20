@@ -70,7 +70,7 @@ func fDump(w io.Writer, e *manta.Entity) {
 
 var PT_I_STAT_STRING = []string{"str", "int", "agi"}
 
-type PuckSnapshot struct {
+type HeroSnapshot struct {
 	Tick      uint32
 	Time      float32
 	MaxHealth int32
@@ -213,8 +213,8 @@ func main() {
 	listToFind := []uint32{9340920, 3574043, 4246443, 7308954, 6671105, 15354432, 16777215, 13339623, 16777215, 5491033, 16777215, 16777215, 16777215, 16777215, 16777215, 5130626, 838124, 4295331, 16777215, 16777215, 16777215, 16777215, 16777215, 16777215, 4571519}
 	foundHandleMap := make(map[uint32]string)
 
-	var puckPrev *PuckSnapshot
-	var puckCur *PuckSnapshot
+	var puckPrev *HeroSnapshot
+	var puckCur *HeroSnapshot
 
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
 		entityTick := p.Tick
@@ -290,7 +290,7 @@ func main() {
 		if cn == "CDOTA_Unit_Hero_Puck" {
 			puckPrev = puckCur
 
-			s := &PuckSnapshot{Tick: entityTick, Time: entityTime}
+			s := &HeroSnapshot{Tick: entityTick, Time: entityTime}
 			if v, ok := e.GetInt32("m_iMaxHealth"); ok {
 				s.MaxHealth = v
 				s.HasHealth = true

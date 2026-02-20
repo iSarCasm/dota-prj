@@ -93,7 +93,7 @@ class MatchAnalysisJob < ApplicationJob
     output_dir = Rails.root.join("storage", "replays", dota_match.match_id).to_s
     FileUtils.mkdir_p(output_dir)
 
-    Rails.logger.info "[MatchAnalysisJob] running mana: #{bin} #{dota_match.match_id} #{hero_name} #{replay_path} #{output_dir}"
+    Rails.logger.info "[MatchAnalysisJob] running parser: #{bin} #{dota_match.match_id} #{hero_name} #{replay_path} #{output_dir}"
     stdout, stderr, status = Open3.capture3(
       bin,
       dota_match.match_id.to_s,
