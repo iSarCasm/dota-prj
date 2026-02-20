@@ -55,6 +55,49 @@ func HeroNameToClass(heroName string) string {
 	return "CDOTA_Unit_Hero_" + heroName
 }
 
+// entityClassToCombatLogName converts an entity class name to the combat-log style name
+// so we can key mana cost by the same string the combat log uses.
+// e.g. CDOTA_Ability_StormSpirit_StaticRemnant -> storm_spirit_static_remnant, CDOTA_Item_PowerTreads -> item_power_treads.
+func EntityClassToCombatLogName(className string) string {
+	className = strings.TrimSpace(className)
+	if className == "" {
+		return ""
+	}
+	const abilityPrefix = "CDOTA_Ability_"
+	const itemPrefix = "CDOTA_Item_"
+	var rest string
+	if strings.HasPrefix(className, abilityPrefix) {
+		rest = strings.TrimPrefix(className, abilityPrefix)
+	} else if strings.HasPrefix(className, itemPrefix) {
+		rest = strings.TrimPrefix(className, itemPrefix)
+		return "item_" + pascalToSnake(rest)
+	} else {
+		return ""
+	}
+	// rest is e.g. "StormSpirit_StaticRemnant" - words separated by underscore, each word in PascalCase
+	parts := strings.Split(rest, "_")
+	var out []string
+	for _, word := range parts {
+		if word == "" {
+			continue
+		}
+		out = append(out, pascalToSnake(word))
+	}
+	return strings.Join(out, "_")
+}
+
+// pascalToSnake converts PascalCase to snake_case (e.g. StormSpirit -> storm_spirit).
+func pascalToSnake(s string) string {
+	var b strings.Builder
+	for i, r := range s {
+		if unicode.IsUpper(r) && i > 0 {
+			b.WriteByte('_')
+		}
+		b.WriteRune(unicode.ToLower(r))
+	}
+	return b.String()
+}
+
 // IsRealHero returns true if the entity is a real hero (not clone/illusion).
 // Real heroes are created at the beginning of the game.
 func IsRealHero(e *manta.Entity) bool {

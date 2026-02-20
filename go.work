@@ -1,3 +1,7 @@
 go 1.19
 
-use ./parser
+use (
+	./manta-labs/pt
+	./manta-labs/entity
+	./parser
+)

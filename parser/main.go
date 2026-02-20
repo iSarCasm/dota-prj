@@ -11,6 +11,7 @@ import (
 	"github.com/dotabuff/manta"
 	"github.com/dotabuff/manta/dota"
 
+	"dota2/internal/abilities"
 	"dota2/internal/common"
 	"dota2/internal/mana"
 	"dota2/internal/pt"
@@ -85,8 +86,9 @@ func main() {
 	// Handlers
 	manaHandler := mana.NewHandler(30)
 	ptHandler := pt.NewHandler()
+	abilitiesHandler := abilities.NewHandler()
 
-	for _, h := range []common.ReplayHandler{manaHandler, ptHandler} {
+	for _, h := range []common.ReplayHandler{manaHandler, ptHandler, abilitiesHandler} {
 		if err := h.Init(ctx); err != nil {
 			log.Fatalf("handler init: %v", err)
 		}
@@ -106,7 +108,7 @@ func main() {
 		"gameStartTime": ctx.GameStartTime,
 		"heroName":      ctx.HeroName,
 	}
-	for _, h := range []common.ReplayHandler{manaHandler, ptHandler} {
+	for _, h := range []common.ReplayHandler{manaHandler, ptHandler, abilitiesHandler} {
 		for k, v := range h.Output(ctx) {
 			out[k] = v
 		}
