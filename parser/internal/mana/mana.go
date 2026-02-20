@@ -1,10 +1,7 @@
 package mana
 
 import (
-	"encoding/json"
 	"log"
-	"os"
-	"path/filepath"
 
 	"github.com/dotabuff/manta"
 
@@ -37,7 +34,6 @@ func NewHandler(tickInterval int) *Handler {
 // Init validates config and allocates state.
 func (h *Handler) Init(ctx *common.ParseContext) error {
 	h.heroClass = common.HeroNameToClass(ctx.HeroName)
-	log.Printf("heroClass: %s", h.heroClass)
 	if h.heroClass == "" {
 		return common.ErrInvalidHeroName
 	}
@@ -84,30 +80,13 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 
 }
 
-// WriteOutput writes the collected mana data to JSON.
-func (h *Handler) WriteOutput(ctx *common.ParseContext) error {
+// Output returns the handler's contribution to the final JSON (key "mana").
+func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
 	manaRows := make([][]interface{}, 0, len(h.snapshots))
 	for _, s := range h.snapshots {
 		manaRows = append(manaRows, []interface{}{s.Tick, s.Time, s.Mana, s.MaxMana, s.ManaPercent})
 	}
-	out := map[string]interface{}{
-		"mana":          manaRows,
-		"gameStartTime": ctx.GameStartTime,
+	return map[string]interface{}{
+		"mana": manaRows,
 	}
-
-	jsonPath := filepath.Join(ctx.OutputDir, ctx.MatchID+"_output.json")
-	f, err := os.Create(jsonPath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(out); err != nil {
-		return err
-	}
-
-	log.Printf("Parse complete: match_id=%s hero=%s -> %s (%d rows)", ctx.MatchID, ctx.HeroName, jsonPath, len(h.snapshots))
-	return nil
 }

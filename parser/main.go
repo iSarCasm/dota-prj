@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dotabuff/manta"
@@ -39,10 +41,10 @@ func main() {
 	}
 
 	ctx := &common.ParseContext{
-		MatchID:    matchID,
-		OutputDir:  outputDir,
-		HeroName:   heroName,
-		ReplayPath: replayPath,
+		MatchID:        matchID,
+		OutputDir:      outputDir,
+		HeroName:       heroName,
+		ReplayPath:     replayPath,
 		PlayerIDToHero: make(map[uint32]common.HeroRef, 16),
 	}
 
@@ -100,7 +102,27 @@ func main() {
 		log.Fatalf("parse error: %v", err)
 	}
 
-	if err := manaHandler.WriteOutput(ctx); err != nil {
-		log.Fatalf("write mana output: %v", err)
+	out := map[string]interface{}{
+		"gameStartTime": ctx.GameStartTime,
+		"heroName":      ctx.HeroName,
 	}
+	for _, h := range []common.ReplayHandler{manaHandler, ptHandler} {
+		for k, v := range h.Output(ctx) {
+			out[k] = v
+		}
+	}
+
+	jsonPath := filepath.Join(outputDir, matchID+"_output.json")
+	var outFile *os.File
+	outFile, err = os.Create(jsonPath)
+	if err != nil {
+		log.Fatalf("create output file: %v", err)
+	}
+	defer outFile.Close()
+	enc := json.NewEncoder(outFile)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(out); err != nil {
+		log.Fatalf("encode output: %v", err)
+	}
+	log.Printf("Parse complete: match_id=%s hero=%s -> %s", matchID, heroName, jsonPath)
 }

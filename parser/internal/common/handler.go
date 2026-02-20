@@ -29,4 +29,8 @@ type ReplayHandler interface {
 
 	// RegisterCallbacks registers this handler's callbacks on the parser.
 	RegisterCallbacks(p *manta.Parser, ctx *ParseContext)
+
+	// Output returns this handler's contribution to the final JSON. Keys should be unique (e.g. "mana", "power_treads").
+	// Return nil or empty map if the handler has nothing to output.
+	Output(ctx *ParseContext) map[string]interface{}
 }

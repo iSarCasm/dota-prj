@@ -22,11 +22,27 @@ type PTUsage struct {
 	Inflictor uint32
 }
 
+// PTSwitchEvent is a single PT switch for JSON output (timestamp, hero class, attribute).
+type PTSwitchEvent struct {
+	Timestamp     float32 `json:"timestamp"`
+	Attribute     string  `json:"attribute"`
+	PrevHealth    int32   `json:"prev_health"`
+	PrevMaxHealth int32   `json:"prev_max_health"`
+	PrevMana      float32 `json:"prev_mana"`
+	PrevMaxMana   float32 `json:"prev_max_mana"`
+	Health        int32   `json:"health"`
+	MaxHealth     int32   `json:"max_health"`
+	Mana          float32 `json:"mana"`
+	MaxMana       float32 `json:"max_mana"`
+}
+
 // HeroSnapshot captures hero state at a tick (for PT correlation with max health/mana changes).
 type HeroSnapshot struct {
 	Tick      uint32
 	Time      float32
+	Health    int32
 	MaxHealth int32
+	Mana      float32
 	MaxMana   float32
 	HasHealth bool
 	HasMana   bool
@@ -36,21 +52,27 @@ var statStrings = []string{"str", "int", "agi"}
 
 // Handler implements common.ReplayHandler for Power Treads switch detection.
 type Handler struct {
+	heroClass  string
 	usages     []PTUsage
-	puckPrev   *HeroSnapshot
-	puckCur    *HeroSnapshot
+	switches   []PTSwitchEvent
+	emitted    map[string]bool // dedupe: key = "timestamp_hero"
+	heroPrev   *HeroSnapshot
+	heroCur    *HeroSnapshot
 	dumpOutput io.Writer // optional: combat/entity dumps
 }
 
 // NewHandler creates a PT handler.
 func NewHandler() *Handler {
 	return &Handler{
-		usages: make([]PTUsage, 0, 256),
+		usages:   make([]PTUsage, 0, 256),
+		switches: make([]PTSwitchEvent, 0, 256),
+		emitted:  make(map[string]bool),
 	}
 }
 
 // Init sets up the handler. If outputDir is non-empty, creates dump files there.
 func (h *Handler) Init(ctx *common.ParseContext) error {
+	h.heroClass = common.HeroNameToClass(ctx.HeroName)
 	if ctx.OutputDir != "" {
 		if err := os.MkdirAll(ctx.OutputDir, 0755); err != nil {
 			return err
@@ -88,18 +110,18 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			Inflictor: inflictorName,
 		})
 
-		if h.dumpOutput != nil {
-			damageSourceName := m.GetDamageSourceName()
-			targetName := m.GetTargetName()
-			damageSourceAbilityName, _ := p.LookupStringByIndex("CombatLogNames", int32(damageSourceName))
-			targetAbilityName, _ := p.LookupStringByIndex("CombatLogNames", int32(targetName))
-			fmt.Fprintf(h.dumpOutput,
-				"\n=== CMsgDOTACombatLogEntry ===\nType=%v Timestamp=%.4f Attacker=%d Inflictor=%d (%s) DamageSource=%d (%s) Target=%d (%s)\n",
-				m.GetType(), timestamp, attackerName, inflictorName, inflictorAbilityName,
-				damageSourceName, damageSourceAbilityName, targetName, targetAbilityName,
-			)
-			spew.Fdump(h.dumpOutput, m)
-		}
+		// if h.dumpOutput != nil {
+		// 	damageSourceName := m.GetDamageSourceName()
+		// 	targetName := m.GetTargetName()
+		// 	damageSourceAbilityName, _ := p.LookupStringByIndex("CombatLogNames", int32(damageSourceName))
+		// 	targetAbilityName, _ := p.LookupStringByIndex("CombatLogNames", int32(targetName))
+		// 	fmt.Fprintf(h.dumpOutput,
+		// 		"\n=== CMsgDOTACombatLogEntry ===\nType=%v Timestamp=%.4f Attacker=%d Inflictor=%d (%s) DamageSource=%d (%s) Target=%d (%s)\n",
+		// 		m.GetType(), timestamp, attackerName, inflictorName, inflictorAbilityName,
+		// 		damageSourceName, damageSourceAbilityName, targetName, targetAbilityName,
+		// 	)
+		// 	spew.Fdump(h.dumpOutput, m)
+		// }
 		return nil
 	})
 
@@ -139,39 +161,66 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 					attrString = statStrings[int(toAttr)]
 				}
 
-				if heroClassName == ownerHero && okAssembledAt && ptUsage.Timestamp > assembledAt-0.01 {
-					if okAttr {
-						log.Printf("%s: uses Power Treads at %.3f changing attribute to %s (%d) (ticktime %.3f)", ownerHero, ptUsage.Timestamp, attrString, toAttr, entityTime)
-					} else {
-						log.Printf("%s: uses Power Treads at %.3f (ticktime %.3f) [m_iStat missing]", ownerHero, ptUsage.Timestamp, entityTime)
+				if heroClassName == ownerHero && ownerHero == h.heroClass && okAssembledAt && ptUsage.Timestamp > assembledAt-0.01 {
+					emitKey := fmt.Sprintf("%.3f_%s", ptUsage.Timestamp, ownerHero)
+					if !h.emitted[emitKey] {
+						h.emitted[emitKey] = true
+						h.switches = append(h.switches, PTSwitchEvent{
+							Timestamp:     ptUsage.Timestamp,
+							Attribute:     attrString,
+							PrevHealth:    h.heroPrev.Health,
+							PrevMaxHealth: h.heroPrev.MaxHealth,
+							PrevMana:      h.heroPrev.Mana,
+							PrevMaxMana:   h.heroPrev.MaxMana,
+							Health:        h.heroCur.Health,
+							MaxHealth:     h.heroCur.MaxHealth,
+							Mana:          h.heroCur.Mana,
+							MaxMana:       h.heroCur.MaxMana,
+						})
 					}
+					// if okAttr {
+					// 	log.Printf("%s: uses Power Treads at %.3f changing attribute to %s (%d) (ticktime %.3f)", ownerHero, ptUsage.Timestamp, attrString, toAttr, entityTime)
+					// } else {
+					// 	log.Printf("%s: uses Power Treads at %.3f (ticktime %.3f) [m_iStat missing]", ownerHero, ptUsage.Timestamp, entityTime)
+					// }
 
-					if ownerHero == "CDOTA_Unit_Hero_Puck" && h.puckPrev != nil && h.puckCur != nil &&
-						h.puckPrev.HasHealth && h.puckCur.HasHealth && h.puckPrev.HasMana && h.puckCur.HasMana {
-						log.Printf("Puck snapshot delta: maxHealth %d -> %d, maxMana %.3f -> %.3f (prevT=%.3fs curT=%.3fs)",
-							h.puckPrev.MaxHealth, h.puckCur.MaxHealth,
-							h.puckPrev.MaxMana, h.puckCur.MaxMana,
-							h.puckPrev.Time, h.puckCur.Time,
-						)
-					}
+					// if h.heroPrev != nil && h.heroCur != nil &&
+					// 	h.heroPrev.HasHealth && h.heroCur.HasHealth && h.heroPrev.HasMana && h.heroCur.HasMana {
+					// 	log.Printf("%s snapshot delta: maxHealth %d -> %d, maxMana %.3f -> %.3f (prevT=%.3fs curT=%.3fs)",
+					// 		h.heroClass, h.heroPrev.MaxHealth, h.heroCur.MaxHealth,
+					// 		h.heroPrev.MaxMana, h.heroCur.MaxMana,
+					// 		h.heroPrev.Time, h.heroCur.Time,
+					// 	)
+					// }
 				}
 			}
+			return nil
 		}
 
-		if cn == "CDOTA_Unit_Hero_Puck" {
-			h.puckPrev = h.puckCur
+		if cn == h.heroClass {
+			h.heroPrev = h.heroCur
 			s := &HeroSnapshot{Tick: entityTick, Time: entityTime}
 			if v, ok := e.GetInt32("m_iMaxHealth"); ok {
 				s.MaxHealth = v
+				s.Health, _ = e.GetInt32("m_iHealth")
 				s.HasHealth = true
 			}
 			if v, ok := e.GetFloat32("m_flMaxMana"); ok {
 				s.MaxMana = v
+				s.Mana, _ = e.GetFloat32("m_flMana")
 				s.HasMana = true
 			}
-			h.puckCur = s
+			h.heroCur = s
+			return nil
 		}
 
 		return nil
 	})
+}
+
+// Output returns the handler's contribution to the final JSON (key "power_treads").
+func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
+	return map[string]interface{}{
+		"pt_switches": h.switches,
+	}
 }
