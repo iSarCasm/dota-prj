@@ -180,91 +180,202 @@
     <div style="border: 1px solid #ffffff; padding: 2rem; margin-top: 2rem;">
       <h2 style="font-size: 1.25rem; margin-bottom: 1rem; font-weight: bold;">Match analysis output</h2>
       <% if @dota_match.present? && @dota_match.output.present? %>
-        <% mana_data = @dota_match.output["mana"] %>
-        <% if mana_data.present? && mana_data.is_a?(Array) && mana_data.any? %>
-          <h3 style="font-size: 1rem; margin-bottom: 0.75rem; font-weight: bold;">Mana % over time</h3>
-          <div style="margin-bottom: 1.5rem; max-width: 100%;">
-            <canvas id="mana-chart" width="400" height="300" style="max-width: 100%; height: auto;"></canvas>
-          </div>
-          <script>
-            window.MANA_CHART_DATA = <%= raw @dota_match.output.to_json %>;
-          </script>
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
-          <script>
-            (function() {
-              var data = window.MANA_CHART_DATA;
-              if (!data || !data.mana || !data.mana.length) return;
-              var rows = data.mana;
-              var startTime = data.gameStartTime;
-              var labels = rows.map(function(r) { return Math.round((r[1] - startTime) / 60); });
-              var manaPctValues = rows.map(function(r) { return r[4]; });
-              var manaActualValues = rows.map(function(r) { return r[2]; });
-              var ctx = document.getElementById('mana-chart');
-              if (!ctx) return;
-              ctx = ctx.getContext('2d');
-              new Chart(ctx, {
-                type: 'line',
-                data: {
-                  labels: labels,
-                  datasets: [
-                    {
-                      label: 'Mana %',
-                      data: manaPctValues,
-                      borderColor: 'rgb(34, 139, 230)',
-                      backgroundColor: 'rgba(34, 139, 230, 0.1)',
-                      fill: true,
-                      tension: 0.2,
-                      pointRadius: 0,
-                      pointHoverRadius: 4
-                    }
-                  ]
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: true,
-                  plugins: {
-                    legend: {
-                      labels: { color: '#ffffff' }
+        <% out = @dota_match.output %>
+        <% game_start = (out["gameStartTime"] || 0).to_f %>
+        <% mana_data = out["mana"] %>
+        <% ability_usages = out["ability_usages"].is_a?(Array) ? out["ability_usages"] : [] %>
+        <% insights_data = out["insights"].is_a?(Array) ? out["insights"] : [] %>
+        <% has_mana = mana_data.present? && mana_data.any? %>
+        <% has_abilities = ability_usages.any? %>
+        <% has_insights = insights_data.any? %>
+
+        <style>
+          .analysis-tabs { margin-bottom: 1rem; }
+          .analysis-tabs input { display: none; }
+          .analysis-tabs label {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin-right: 0.25rem;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.8);
+          }
+          .analysis-tabs label:hover { background: rgba(255,255,255,0.1); }
+          .analysis-tabs input:checked + label {
+            background: #228be6;
+            border-color: #228be6;
+            color: #fff;
+          }
+          .analysis-panel { display: none; padding-top: 1rem; }
+          .analysis-tabs input#tab-mana:checked ~ .analysis-panel.mana-panel,
+          .analysis-tabs input#tab-abilities:checked ~ .analysis-panel.abilities-panel,
+          .analysis-tabs input#tab-insights:checked ~ .analysis-panel.insights-panel { display: block; }
+        </style>
+
+        <div class="analysis-tabs">
+          <% if has_mana %>
+            <input type="radio" name="analysis_tab" id="tab-mana" checked>
+            <label for="tab-mana">Mana</label>
+          <% end %>
+          <% if has_abilities %>
+            <input type="radio" name="analysis_tab" id="tab-abilities" <%= "checked" if !has_mana %>>
+            <label for="tab-abilities">Abilities</label>
+          <% end %>
+          <% if has_insights %>
+            <input type="radio" name="analysis_tab" id="tab-insights" <%= "checked" if !has_mana && !has_abilities %>>
+            <label for="tab-insights">Insights</label>
+          <% end %>
+
+          <% if has_mana %>
+            <div class="analysis-panel mana-panel">
+              <h3 style="font-size: 1rem; margin-bottom: 0.75rem; font-weight: bold;">Mana % over time</h3>
+              <div style="margin-bottom: 1.5rem; max-width: 100%;">
+                <canvas id="mana-chart" width="400" height="300" style="max-width: 100%; height: auto;"></canvas>
+              </div>
+              <script>
+                window.MANA_CHART_DATA = <%= raw out.to_json %>;
+              </script>
+              <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+              <script>
+                (function() {
+                  var data = window.MANA_CHART_DATA;
+                  if (!data || !data.mana || !data.mana.length) return;
+                  var rows = data.mana;
+                  var startTime = data.gameStartTime;
+                  var labels = rows.map(function(r) { return Math.round((r[1] - startTime) / 60); });
+                  var manaPctValues = rows.map(function(r) { return r[4]; });
+                  var manaActualValues = rows.map(function(r) { return r[2]; });
+                  var ctx = document.getElementById('mana-chart');
+                  if (!ctx) return;
+                  ctx = ctx.getContext('2d');
+                  new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                      labels: labels,
+                      datasets: [
+                        {
+                          label: 'Mana %',
+                          data: manaPctValues,
+                          borderColor: 'rgb(34, 139, 230)',
+                          backgroundColor: 'rgba(34, 139, 230, 0.1)',
+                          fill: true,
+                          tension: 0.2,
+                          pointRadius: 0,
+                          pointHoverRadius: 4
+                        }
+                      ]
                     },
-                    tooltip: {
-                      intersect: false,
-                      mode: 'index',
-                      callbacks: {
-                        title: function(context) {
-                          var idx = context[0] && context[0].dataIndex;
-                          if (idx == null) return context[0] && context[0].label != null ? context[0].label : '';
-                          var sec = rows[idx] && rows[idx][1];
-                          var fullTime = (sec != null) ? (Math.floor(sec / 60) + 'm ' + Math.round(sec % 60) + 's') : '';
-                          var manaStr = (manaActualValues[idx] != null) ? ('Mana: ' + Math.round(manaActualValues[idx] * 100) / 100) : '';
-                          return [fullTime, manaStr].filter(Boolean).join(' · ');
+                    options: {
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                        legend: {
+                          labels: { color: '#ffffff' }
                         },
-                        label: function(context) {
-                          var pct = context.parsed && context.parsed.y != null ? context.parsed.y : '';
-                          return (pct !== '' ? Math.round(pct) + '%' : '');
+                        tooltip: {
+                          intersect: false,
+                          mode: 'index',
+                          callbacks: {
+                            title: function(context) {
+                              var idx = context[0] && context[0].dataIndex;
+                              if (idx == null) return context[0] && context[0].label != null ? context[0].label : '';
+                              var sec = rows[idx] && rows[idx][1];
+                              var fullTime = (sec != null) ? (Math.floor(sec / 60) + 'm ' + Math.round(sec % 60) + 's') : '';
+                              var manaStr = (manaActualValues[idx] != null) ? ('Mana: ' + Math.round(manaActualValues[idx] * 100) / 100) : '';
+                              return [fullTime, manaStr].filter(Boolean).join(' · ');
+                            },
+                            label: function(context) {
+                              var pct = context.parsed && context.parsed.y != null ? context.parsed.y : '';
+                              return (pct !== '' ? Math.round(pct) + '%' : '');
+                            }
+                          }
+                        }
+                      },
+                      scales: {
+                        x: {
+                          title: { display: true, text: 'Time (min)', color: '#ffffff' },
+                          ticks: { color: 'rgba(255,255,255,0.8)' },
+                          grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                          min: 0,
+                          max: 100,
+                          title: { display: true, text: 'Mana %', color: '#ffffff' },
+                          ticks: { color: 'rgba(255,255,255,0.8)' },
+                          grid: { color: 'rgba(255,255,255,0.1)' }
                         }
                       }
                     }
-                  },
-                  scales: {
-                    x: {
-                      title: { display: true, text: 'Time (min)', color: '#ffffff' },
-                      ticks: { color: 'rgba(255,255,255,0.8)' },
-                      grid: { color: 'rgba(255,255,255,0.1)' }
-                    },
-                    y: {
-                      min: 0,
-                      max: 100,
-                      title: { display: true, text: 'Mana %', color: '#ffffff' },
-                      ticks: { color: 'rgba(255,255,255,0.8)' },
-                      grid: { color: 'rgba(255,255,255,0.1)' }
-                    }
-                  }
-                }
-              });
-            })();
-          </script>
-        <% end %>
-        <details>
+                  });
+                })();
+              </script>
+            </div>
+          <% end %>
+
+          <% if has_abilities %>
+            <div class="analysis-panel abilities-panel">
+              <h3 style="font-size: 1rem; margin-bottom: 0.75rem; font-weight: bold;">Ability & item usage (chronological)</h3>
+              <div style="overflow-x: auto; max-height: 60vh; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.3);">
+                      <th style="padding: 0.5rem; text-align: left;">Time</th>
+                      <th style="padding: 0.5rem; text-align: left;">Ability / Item</th>
+                      <th style="padding: 0.5rem; text-align: left;">Type</th>
+                      <th style="padding: 0.5rem; text-align: right;">Mana cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% ability_usages.each do |u| %>
+                      <% sec = [u["timestamp"].to_f - game_start, 0].max %>
+                      <tr style="border-top: 1px solid rgba(255,255,255,0.1);">
+                        <td style="padding: 0.5rem;"><%= "#{(sec / 60).floor}m #{(sec % 60).round}s" %></td>
+                        <td style="padding: 0.5rem;"><%= (u["ability_name"].to_s).gsub(/_/, ' ').split.map(&:capitalize).join(' ') %></td>
+                        <td style="padding: 0.5rem;"><%= u["type"].to_s %></td>
+                        <td style="padding: 0.5rem; text-align: right;"><%= u["mana_cost"].to_i %></td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          <% end %>
+
+          <% if has_insights %>
+            <div class="analysis-panel insights-panel">
+              <h3 style="font-size: 1rem; margin-bottom: 0.75rem; font-weight: bold;">Insights (chronological)</h3>
+              <div style="max-height: 60vh; overflow-y: auto;">
+                <% insights_data.each do |insight| %>
+                  <% ts = insight["timestamps"].is_a?(Array) ? insight["timestamps"] : [] %>
+                  <% first_ts = ts.first %>
+                  <% details = insight["details"].is_a?(Hash) ? insight["details"] : {} %>
+                  <% verdict_bad = insight["verdict"].to_s == "bad" %>
+                  <div style="border: 1px solid <%= verdict_bad ? 'rgba(255,107,107,0.5)' : 'rgba(81,207,102,0.5)' %>; padding: 1rem; margin-bottom: 0.75rem; background: <%= verdict_bad ? 'rgba(255,107,107,0.08)' : 'rgba(81,207,102,0.08)' %>;">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-bottom: 0.5rem;">
+                      <span style="font-weight: bold;"><%= insight["type"].to_s.gsub(/_/, ' ').split.map(&:capitalize).join(' ') %></span>
+                      <span style="color: <%= verdict_bad ? '#ff6b6b' : '#51cf66' %>;"><%= insight["verdict"].to_s %></span>
+                      <span style="opacity: 0.85;"><%= insight["level"].to_s %></span>
+                      <% if first_ts.present? %>
+                        <% insight_sec = [first_ts.to_f - game_start, 0].max %>
+                        <span style="opacity: 0.85;"><%= "#{(insight_sec / 60).floor}m #{(insight_sec % 60).round}s" %></span>
+                      <% end %>
+                    </div>
+                    <% if details.any? %>
+                      <div style="font-size: 0.9rem; opacity: 0.9;">
+                        <% details.each do |k, v| %>
+                          <span style="margin-right: 1rem;"><strong><%= k.to_s.gsub(/_/, ' ').split.map(&:capitalize).join(' ') %>:</strong> <%= v.is_a?(Float) ? (v.round(2).to_s) : v.to_s %></span>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <details style="margin-top: 1.5rem;">
           <summary style="cursor: pointer; text-decoration: underline;">Show analysis output (raw JSON)</summary>
           <pre style="margin-top: 1rem; white-space: pre-wrap; overflow: auto; max-height: 70vh; border: 1px solid rgba(255,255,255,0.2); padding: 1rem;"><%= JSON.pretty_generate(@dota_match.output) rescue @dota_match.output.inspect %></pre>
         </details>

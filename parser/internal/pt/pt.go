@@ -364,6 +364,18 @@ func (h *Handler) buildInsights() []common.Insight {
 		})
 	}
 
+	// Sort by first timestamp so good and bad insights are interleaved chronologically.
+	sort.Slice(out, func(a, b int) bool {
+		ta := float32(0)
+		if len(out[a].Timestamps) > 0 {
+			ta = out[a].Timestamps[0]
+		}
+		tb := float32(0)
+		if len(out[b].Timestamps) > 0 {
+			tb = out[b].Timestamps[0]
+		}
+		return ta < tb
+	})
 	return out
 }
 

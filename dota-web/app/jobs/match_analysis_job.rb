@@ -27,6 +27,7 @@ class MatchAnalysisJob < ApplicationJob
     replay_url = match_details["replay_url"]
 
     hero_name = hero_name_for_account(match_details, account_id)
+    hero_name = hero_name.delete(" ")
     if hero_name.blank?
       dota_match.update(status: "error")
       Rails.logger.error "[MatchAnalysisJob] could not resolve hero for account_id #{account_id}"
