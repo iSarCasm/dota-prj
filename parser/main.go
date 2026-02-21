@@ -83,12 +83,12 @@ func main() {
 		return nil
 	})
 
-	// Handlers
-	manaHandler := mana.NewHandler(30)
-	ptHandler := pt.NewHandler()
+	// Handlers (mana and abilities before PT so PT can take references)
+	manaHandler := mana.NewHandler(1, 30)
 	abilitiesHandler := abilities.NewHandler()
+	ptHandler := pt.NewHandler(abilitiesHandler, manaHandler)
 
-	for _, h := range []common.ReplayHandler{manaHandler, ptHandler, abilitiesHandler} {
+	for _, h := range []common.ReplayHandler{manaHandler, abilitiesHandler, ptHandler} {
 		if err := h.Init(ctx); err != nil {
 			log.Fatalf("handler init: %v", err)
 		}
@@ -108,11 +108,19 @@ func main() {
 		"gameStartTime": ctx.GameStartTime,
 		"heroName":      ctx.HeroName,
 	}
-	for _, h := range []common.ReplayHandler{manaHandler, ptHandler, abilitiesHandler} {
+	var insights []common.Insight
+	for _, h := range []common.ReplayHandler{manaHandler, abilitiesHandler, ptHandler} {
 		for k, v := range h.Output(ctx) {
-			out[k] = v
+			if k == "insights" {
+				if arr, ok := v.([]common.Insight); ok {
+					insights = append(insights, arr...)
+				}
+			} else {
+				out[k] = v
+			}
 		}
 	}
+	out["insights"] = insights
 
 	jsonPath := filepath.Join(outputDir, matchID+"_output.json")
 	var outFile *os.File

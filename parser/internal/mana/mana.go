@@ -18,16 +18,18 @@ type ManaSnapshot struct {
 
 // Handler implements common.ReplayHandler for mana extraction.
 type Handler struct {
-	manaTickInterval int
-	heroClass        string
-	snapshots        []*ManaSnapshot
+	manaTickInterval       int
+	manaTickIntervalOutput int
+	heroClass              string
+	snapshots              []*ManaSnapshot
 }
 
 // NewHandler creates a mana handler with the given tick interval (record mana every N ticks).
-func NewHandler(tickInterval int) *Handler {
+func NewHandler(tickInterval int, tickIntervalOutput int) *Handler {
 	return &Handler{
-		manaTickInterval: tickInterval,
-		snapshots:        make([]*ManaSnapshot, 0, 1024),
+		manaTickInterval:       tickInterval,
+		manaTickIntervalOutput: tickIntervalOutput,
+		snapshots:              make([]*ManaSnapshot, 0, 1024),
 	}
 }
 
@@ -80,13 +82,32 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 
 }
 
+// ManaAtTime returns mana and max mana at the last snapshot with Time <= t (for use by other handlers, e.g. PT insights). ok is false if no such snapshot.
+func (h *Handler) ManaAtTime(t float32) (mana, maxMana float32, ok bool) {
+	var best *ManaSnapshot
+	for _, s := range h.snapshots {
+		if s.Time <= t {
+			best = s
+		} else {
+			break
+		}
+	}
+	if best == nil {
+		return 0, 0, false
+	}
+	return best.Mana, best.MaxMana, true
+}
+
 // Output returns the handler's contribution to the final JSON (key "mana").
 func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
+	if h.manaTickIntervalOutput == 0 {
+		return nil
+	}
 	manaRows := make([][]interface{}, 0, len(h.snapshots))
-	for _, s := range h.snapshots {
-		manaRows = append(manaRows, []interface{}{s.Tick, s.Time, s.Mana, s.MaxMana, s.ManaPercent})
+	for i, s := range h.snapshots {
+		if i%h.manaTickIntervalOutput == 0 {
+			manaRows = append(manaRows, []interface{}{s.Tick, s.Time, s.Mana, s.MaxMana, s.ManaPercent})
+		}
 	}
-	return map[string]interface{}{
-		"mana": manaRows,
-	}
+	return map[string]interface{}{"mana": manaRows}
 }

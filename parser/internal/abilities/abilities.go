@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	usageTypeAbility = "ability"
-	usageTypeItem    = "item"
+	UsageTypeAbility = "ability"
+	UsageTypeItem    = "item"
 )
 
 // Usage is a single ability/item use for JSON output. ManaCost is read from the ability/item entity at the moment of use (replay order).
@@ -35,6 +35,11 @@ func NewHandler() *Handler {
 		usages:            make([]Usage, 0, 512),
 		abilityNameToMana: make(map[string]int32),
 	}
+}
+
+// Usages returns the list of ability/item usages recorded so far (for use by other handlers, e.g. PT).
+func (h *Handler) Usages() []Usage {
+	return h.usages
 }
 
 // Init sets up the handler.
@@ -95,9 +100,9 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			abilityName = ""
 		}
 
-		usageType := usageTypeAbility
+		usageType := UsageTypeAbility
 		if isItem {
-			usageType = usageTypeItem
+			usageType = UsageTypeItem
 		}
 
 		manaCost := h.abilityNameToMana[abilityName]

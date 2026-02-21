@@ -80,3 +80,36 @@ PT has 3 uses:
 "m_pGameRules.m_flGameStartTime": (float32) 274.7667,
 "m_pGameRules.m_flHeroPickStateTransitionTime": (float32) 140.70001,
 (string) (len=33) "m_pGameRules.m_flPreGameStartTime": (float32) 184.76668,
+
+
+
+
+
+PT stuff:
+1. Mana-Ability used without PT on int => mistake (minor)
+   1. Show how much mana could be saved with a quick switch
+2. Switch to INT -> use Mana Ability -> switch to non-int (less than 10 secs) => good
+
+
+Soul Ring:
+1. Use without using an ability after -> mistake (minor)
+2. Use without switching PT to STR -> mistake (minor)
+3.
+
+BKB:
+1. Effect does not overlap with any PVP (receive or deal damage) - Mistake (blunder)
+
+
+Midas:
+1. Utilization % (Rating)
+
+Phase boots:
+1. Utilization % (Rating)
+
+Mango/Sticks/Fairy:
+1. Using when full (99%) - (medium)
+
+
+Mistake type: Spell Missed:
+- No enemies affected by it
+- Gleipnir, Meteor Hammer (minor)

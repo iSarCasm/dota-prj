@@ -8,6 +8,15 @@ import (
 
 var ErrInvalidHeroName = errors.New("invalid hero name")
 
+// Insight is a single insight for the final output (e.g. PT mistake or good play).
+type Insight struct {
+	Type       string                 `json:"type"`
+	Timestamps []float32              `json:"timestamps"`
+	Verdict    string                 `json:"verdict"` // "good" or "bad"
+	Level      string                 `json:"level"`   // "minor", "medium", "major"
+	Details    map[string]interface{} `json:"details"`
+}
+
 // ParseContext holds shared state for replay parsing.
 // Fields like TickInterval and PlayerIDToHero are populated during parse.
 type ParseContext struct {

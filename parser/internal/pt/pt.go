@@ -6,12 +6,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/dotabuff/manta"
 	"github.com/dotabuff/manta/dota"
 
+	"dota2/internal/abilities"
 	"dota2/internal/common"
+	"dota2/internal/mana"
 )
 
 // PTUsage represents a Power Treads switch event from the combat log.
@@ -52,21 +55,25 @@ var statStrings = []string{"str", "int", "agi"}
 
 // Handler implements common.ReplayHandler for Power Treads switch detection.
 type Handler struct {
-	heroClass  string
-	usages     []PTUsage
-	switches   []PTSwitchEvent
-	emitted    map[string]bool // dedupe: key = "timestamp_hero"
-	heroPrev   *HeroSnapshot
-	heroCur    *HeroSnapshot
-	dumpOutput io.Writer // optional: combat/entity dumps
+	heroClass        string
+	abilitiesHandler *abilities.Handler
+	manaHandler      *mana.Handler
+	usages           []PTUsage
+	switches         []PTSwitchEvent
+	emitted          map[string]bool // dedupe: key = "timestamp_hero"
+	heroPrev         *HeroSnapshot
+	heroCur          *HeroSnapshot
+	dumpOutput       io.Writer // optional: combat/entity dumps
 }
 
-// NewHandler creates a PT handler.
-func NewHandler() *Handler {
+// NewHandler creates a PT handler. abilitiesHandler and manaHandler may be nil; if set, PT can read ability usages and mana-at-time for insights.
+func NewHandler(abilitiesHandler *abilities.Handler, manaHandler *mana.Handler) *Handler {
 	return &Handler{
-		usages:   make([]PTUsage, 0, 256),
-		switches: make([]PTSwitchEvent, 0, 256),
-		emitted:  make(map[string]bool),
+		abilitiesHandler: abilitiesHandler,
+		manaHandler:      manaHandler,
+		usages:           make([]PTUsage, 0, 256),
+		switches:         make([]PTSwitchEvent, 0, 256),
+		emitted:          make(map[string]bool),
 	}
 }
 
@@ -218,9 +225,155 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 	})
 }
 
-// Output returns the handler's contribution to the final JSON (key "power_treads").
+func missedManaSave(currentMana float32, currentMaxMana float32, manacost int32) int32 {
+	wouldBeMaxMana := currentMaxMana + 120 // TODO: this is some sort of patch constant
+	wouldBeMana := currentMana / currentMaxMana * wouldBeMaxMana
+	return int32((wouldBeMana-float32(manacost))/wouldBeMaxMana*currentMaxMana) - (int32(currentMana) - manacost)
+}
+
+// attributeAtTime returns the PT attribute at time t (from last switch with timestamp <= t). Empty if unknown.
+func (h *Handler) attributeAtTime(t float32) string {
+	var last string
+	for _, s := range h.switches {
+		if s.Timestamp <= t {
+			last = s.Attribute
+		} else {
+			break
+		}
+	}
+	return last
+}
+
+// buildInsights returns PT-related insights: (1) mana ability used without PT on int => bad minor, (2) int -> mana ability -> non-int within 10s => good.
+func (h *Handler) buildInsights() []common.Insight {
+	var out []common.Insight
+	const goodWindowSec = 10.0 // TODO: make this a constant
+
+	if h.abilitiesHandler == nil {
+		return out
+	}
+	abilityUsages := h.abilitiesHandler.Usages()
+
+	// 1. Mana ability used without PT on int => mistake (minor). Show how much mana could be saved (using mana handler for accurate mana at use time).
+	for _, u := range abilityUsages {
+		if u.Type != abilities.UsageTypeAbility || u.ManaCost <= 0 {
+			continue
+		}
+		attr := h.attributeAtTime(u.Timestamp)
+		if attr == "" || attr == "int" {
+			continue
+		}
+		details := map[string]interface{}{
+			"ability_name": u.AbilityName,
+			"mana_cost":    u.ManaCost,
+			"pt_was_on":    attr,
+		}
+		if h.manaHandler != nil {
+			if manaVal, maxManaVal, ok := h.manaHandler.ManaAtTime(u.Timestamp); ok && maxManaVal > 0 {
+				details["mana_at_use"] = manaVal
+				details["max_mana_at_use"] = maxManaVal
+				details["could_save"] = missedManaSave(manaVal, maxManaVal, u.ManaCost)
+			}
+		}
+		out = append(out, common.Insight{
+			Type:       "pt_mana_ability_not_on_int",
+			Timestamps: []float32{u.Timestamp},
+			Verdict:    "bad",
+			Level:      "minor",
+			Details:    details,
+		})
+	}
+
+	// 2. Switch to INT -> use mana ability/abilities -> switch to non-INT within 10s => good. Capture all abilities in the window.
+	for i, s := range h.switches {
+		if s.Attribute != "int" {
+			continue
+		}
+		t1 := s.Timestamp
+		// Find next switch to non-int within (t1, t1+10]
+		var t3 float32
+		for j := i + 1; j < len(h.switches); j++ {
+			next := h.switches[j]
+			if next.Timestamp > t1+goodWindowSec {
+				break
+			}
+			if next.Attribute != "int" {
+				t3 = next.Timestamp
+				break
+			}
+		}
+		if t3 == 0 {
+			continue
+		}
+		// Collect all mana abilities used in (t1, t3]
+		type abAt struct {
+			t    float32
+			name string
+			cost int32
+		}
+		var used []abAt
+		for _, ab := range abilityUsages {
+			if ab.Type != abilities.UsageTypeAbility || ab.ManaCost <= 0 {
+				continue
+			}
+			if ab.Timestamp > t1 && ab.Timestamp <= t3 {
+				used = append(used, abAt{ab.Timestamp, ab.AbilityName, ab.ManaCost})
+			}
+		}
+		if len(used) == 0 {
+			continue
+		}
+		// Sort by timestamp (usages are usually ordered but ensure)
+		sort.Slice(used, func(a, b int) bool { return used[a].t < used[b].t })
+		abilitiesDetail := make([]map[string]interface{}, 0, len(used))
+		abilityTimestamps := make([]float32, 0, len(used))
+		for _, u := range used {
+			abilityTimestamps = append(abilityTimestamps, u.t)
+			abilitiesDetail = append(abilitiesDetail, map[string]interface{}{
+				"ability_name": u.name,
+				"timestamp":    u.t,
+				"mana_cost":    u.cost,
+			})
+		}
+		// timestamps: t1, then all ability timestamps, then t3
+		ts := make([]float32, 0, 2+len(abilityTimestamps))
+		ts = append(ts, t1)
+		ts = append(ts, abilityTimestamps...)
+		ts = append(ts, t3)
+		details := map[string]interface{}{
+			"abilities":    abilitiesDetail,
+			"duration_sec": t3 - t1,
+		}
+		if h.manaHandler != nil {
+			if manaVal, maxManaVal, ok := h.manaHandler.ManaAtTime(t1); ok {
+				details["mana_before_int_switch"] = manaVal
+				details["max_mana_before_int_switch"] = maxManaVal
+			}
+			if len(used) > 0 {
+				if manaVal, maxManaVal, ok := h.manaHandler.ManaAtTime(used[len(used)-1].t); ok && maxManaVal > 0 {
+					details["total_mana_saved"] = missedManaSave(manaVal, maxManaVal, used[len(used)-1].cost)
+				}
+			}
+		}
+		out = append(out, common.Insight{
+			Type:       "pt_efficient_switch",
+			Timestamps: ts,
+			Verdict:    "good",
+			Level:      "minor",
+			Details:    details,
+		})
+	}
+
+	return out
+}
+
+// Output returns the handler's contribution to the final JSON (key "power_treads", optional "insights").
 func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
-	return map[string]interface{}{
+	m := map[string]interface{}{
 		"pt_switches": h.switches,
 	}
+	if ins := h.buildInsights(); len(ins) > 0 {
+		m["insights"] = ins
+	}
+	return m
 }
