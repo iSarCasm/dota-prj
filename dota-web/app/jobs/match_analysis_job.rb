@@ -20,9 +20,11 @@ class MatchAnalysisJob < ApplicationJob
     end
 
     api = OpenDotaApi.new
+    dota_match.update(status: "requesting_parse")
     response = api.request_parse(match_id: dota_match.match_id)
     Rails.logger.info "[MatchAnalysisJob] request_parse response: #{response}"
     sleep 2
+    dota_match.update(status: "fetching_match_data")
     match_details = api.get_match_details(match_id: dota_match.match_id)
     replay_url = match_details["replay_url"]
 
@@ -44,6 +46,7 @@ class MatchAnalysisJob < ApplicationJob
     bz2_path = "#{replay_path}.bz2"
     FileUtils.mkdir_p(replay_path.parent)
 
+    dota_match.update(status: "downloading_replay")
     Rails.logger.info "[MatchAnalysisJob] downloading replay (bz2) to #{bz2_path}"
     api.download_replay(replay_url: replay_url, file_name: bz2_path)
 
@@ -94,6 +97,7 @@ class MatchAnalysisJob < ApplicationJob
     output_dir = Rails.root.join("storage", "replays", dota_match.match_id).to_s
     FileUtils.mkdir_p(output_dir)
 
+    dota_match.update(status: "parsing")
     Rails.logger.info "[MatchAnalysisJob] running parser: #{bin} #{dota_match.match_id} #{hero_name} #{replay_path} #{output_dir}"
     stdout, stderr, status = Open3.capture3(
       bin,
@@ -110,13 +114,10 @@ class MatchAnalysisJob < ApplicationJob
       return
     end
 
-    dota_match.update(status: "parsed")
-    Rails.logger.info "[MatchAnalysisJob] parse complete for match #{dota_match.match_id}"
-
     # Save output to dota_match.output
     output_path = Rails.root.join("storage", "replays", dota_match.match_id, "#{dota_match.match_id}_output.json")
     output = JSON.parse(File.read(output_path))
-    dota_match.update(output: output)
-    Rails.logger.info "[MatchAnalysisJob] saved output to dota_match.output"
+    dota_match.update(output: output, status: "parsed")
+    Rails.logger.info "[MatchAnalysisJob] parse complete and saved output for match #{dota_match.match_id}"
   end
 end

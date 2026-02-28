@@ -28,6 +28,12 @@
           class: "analyze-button",
           style: "display: inline-block; padding: 1rem 2.5rem; font-size: 1.25rem; font-weight: bold; background: #228be6; color: #fff; border: none; border-radius: 0.5rem; cursor: pointer; text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" %>
     </div>
+    <% if @dota_match.present? %>
+      <%= turbo_stream_from @dota_match.analysis_stream_name %>
+    <% end %>
+    <div id="<%= @dota_match&.analysis_progress_dom_id || "analysis_progress_#{@match_summary[:id]}" %>">
+      <%= render "analysis_progress", dota_match: @dota_match %>
+    </div>
 
     <div style="border: 1px solid #ffffff; padding: 2rem; margin-bottom: 2rem;">
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">

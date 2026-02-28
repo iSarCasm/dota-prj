@@ -1,0 +1,18 @@
+<div style="border: 1px solid #ffffff; padding: 1rem 1.25rem; margin-bottom: 2rem;">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.6rem;">
+    <h2 style="font-size: 1.1rem; margin: 0; font-weight: bold;">Analysis progress</h2>
+    <span style="opacity: 0.9;"><%= dota_match&.analysis_status_label || "Not started" %></span>
+  </div>
+
+  <div style="height: 10px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.05);">
+    <div style="height: 100%; width: <%= dota_match&.analysis_progress_percent || 0 %>%; background: <%= dota_match&.analysis_error? ? "#ff6b6b" : "#228be6" %>;"></div>
+  </div>
+
+  <div style="margin-top: 0.55rem; opacity: 0.8; font-size: 0.92rem;">
+    <% if dota_match.blank? %>
+      Click "Analyze" to start.
+    <% else %>
+      <%= dota_match.analysis_status_message %>
+    <% end %>
+  </div>
+</div>
