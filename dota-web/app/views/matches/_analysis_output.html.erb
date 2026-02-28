@@ -4,6 +4,14 @@
   <%
     analysis_match_id = local_assigns[:match_id] || dota_match&.match_id
     analysis_playerid = local_assigns[:playerid]
+    analyze_button_text =
+      if dota_match&.analysis_completed?
+        "Re-Analyze"
+      elsif dota_match&.analysis_error?
+        "Analyze Again"
+      else
+        "Analyze"
+      end
     analyze_path =
       if analysis_match_id.present?
         analysis_playerid.present? ? analyze_match_path(analysis_match_id, playerid: analysis_playerid) : analyze_match_path(analysis_match_id)
@@ -12,7 +20,7 @@
 
   <% if !dota_match&.analysis_in_progress? && analyze_path.present? %>
     <div style="margin-bottom: 1.25rem;">
-      <%= button_to (dota_match&.analysis_completed? ? "Re-Analyze" : "Analyze"),
+      <%= button_to analyze_button_text,
           analyze_path,
           method: :post,
           class: "analyze-button",
@@ -84,7 +92,11 @@
               var data = window.MANA_CHART_DATA;
               if (!data || !data.mana || !data.mana.length) return;
               var rows = data.mana;
-              var labels = rows.map(function(r) { return Math.round((r[1]) / 60); });
+              function minuteLabel(sec) {
+                if (sec < 0) return Math.ceil(sec / 60);
+                return Math.floor(sec / 60);
+              }
+              var labels = rows.map(function(r) { return minuteLabel(r[1]); });
               var manaPctValues = rows.map(function(r) { return r[4]; });
               var manaActualValues = rows.map(function(r) { return r[2]; });
               var ctx = document.getElementById('mana-chart');
@@ -122,7 +134,9 @@
                           var idx = context[0] && context[0].dataIndex;
                           if (idx == null) return context[0] && context[0].label != null ? context[0].label : '';
                           var sec = rows[idx] && rows[idx][1];
-                          var fullTime = (sec != null) ? (Math.floor(sec / 60) + 'm ' + Math.round(sec % 60) + 's') : '';
+                          var mins = (sec != null) ? (sec < 0 ? Math.ceil(sec / 60) : Math.floor(sec / 60)) : null;
+                          var secs = (sec != null) ? (sec < 0 ? Math.round(Math.abs(sec) % 60) : Math.round(sec % 60)) : null;
+                          var fullTime = (mins != null && secs != null) ? (mins + 'm ' + secs + 's') : '';
                           var manaStr = (manaActualValues[idx] != null) ? ('Mana: ' + Math.round(manaActualValues[idx] * 100) / 100) : '';
                           return [fullTime, manaStr].filter(Boolean).join(' · ');
                         },
@@ -220,6 +234,16 @@
       <summary style="cursor: pointer; text-decoration: underline;">Show analysis output (raw JSON)</summary>
       <pre style="margin-top: 1rem; white-space: pre-wrap; overflow: auto; max-height: 70vh; border: 1px solid rgba(255,255,255,0.2); padding: 1rem;"><%= JSON.pretty_generate(dota_match.output) rescue dota_match.output.inspect %></pre>
     </details>
+  <% elsif dota_match&.analysis_error? %>
+    <div style="padding: 0.75rem 1rem; border: 1px solid #ff6b6b; color: #ff6b6b;">
+      <div><strong>Analysis failed.</strong> <%= dota_match.analysis_error_message.presence || "You can run analyze again." %></div>
+      <% if dota_match.analysis_error_details.present? %>
+        <details style="margin-top: 0.65rem;">
+          <summary style="cursor: pointer; text-decoration: underline; color: #ff9e9e;">Error details</summary>
+          <pre style="margin-top: 0.6rem; white-space: pre-wrap; overflow: auto; max-height: 40vh; border: 1px solid rgba(255,107,107,0.35); padding: 0.75rem; color: #ffd8d8;"><%= dota_match.analysis_error_details %></pre>
+        </details>
+      <% end %>
+    </div>
   <% elsif !dota_match&.analysis_in_progress? %>
     <p style="opacity: 0.85;">No analysis output yet. Click "Analyze" to run match analysis.</p>
   <% end %>

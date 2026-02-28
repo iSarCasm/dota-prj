@@ -37,8 +37,20 @@ class MatchesController < ApplicationController
     account_id_32 = api.steam64id_to_32id(steam64id: steam_id).to_s
     dota_match = DotaMatch.create!(match_id: match_id, players: [account_id_32], status: "init")
     MatchAnalysisJob.perform_later(dota_match.id)
-    redirect_to match_path(match_id, playerid: params[:playerid]),
-                notice: "Match analysis started for match #{match_id}."
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.update(
+          "analysis_output_#{match_id}",
+          partial: "matches/analysis_output",
+          locals: { dota_match: dota_match, match_id: match_id, playerid: params[:playerid] }
+        )
+      end
+      format.html do
+        redirect_to match_path(match_id, playerid: params[:playerid]),
+                    notice: "Match analysis started for match #{match_id}."
+      end
+    end
   end
 
   def show

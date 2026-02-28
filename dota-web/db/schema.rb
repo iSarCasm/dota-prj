@@ -10,11 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_06_032854) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_28_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "dota_matches", force: :cascade do |t|
+    t.text "analysis_error_details"
+    t.text "analysis_error_message"
     t.datetime "created_at", null: false
     t.string "match_id", null: false
     t.json "output", default: {}

@@ -21,9 +21,7 @@
       Could not load match details.
     </div>
   <% else %>
-    <% if @dota_match.present? %>
-      <%= turbo_stream_from @dota_match.analysis_stream_name %>
-    <% end %>
+    <%= turbo_stream_from "match_analysis_#{@match_summary[:id]}" %>
 
     <div style="border: 1px solid #ffffff; padding: 2rem; margin-bottom: 2rem;">
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
@@ -173,7 +171,7 @@
       </div>
     </div>
 
-    <div id="<%= @dota_match&.analysis_output_dom_id || "analysis_output_#{@match_summary[:id]}" %>">
+    <div id="analysis_output_<%= @match_summary[:id] %>">
       <%= render "analysis_output",
                  dota_match: @dota_match,
                  match_id: @match_summary[:id],

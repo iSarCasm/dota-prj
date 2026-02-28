@@ -30,11 +30,11 @@ class DotaMatch < ApplicationRecord
   after_update_commit :broadcast_analysis_output, if: :saved_change_to_status_or_output?
 
   def analysis_stream_name
-    "match_analysis_#{id}"
+    "match_analysis_#{match_id}"
   end
 
   def analysis_output_dom_id
-    "analysis_output_#{id}"
+    "analysis_output_#{match_id}"
   end
 
   def analysis_progress_percent

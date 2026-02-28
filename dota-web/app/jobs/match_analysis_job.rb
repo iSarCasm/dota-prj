@@ -14,13 +14,12 @@ class MatchAnalysisJob < ApplicationJob
 
     account_id = dota_match.players&.first
     if account_id.blank?
-      dota_match.update(status: "error")
-      Rails.logger.error "[MatchAnalysisJob] no account_id in players array"
+      mark_error!(dota_match, "No account_id in players array")
       return
     end
 
     api = OpenDotaApi.new
-    dota_match.update(status: "requesting_parse")
+    dota_match.update(status: "requesting_parse", analysis_error_message: nil, analysis_error_details: nil)
     response = api.request_parse(match_id: dota_match.match_id)
     Rails.logger.info "[MatchAnalysisJob] request_parse response: #{response}"
     sleep 2
@@ -31,14 +30,12 @@ class MatchAnalysisJob < ApplicationJob
     hero_name = hero_name_for_account(match_details, account_id)
     hero_name = hero_name.delete(" ")
     if hero_name.blank?
-      dota_match.update(status: "error")
-      Rails.logger.error "[MatchAnalysisJob] could not resolve hero for account_id #{account_id}"
+      mark_error!(dota_match, "Could not resolve hero for account_id #{account_id}")
       return
     end
 
     if replay_url.blank?
-      dota_match.update(status: "error")
-      Rails.logger.warn "[MatchAnalysisJob] replay url blank for match #{dota_match.match_id}"
+      mark_error!(dota_match, "Replay URL is blank for match #{dota_match.match_id}")
       return
     end
 
@@ -51,8 +48,7 @@ class MatchAnalysisJob < ApplicationJob
     api.download_replay(replay_url: replay_url, file_name: bz2_path)
 
     unless decompress_bz2(bz2_path, replay_path.to_s)
-      dota_match.update(status: "error")
-      Rails.logger.error "[MatchAnalysisJob] failed to decompress replay"
+      mark_error!(dota_match, "Failed to decompress replay")
       return
     end
     FileUtils.rm_f(bz2_path)
@@ -60,6 +56,13 @@ class MatchAnalysisJob < ApplicationJob
     dota_match.update(replay_file: replay_path.to_s, status: "downloaded")
 
     run_parser(replay_path.to_s, dota_match, hero_name)
+  rescue StandardError => e
+    if dota_match.present?
+      mark_error!(dota_match, "Unexpected error: #{e.class}: #{e.message}", details: e.backtrace&.first(20)&.join("\n"))
+    else
+      Rails.logger.error "[MatchAnalysisJob] unexpected error before dota_match load: #{e.class}: #{e.message}"
+      Rails.logger.error e.backtrace.first(20).join("\n") if e.backtrace.present?
+    end
   end
 
   private
@@ -67,10 +70,11 @@ class MatchAnalysisJob < ApplicationJob
   def hero_name_for_account(match_details, account_id)
     players = Array(match_details["players"])
     player = players.find { |p| p["account_id"].to_i == account_id.to_i }
-    return nil if player.blank?
+    # return nil if player.blank?
+    raise "Player not found for account_id #{account_id}" if player.blank?
 
     hero_id = player["hero_id"]&.to_s
-    return nil if hero_id.blank?
+    raise "Hero ID is blank for player #{player}" if hero_id.blank?
 
     Rails.configuration.x.constants.heroes.dig(hero_id, "localized_name")
   end
@@ -89,8 +93,7 @@ class MatchAnalysisJob < ApplicationJob
   def run_parser(replay_path, dota_match, hero_name)
     bin = ENV.fetch("REPLAY_PARSER_BIN")
     unless File.executable?(bin)
-      dota_match.update(status: "error")
-      Rails.logger.error "[MatchAnalysisJob] parser binary not found or not executable: #{bin}"
+      mark_error!(dota_match, "Parser binary not found or not executable: #{bin}")
       return
     end
 
@@ -109,15 +112,27 @@ class MatchAnalysisJob < ApplicationJob
     )
 
     unless status.success?
-      dota_match.update(status: "error")
-      Rails.logger.error "[MatchAnalysisJob] parser failed: #{stderr}"
+      mark_error!(dota_match, "Parser failed", details: stderr.to_s.strip.presence || stdout.to_s.strip)
       return
     end
 
     # Save output to dota_match.output
     output_path = Rails.root.join("storage", "replays", dota_match.match_id, "#{dota_match.match_id}_output.json")
     output = JSON.parse(File.read(output_path))
-    dota_match.update(output: output, status: "parsed")
+    dota_match.update(output: output, status: "parsed", analysis_error_message: nil, analysis_error_details: nil)
     Rails.logger.info "[MatchAnalysisJob] parse complete and saved output for match #{dota_match.match_id}"
+  end
+
+  def mark_error!(dota_match, message, details: nil)
+    details_text = details.to_s.strip.presence
+
+    dota_match.update(
+      status: "error",
+      analysis_error_message: message,
+      analysis_error_details: details_text
+    )
+
+    Rails.logger.error("[MatchAnalysisJob] #{message}")
+    Rails.logger.error(details_text) if details_text.present?
   end
 end
