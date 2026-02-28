@@ -82,7 +82,7 @@ func main() {
 
 	// Handlers (mana and abilities before PT so PT can take references)
 	timeAndPausesHandler := timeandpauses.NewHandler()
-	manaHandler := mana.NewHandler(0, 30, timeAndPausesHandler)
+	manaHandler := mana.NewHandler(0, 15, timeAndPausesHandler)
 	abilitiesHandler := abilities.NewHandler()
 	ptHandler := pt.NewHandler(abilitiesHandler, manaHandler)
 

@@ -60,48 +60,41 @@ func (h *Handler) Intervals() []Interval {
 	return h.intervals
 }
 
-// CurrentTickTime returns latest observed replay time from entity ticks.
 func (h *Handler) CurrentTickTime() float32 {
-	return h.currentTickTime - h.tickInterval*float32(h.preGameStartTick)
+	return h.currentTickTime
 }
 
-// PreGameStartTime returns pre-game start from CDOTAGamerulesProxy.
 func (h *Handler) PreGameStartTime() float32 {
 	return h.preGameStart
 }
 
-// GameStartTime returns game start from CDOTAGamerulesProxy.
 func (h *Handler) GameStartTime() float32 {
 	return h.gameStartTime
 }
 
-// GameEndTime returns game end time from CDOTAGamerulesProxy.
 func (h *Handler) GameEndTime() float32 {
 	return h.gameEndTime
 }
 
-// IsGameEnded reports whether game end was observed in gamerules.
 func (h *Handler) IsGameEnded() bool {
 	return h.isGameEnded
 }
 
-// PauseTimeSoFar returns closed pause duration plus current open pause (if any).
 func (h *Handler) PauseTimeSoFar() float32 {
 	return h.totalPauseTime
 }
 
 func (h *Handler) CurrentGameTime() float32 {
-	return h.CurrentTickTime() - h.PreGameStartTime() - h.PauseTimeSoFar()
+	// CurrentTickTime is tickTime when we set the preGameStartTick. The preGameStartTime can be 165 but the tickTime will be 121 at that time
+	// this is why we cant use the preGameStartTime directly, we use the preGameStartTick to calculate the game time
+	return h.CurrentTickTime() - h.tickInterval*float32(h.preGameStartTick) - preGameOffsetSeconds - h.PauseTimeSoFar()
 }
 
-// PauseDurationAtTick returns total pause duration accumulated up to a given tick.
 func (h *Handler) PauseDurationAtTick(tick uint32) float32 {
 	tickTime := h.tickInterval * float32(tick)
 	return h.pauseDurationAtTime(tickTime)
 }
 
-// GameTimeAtTick returns game time at a given tick:
-// currentTickTime - preGameStartTime - 90 - pauseDurationAtTick.
 func (h *Handler) GameTimeAtTick(tick uint32) float32 {
 	tickTime := h.tickInterval * float32(tick)
 	return tickTime - h.preGameStart - h.pauseDurationAtTime(tickTime)

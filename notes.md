@@ -1,3 +1,11 @@
+## TODO
+
+- Figure out why Mana Chart is not displayed without page refresh
+- Figure out the difference in time for mana recording and game end time (seems like a shift)
+- Cache the OpenDotaAPI response and cache the downloaded replay files
+- Get more details progress info based on output of the command (ah, not needed, it will be a service instead)
+- Do the strategic states stuff
+
 
 
 ## Strategic States

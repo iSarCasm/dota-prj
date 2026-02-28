@@ -70,7 +70,6 @@ class MatchAnalysisJob < ApplicationJob
   def hero_name_for_account(match_details, account_id)
     players = Array(match_details["players"])
     player = players.find { |p| p["account_id"].to_i == account_id.to_i }
-    # return nil if player.blank?
     raise "Player not found for account_id #{account_id}" if player.blank?
 
     hero_id = player["hero_id"]&.to_s
