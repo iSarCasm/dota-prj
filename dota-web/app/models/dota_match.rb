@@ -53,6 +53,10 @@ class DotaMatch < ApplicationRecord
     status.to_s == "parsed"
   end
 
+  def analysis_in_progress?
+    analysis_progress_percent.positive? && analysis_progress_percent < 100
+  end
+
   def analysis_status_message
     return "Analysis failed. Check Sidekiq logs and retry." if analysis_error?
     return "Analysis output is ready below." if analysis_completed?
