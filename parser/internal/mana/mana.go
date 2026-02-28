@@ -11,8 +11,8 @@ import (
 )
 
 type ManaSnapshot struct {
-	Tick        uint32
-	Time        float32
+	TickTime    float32
+	GameTime    float32
 	Mana        float32
 	MaxMana     float32
 	ManaPercent float32
@@ -59,7 +59,8 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			return nil
 		}
 		entityTick := p.Tick
-		entityTime := h.timeAndPausesHandler.CurrentGameTime()
+		gameTime := h.timeAndPausesHandler.CurrentGameTime()
+		tickTime := h.timeAndPausesHandler.CurrentTickTime()
 		cn := e.GetClassName()
 
 		if cn != h.heroClass || !common.IsRealHero(e) {
@@ -81,8 +82,8 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		}
 
 		h.snapshots = append(h.snapshots, &ManaSnapshot{
-			Tick:        entityTick,
-			Time:        entityTime,
+			TickTime:    tickTime,
+			GameTime:    gameTime,
 			Mana:        mana,
 			MaxMana:     maxMana,
 			ManaPercent: mana / maxMana * 100,
@@ -96,7 +97,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 func (h *Handler) ManaAtTime(t float32) (mana, maxMana float32, ok bool) {
 	var best *ManaSnapshot
 	for _, s := range h.snapshots {
-		if s.Time <= t {
+		if s.GameTime <= t {
 			best = s
 		} else {
 			break
@@ -116,7 +117,7 @@ func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
 	manaRows := make([][]interface{}, 0, len(h.snapshots))
 	for i, s := range h.snapshots {
 		if i%h.manaTickIntervalOutput == 0 {
-			manaRows = append(manaRows, []interface{}{s.Tick, s.Time, s.Mana, s.MaxMana, s.ManaPercent})
+			manaRows = append(manaRows, []interface{}{s.TickTime, s.GameTime, s.Mana, s.MaxMana, s.ManaPercent})
 		}
 	}
 	return map[string]interface{}{"mana": manaRows}
