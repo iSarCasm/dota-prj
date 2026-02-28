@@ -22,7 +22,6 @@ type Insight struct {
 type ParseContext struct {
 	TickInterval   float32
 	PlayerIDToHero map[uint32]HeroRef
-	GameStartTime  float32
 
 	// Config known before parse (for handlers that need it)
 	MatchID    string

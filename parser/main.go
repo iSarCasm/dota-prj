@@ -67,10 +67,6 @@ func main() {
 		}
 		cn := e.GetClassName()
 
-		if ctx.GameStartTime == 0 && cn == "CDOTAGamerulesProxy" {
-			ctx.GameStartTime, _ = e.GetFloat32("m_pGameRules.m_flGameStartTime")
-		}
-
 		if strings.HasPrefix(cn, "CDOTA_Unit_Hero_") {
 			if pidAny, ok := e.Map()["m_iPlayerID"]; ok {
 				if pid, ok := pidAny.(uint32); ok {
@@ -86,7 +82,7 @@ func main() {
 
 	// Handlers (mana and abilities before PT so PT can take references)
 	timeAndPausesHandler := timeandpauses.NewHandler()
-	manaHandler := mana.NewHandler(1, 30)
+	manaHandler := mana.NewHandler(0, 30, timeAndPausesHandler)
 	abilitiesHandler := abilities.NewHandler()
 	ptHandler := pt.NewHandler(abilitiesHandler, manaHandler)
 
@@ -107,8 +103,7 @@ func main() {
 	}
 
 	out := map[string]interface{}{
-		"gameStartTime": ctx.GameStartTime,
-		"heroName":      ctx.HeroName,
+		"heroName": ctx.HeroName,
 	}
 	var insights []common.Insight
 	for _, h := range []common.ReplayHandler{timeAndPausesHandler, manaHandler, abilitiesHandler, ptHandler} {

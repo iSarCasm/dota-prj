@@ -1,11 +1,13 @@
 package mana
 
 import (
+	"errors"
 	"log"
 
 	"github.com/dotabuff/manta"
 
 	"dota2/internal/common"
+	"dota2/internal/timeandpauses"
 )
 
 type ManaSnapshot struct {
@@ -22,14 +24,16 @@ type Handler struct {
 	manaTickIntervalOutput int
 	heroClass              string
 	snapshots              []*ManaSnapshot
+	timeAndPausesHandler   *timeandpauses.Handler
 }
 
 // NewHandler creates a mana handler with the given tick interval (record mana every N ticks).
-func NewHandler(tickInterval int, tickIntervalOutput int) *Handler {
+func NewHandler(tickInterval int, tickIntervalOutput int, timeAndPausesHandler *timeandpauses.Handler) *Handler {
 	return &Handler{
 		manaTickInterval:       tickInterval,
 		manaTickIntervalOutput: tickIntervalOutput,
 		snapshots:              make([]*ManaSnapshot, 0, 1024),
+		timeAndPausesHandler:   timeAndPausesHandler,
 	}
 }
 
@@ -38,6 +42,9 @@ func (h *Handler) Init(ctx *common.ParseContext) error {
 	h.heroClass = common.HeroNameToClass(ctx.HeroName)
 	if h.heroClass == "" {
 		return common.ErrInvalidHeroName
+	}
+	if h.timeAndPausesHandler == nil {
+		return errors.New("mana handler requires timeandpauses dependency")
 	}
 	return nil
 }
@@ -48,8 +55,11 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		if e == nil {
 			return nil
 		}
+		if h.timeAndPausesHandler.IsGameEnded() {
+			return nil
+		}
 		entityTick := p.Tick
-		entityTime := ctx.TickInterval * float32(entityTick)
+		entityTime := h.timeAndPausesHandler.CurrentGameTime()
 		cn := e.GetClassName()
 
 		if cn != h.heroClass || !common.IsRealHero(e) {
@@ -60,7 +70,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		if !ok {
 			return nil
 		}
-		if entityTick%uint32(h.manaTickInterval) != 0 {
+		if h.manaTickInterval != 0 && entityTick%uint32(h.manaTickInterval) != 0 {
 			return nil
 		}
 
