@@ -1,5 +1,27 @@
 <div style="border: 1px solid #ffffff; padding: 2rem; margin-top: 2rem;">
   <h2 style="font-size: 1.25rem; margin-bottom: 1rem; font-weight: bold;">Match analysis output</h2>
+
+  <%
+    analysis_match_id = local_assigns[:match_id] || dota_match&.match_id
+    analysis_playerid = local_assigns[:playerid]
+    analyze_path =
+      if analysis_match_id.present?
+        analysis_playerid.present? ? analyze_match_path(analysis_match_id, playerid: analysis_playerid) : analyze_match_path(analysis_match_id)
+      end
+  %>
+
+  <% if !dota_match&.analysis_in_progress? && analyze_path.present? %>
+    <div style="margin-bottom: 1.25rem;">
+      <%= button_to (dota_match&.analysis_completed? ? "Re-Analyze" : "Analyze"),
+          analyze_path,
+          method: :post,
+          class: "analyze-button",
+          style: "display: inline-block; padding: 0.75rem 1.75rem; font-size: 1rem; font-weight: bold; background: #228be6; color: #fff; border: none; border-radius: 0.5rem; cursor: pointer; text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" %>
+    </div>
+  <% end %>
+
+  <%= render "matches/analysis_progress", dota_match: dota_match %>
+
   <% if dota_match.present? && dota_match.output.present? %>
     <% out = dota_match.output %>
     <% mana_data = out["mana"] %>
@@ -198,7 +220,7 @@
       <summary style="cursor: pointer; text-decoration: underline;">Show analysis output (raw JSON)</summary>
       <pre style="margin-top: 1rem; white-space: pre-wrap; overflow: auto; max-height: 70vh; border: 1px solid rgba(255,255,255,0.2); padding: 1rem;"><%= JSON.pretty_generate(dota_match.output) rescue dota_match.output.inspect %></pre>
     </details>
-  <% else %>
+  <% elsif !dota_match&.analysis_in_progress? %>
     <p style="opacity: 0.85;">No analysis output yet. Click "Analyze" to run match analysis.</p>
   <% end %>
 </div>

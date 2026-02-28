@@ -21,20 +21,8 @@
       Could not load match details.
     </div>
   <% else %>
-    <% unless @dota_match&.analysis_in_progress? %>
-      <div style="margin-bottom: 2rem;">
-        <%= button_to (@dota_match&.analysis_completed? ? "Re-Analyze" : "Analyze"),
-            analyze_match_path(@match_summary[:id], playerid: params[:playerid]),
-            method: :post,
-            class: "analyze-button",
-            style: "display: inline-block; padding: 1rem 2.5rem; font-size: 1.25rem; font-weight: bold; background: #228be6; color: #fff; border: none; border-radius: 0.5rem; cursor: pointer; text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" %>
-      </div>
-    <% end %>
     <% if @dota_match.present? %>
       <%= turbo_stream_from @dota_match.analysis_stream_name %>
-      <div id="<%= @dota_match.analysis_progress_dom_id %>">
-        <%= render "analysis_progress", dota_match: @dota_match %>
-      </div>
     <% end %>
 
     <div style="border: 1px solid #ffffff; padding: 2rem; margin-bottom: 2rem;">
@@ -186,7 +174,10 @@
     </div>
 
     <div id="<%= @dota_match&.analysis_output_dom_id || "analysis_output_#{@match_summary[:id]}" %>">
-      <%= render "analysis_output", dota_match: @dota_match %>
+      <%= render "analysis_output",
+                 dota_match: @dota_match,
+                 match_id: @match_summary[:id],
+                 playerid: params[:playerid] %>
     </div>
 
     <div style="border: 1px solid #ffffff; padding: 2rem; margin-top: 2rem;">

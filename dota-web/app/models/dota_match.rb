@@ -26,17 +26,11 @@ class DotaMatch < ApplicationRecord
   validates :match_id, presence: true
   validates :status, presence: true
 
-  after_create_commit :broadcast_analysis_progress
-  after_update_commit :broadcast_analysis_progress, if: :saved_change_to_status?
   after_create_commit :broadcast_analysis_output
   after_update_commit :broadcast_analysis_output, if: :saved_change_to_status_or_output?
 
   def analysis_stream_name
     "match_analysis_#{id}"
-  end
-
-  def analysis_progress_dom_id
-    "analysis_progress_#{id}"
   end
 
   def analysis_output_dom_id
@@ -74,15 +68,6 @@ class DotaMatch < ApplicationRecord
 
   def saved_change_to_status_or_output?
     saved_change_to_status? || saved_change_to_output?
-  end
-
-  def broadcast_analysis_progress
-    broadcast_update_to(
-      analysis_stream_name,
-      target: analysis_progress_dom_id,
-      partial: "matches/analysis_progress",
-      locals: { dota_match: self }
-    )
   end
 
   def broadcast_analysis_output
