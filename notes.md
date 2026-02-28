@@ -1,8 +1,27 @@
 
 
+## Strategic States
+
+0. Filter out pauses
+1. Death
+   1. Health at 0
+2. Fighting
+   1. Dealing of receiving damage to/from heroes
+   2. Giving or receiving buffs from enemy heroes
+   3. Giving buffs to heroes that are currently fighting
+3. Farming
+   1. Lane Farming
+      1. Dealing damage to lane creeps
+   2. Jungle Farming
+      1. Dealing damage to jungle creeps
+4. Roaming
+   1. If nothing else happens for more than 10 secs
 
 
-1.PT switching
+
+## Mistakes
+
+### PT switching
 - Positive: when you switch your PT to INT before using a spell (Good) - show how much mana was saved from that
 - Negative: when you use a spell with a PT not on INT - show how much mana could have been saved from that
 
@@ -91,25 +110,25 @@ PT stuff:
 2. Switch to INT -> use Mana Ability -> switch to non-int (less than 10 secs) => good
 
 
-Soul Ring:
+### Soul Ring:
 1. Use without using an ability after -> mistake (minor)
 2. Use without switching PT to STR -> mistake (minor)
 3.
 
-BKB:
+### BKB:
 1. Effect does not overlap with any PVP (receive or deal damage) - Mistake (blunder)
 
 
-Midas:
+### Midas:
 1. Utilization % (Rating)
 
-Phase boots:
+### Phase boots:
 1. Utilization % (Rating)
 
-Mango/Sticks/Fairy:
+### Mango/Sticks/Fairy:
 1. Using when full (99%) - (medium)
 
 
-Mistake type: Spell Missed:
+### Mistake type: Spell Missed
 - No enemies affected by it
 - Gleipnir, Meteor Hammer (minor)

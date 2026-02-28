@@ -36,10 +36,11 @@ func fDump(w io.Writer, e *manta.Entity) {
 }
 
 func main() {
-	unitDumps := [...]string{"CDOTA_Unit_Hero_Lina", "CDOTA_Ability_StormSpirit_StaticRemnant"}
+	// unitDumps := [...]string{"CDOTA_Unit_Hero_Lina", "CDOTA_Ability_StormSpirit_StaticRemnant"}
+	unitDumps := [...]string{"CDOTAGamerulesProxy"}
 
 	// f, err := os.Open("../replay1.dem")
-	f, err := os.Open("/Users/igortsykalo/workspace/dota2/dota-web/storage/replays/8685162411.dem")
+	f, err := os.Open("/Users/igortsykalo/workspace/dota2/dota-web/storage/replays/8698245943.dem")
 	if err != nil {
 		log.Fatalf("open: %v", err)
 	}
