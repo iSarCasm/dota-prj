@@ -14,8 +14,8 @@ import (
 	"dota2/internal/abilities"
 	"dota2/internal/common"
 	"dota2/internal/mana"
-	"dota2/internal/pauses"
 	"dota2/internal/pt"
+	"dota2/internal/timeandpauses"
 )
 
 func main() {
@@ -85,12 +85,12 @@ func main() {
 	})
 
 	// Handlers (mana and abilities before PT so PT can take references)
-	pausesHandler := pauses.NewHandler()
+	timeAndPausesHandler := timeandpauses.NewHandler()
 	manaHandler := mana.NewHandler(1, 30)
 	abilitiesHandler := abilities.NewHandler()
 	ptHandler := pt.NewHandler(abilitiesHandler, manaHandler)
 
-	for _, h := range []common.ReplayHandler{pausesHandler, manaHandler, abilitiesHandler, ptHandler} {
+	for _, h := range []common.ReplayHandler{timeAndPausesHandler, manaHandler, abilitiesHandler, ptHandler} {
 		if err := h.Init(ctx); err != nil {
 			log.Fatalf("handler init: %v", err)
 		}
@@ -111,7 +111,7 @@ func main() {
 		"heroName":      ctx.HeroName,
 	}
 	var insights []common.Insight
-	for _, h := range []common.ReplayHandler{pausesHandler, manaHandler, abilitiesHandler, ptHandler} {
+	for _, h := range []common.ReplayHandler{timeAndPausesHandler, manaHandler, abilitiesHandler, ptHandler} {
 		for k, v := range h.Output(ctx) {
 			if k == "insights" {
 				if arr, ok := v.([]common.Insight); ok {
