@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -83,10 +84,13 @@ func main() {
 	// Handlers (mana and abilities before PT so PT can take references)
 	timeAndPausesHandler := timeandpauses.NewHandler()
 	manaHandler := mana.NewHandler(0, 15, timeAndPausesHandler)
-	abilitiesHandler := abilities.NewHandler()
+	abilitiesHandler := abilities.NewHandler(timeAndPausesHandler)
+	// PT needs to know about abilities and mana to be able to make insights
 	ptHandler := pt.NewHandler(abilitiesHandler, manaHandler)
 
-	for _, h := range []common.ReplayHandler{timeAndPausesHandler, manaHandler, abilitiesHandler, ptHandler} {
+	replayHandlers := []common.ReplayHandler{timeAndPausesHandler, manaHandler, abilitiesHandler, ptHandler}
+
+	for _, h := range replayHandlers {
 		if err := h.Init(ctx); err != nil {
 			log.Fatalf("handler init: %v", err)
 		}
@@ -106,7 +110,7 @@ func main() {
 		"heroName": ctx.HeroName,
 	}
 	var insights []common.Insight
-	for _, h := range []common.ReplayHandler{timeAndPausesHandler, manaHandler, abilitiesHandler, ptHandler} {
+	for _, h := range replayHandlers {
 		for k, v := range h.Output(ctx) {
 			if k == "insights" {
 				if arr, ok := v.([]common.Insight); ok {
@@ -119,17 +123,25 @@ func main() {
 	}
 	out["insights"] = insights
 
+	if jsonPath, err := saveJsonOutput(out, matchID, outputDir); err == nil {
+		log.Printf("Parse complete: match_id=%s hero=%s -> %s", matchID, heroName, jsonPath)
+	} else {
+		log.Fatalf("save json output: %v", err)
+	}
+}
+
+func saveJsonOutput(out map[string]interface{}, matchID string, outputDir string) (string, error) {
 	jsonPath := filepath.Join(outputDir, matchID+"_output.json")
 	var outFile *os.File
-	outFile, err = os.Create(jsonPath)
+	outFile, err := os.Create(jsonPath)
 	if err != nil {
-		log.Fatalf("create output file: %v", err)
+		return "", fmt.Errorf("create output file: %v", err)
 	}
 	defer outFile.Close()
 	enc := json.NewEncoder(outFile)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(out); err != nil {
-		log.Fatalf("encode output: %v", err)
+		return "", fmt.Errorf("encode output: %v", err)
 	}
-	log.Printf("Parse complete: match_id=%s hero=%s -> %s", matchID, heroName, jsonPath)
+	return jsonPath, nil
 }

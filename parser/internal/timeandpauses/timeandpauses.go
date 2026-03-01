@@ -69,7 +69,7 @@ func (h *Handler) PreGameStartTime() float32 {
 }
 
 func (h *Handler) GameStartTime() float32 {
-	return h.gameStartTime
+	return h.preGameStart + preGameOffsetSeconds
 }
 
 func (h *Handler) GameEndTime() float32 {

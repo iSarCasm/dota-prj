@@ -184,8 +184,16 @@
               <tbody>
                 <% ability_usages.each do |u| %>
                   <% sec = u["timestamp"].to_f %>
+                  <% if sec < 0 %>
+                    <% abs_sec = sec.abs %>
+                    <% pre_m = (abs_sec / 60).floor %>
+                    <% pre_s = (abs_sec % 60).round %>
+                    <% time_str = "-#{pre_m}m #{pre_s}s" %>
+                  <% else %>
+                    <% time_str = "#{(sec / 60).floor}m #{(sec % 60).round}s" %>
+                  <% end %>
                   <tr style="border-top: 1px solid rgba(255,255,255,0.1);">
-                    <td style="padding: 0.5rem;"><%= "#{(sec / 60).floor}m #{(sec % 60).round}s" %></td>
+                    <td style="padding: 0.5rem;"><%= time_str %></td>
                     <td style="padding: 0.5rem;"><%= (u["ability_name"].to_s).gsub(/_/, ' ').split.map(&:capitalize).join(' ') %></td>
                     <td style="padding: 0.5rem;"><%= u["type"].to_s %></td>
                     <td style="padding: 0.5rem; text-align: right;"><%= u["mana_cost"].to_i %></td>
@@ -213,7 +221,13 @@
                   <span style="opacity: 0.85;"><%= insight["level"].to_s %></span>
                   <% if first_ts.present? %>
                     <% insight_sec = first_ts.to_f %>
-                    <span style="opacity: 0.85;"><%= "#{(insight_sec / 60).floor}m #{(insight_sec % 60).round}s" %></span>
+                    <% if insight_sec < 0 %>
+                      <% ins_abs = insight_sec.abs %>
+                      <% ins_time_str = "-#{(ins_abs / 60).floor}m #{(ins_abs % 60).round}s" %>
+                    <% else %>
+                      <% ins_time_str = "#{(insight_sec / 60).floor}m #{(insight_sec % 60).round}s" %>
+                    <% end %>
+                    <span style="opacity: 0.85;"><%= ins_time_str %></span>
                   <% end %>
                 </div>
                 <% if details.any? %>

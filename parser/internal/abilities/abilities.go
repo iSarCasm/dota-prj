@@ -7,6 +7,7 @@ import (
 	"github.com/dotabuff/manta/dota"
 
 	"dota2/internal/common"
+	"dota2/internal/timeandpauses"
 )
 
 const (
@@ -24,16 +25,18 @@ type Usage struct {
 
 // Handler implements common.ReplayHandler for ability and item usage tracking.
 type Handler struct {
-	heroClass         string
-	usages            []Usage
-	abilityNameToMana map[string]int32 // combat-log style name -> m_iManaCost (from entity), so combat log lookup matches
+	timeAndPausesHandler *timeandpauses.Handler
+	heroClass            string
+	usages               []Usage
+	abilityNameToMana    map[string]int32 // combat-log style name -> m_iManaCost (from entity), so combat log lookup matches
 }
 
 // NewHandler creates an abilities handler.
-func NewHandler() *Handler {
+func NewHandler(timeAndPausesHandler *timeandpauses.Handler) *Handler {
 	return &Handler{
-		usages:            make([]Usage, 0, 512),
-		abilityNameToMana: make(map[string]int32),
+		usages:               make([]Usage, 0, 512),
+		abilityNameToMana:    make(map[string]int32),
+		timeAndPausesHandler: timeAndPausesHandler,
 	}
 }
 
@@ -108,7 +111,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		manaCost := h.abilityNameToMana[abilityName]
 
 		h.usages = append(h.usages, Usage{
-			Timestamp:   m.GetTimestamp() - 10,
+			Timestamp:   m.GetTimestamp() - h.timeAndPausesHandler.GameStartTime(),
 			AbilityName: abilityName,
 			Type:        usageType,
 			ManaCost:    manaCost,
