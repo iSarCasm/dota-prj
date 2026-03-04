@@ -10,9 +10,26 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_28_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_04_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "cached_match_details", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "match_id", null: false
+    t.json "payload", null: false
+    t.datetime "updated_at", null: false
+    t.index ["match_id"], name: "index_cached_match_details_on_match_id", unique: true
+  end
+
+  create_table "cached_replays", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "demo_path"
+    t.string "match_id", null: false
+    t.datetime "updated_at", null: false
+    t.string "zip_path"
+    t.index ["match_id"], name: "index_cached_replays_on_match_id", unique: true
+  end
 
   create_table "dota_matches", force: :cascade do |t|
     t.text "analysis_error_details"
@@ -24,7 +41,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_28_000100) do
     t.string "replay_file"
     t.string "status", null: false
     t.datetime "updated_at", null: false
-    t.index ["match_id"], name: "index_dota_matches_on_match_id"
+    t.index ["match_id"], name: "index_dota_matches_on_match_id", unique: true
     t.index ["status"], name: "index_dota_matches_on_status"
   end
 

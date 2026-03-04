@@ -3,11 +3,11 @@
 class DotaMatch < ApplicationRecord
   STATUS_PROGRESS = {
     "init" => 5,
-    "requesting_parse" => 20,
-    "fetching_match_data" => 35,
-    "downloading_replay" => 60,
-    "downloaded" => 75,
-    "parsing" => 90,
+    "requesting_parse" => 10,
+    "fetching_match_data" => 15,
+    "downloading_replay" => 20,
+    "downloaded" => 25,
+    "parsing" => 30,
     "parsed" => 100,
     "error" => 100
   }.freeze

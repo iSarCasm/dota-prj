@@ -2,10 +2,12 @@
 
 ## TODO
 
-- Figure out why Mana Chart is not displayed without page refresh.
 - Cache the OpenDotaAPI response and cache downloaded replay files.
-- Get better progress details from command output (possibly no longer needed if moved to service).
 - Implement strategic states.
+
+### Later
+
+- Get better progress details from command output (possibly no longer needed if moved to service).
 
 ## Strategic States
 

@@ -19,10 +19,13 @@ class MatchAnalysisJob < ApplicationJob
     end
 
     api = OpenDotaApi.new
-    dota_match.update(status: "requesting_parse", analysis_error_message: nil, analysis_error_details: nil)
-    response = api.request_parse(match_id: dota_match.match_id)
-    Rails.logger.info "[MatchAnalysisJob] request_parse response: #{response}"
-    sleep 2
+    cached = CachedReplay.find_by(match_id: dota_match.match_id.to_s)
+    unless cached.present?
+      dota_match.update(status: "requesting_parse", analysis_error_message: nil, analysis_error_details: nil)
+      response = api.request_parse(match_id: dota_match.match_id)
+      Rails.logger.info "[MatchAnalysisJob] request_parse response: #{response}"
+      sleep 2
+    end
     dota_match.update(status: "fetching_match_data")
     match_details = api.get_match_details(match_id: dota_match.match_id)
     replay_url = match_details["replay_url"]
@@ -43,15 +46,25 @@ class MatchAnalysisJob < ApplicationJob
     bz2_path = "#{replay_path}.bz2"
     FileUtils.mkdir_p(replay_path.parent)
 
-    dota_match.update(status: "downloading_replay")
-    Rails.logger.info "[MatchAnalysisJob] downloading replay (bz2) to #{bz2_path}"
-    api.download_replay(replay_url: replay_url, file_name: bz2_path)
+    if cached.present? && cached.demo_path.present? && File.exist?(cached.demo_path)
+      replay_path = Pathname(cached.demo_path)
+      Rails.logger.info "[MatchAnalysisJob] using cached replay at #{replay_path}"
+    else
+      dota_match.update(status: "downloading_replay")
+      Rails.logger.info "[MatchAnalysisJob] downloading replay (bz2) to #{bz2_path}"
+      api.download_replay(replay_url: replay_url, file_name: bz2_path)
 
-    unless decompress_bz2(bz2_path, replay_path.to_s)
-      mark_error!(dota_match, "Failed to decompress replay")
-      return
+      unless decompress_bz2(bz2_path, replay_path.to_s)
+        mark_error!(dota_match, "Failed to decompress replay")
+        return
+      end
+      FileUtils.rm_f(bz2_path)
+
+      CachedReplay.find_or_initialize_by(match_id: dota_match.match_id.to_s).update!(
+        zip_path: bz2_path,
+        demo_path: replay_path.to_s
+      )
     end
-    FileUtils.rm_f(bz2_path)
 
     dota_match.update(replay_file: replay_path.to_s, status: "downloaded")
 

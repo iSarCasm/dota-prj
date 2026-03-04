@@ -21,8 +21,6 @@ class Users::OmniauthCallbacksController < Devise::OmniauthCallbacksController
     error_type = request.env["omniauth.error.type"]
     strategy = request.env["omniauth.error.strategy"]
 
-    binding.irb
-
     Rails.logger.error "Steam auth failure: Error: #{error.inspect}, Type: #{error_type}, Strategy: #{strategy}"
     Rails.logger.error "Request env: #{request.env.select { |k,v| k.start_with?('omniauth') }.inspect}"
     redirect_to root_path

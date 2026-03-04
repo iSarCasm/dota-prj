@@ -3,7 +3,7 @@
 
   <%
     analysis_match_id = local_assigns[:match_id] || dota_match&.match_id
-    analysis_playerid = local_assigns[:playerid]
+    analysis_playerid = local_assigns[:playerid].presence || dota_match&.players&.first
     analyze_button_text =
       if dota_match&.analysis_completed?
         "Re-Analyze"

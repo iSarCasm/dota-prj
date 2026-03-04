@@ -32,10 +32,14 @@ class MatchesController < ApplicationController
 
   def analyze
     match_id = params[:id].to_s
-    api = OpenDotaApi.new
     steam_id = steam64id_for(params[:playerid]) || current_user.steam_id
-    account_id_32 = api.steam64id_to_32id(steam64id: steam_id).to_s
-    dota_match = DotaMatch.create!(match_id: match_id, players: [account_id_32], status: "init")
+    account_id_32 = OpenDotaApi.steam64id_to_32id(steam64id: steam_id).to_s
+    dota_match = DotaMatch.find_by(match_id: match_id)
+    if dota_match.blank?
+      dota_match = DotaMatch.create!(match_id: match_id, players: [account_id_32], status: "init")
+    else
+      dota_match.update(players: [account_id_32], status: "init")
+    end
     MatchAnalysisJob.perform_later(dota_match.id)
 
     respond_to do |format|
@@ -71,7 +75,7 @@ class MatchesController < ApplicationController
 
     @dota_match = DotaMatch.where(match_id: params[:id]).order(created_at: :desc).first
 
-    my_account_id32 = api.steam64id_to_32id(steam64id: steam_id)
+    my_account_id32 = OpenDotaApi.steam64id_to_32id(steam64id: steam_id)
     players = Array(@match_details["players"])
     @me = players.find { |p| p["account_id"].to_i == my_account_id32.to_i }
 
