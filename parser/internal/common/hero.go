@@ -1,6 +1,7 @@
 package common
 
 import (
+	"dota2/internal/timeandpauses"
 	"strings"
 	"unicode"
 
@@ -100,7 +101,7 @@ func pascalToSnake(s string) string {
 
 // IsRealHero returns true if the entity is a real hero (not clone/illusion).
 // Real heroes are created at the beginning of the game.
-func IsRealHero(e *manta.Entity) bool {
-	m_flCreateTime, _ := e.GetFloat32("m_flCreateTime")
-	return m_flCreateTime < 200
+func IsRealHero(e *manta.Entity, timeAndPausesHandler *timeandpauses.Handler) bool {
+	createTime, _ := e.GetFloat32("m_flCreateTime")
+	return createTime <= (timeAndPausesHandler.PreGameStartTime() + 10)
 }

@@ -25,10 +25,10 @@ const (
 
 // Snapshot is a single strategic state at a point in time.
 type Snapshot struct {
-	TickTime  float32 `json:"tick_time"`
-	GameTime  float32 `json:"game_time"`
-	State     string  `json:"state"`
-	Substate  string  `json:"substate,omitempty"` // "jungle" or "lane" when state is "farming"
+	TickTime float32 `json:"tick_time"`
+	GameTime float32 `json:"game_time"`
+	State    string  `json:"state"`
+	Substate string  `json:"substate,omitempty"` // "jungle" or "lane" when state is "farming"
 }
 
 // Handler implements common.ReplayHandler for strategic state extraction (dead / roaming / farming).
@@ -151,7 +151,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		tickTime := h.timeAndPausesHandler.CurrentTickTime()
 		cn := e.GetClassName()
 
-		if cn != h.heroClass || !common.IsRealHero(e) {
+		if cn != h.heroClass || !common.IsRealHero(e, h.timeAndPausesHandler) {
 			return nil
 		}
 
