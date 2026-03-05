@@ -63,7 +63,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		tickTime := h.timeAndPausesHandler.CurrentTickTime()
 		cn := e.GetClassName()
 
-		if cn != h.heroClass || !common.IsRealHero(e, h.timeAndPausesHandler) {
+		if cn != h.heroClass || !common.IsRealHero(e, h.timeAndPausesHandler.PreGameStartTime()) {
 			return nil
 		}
 
