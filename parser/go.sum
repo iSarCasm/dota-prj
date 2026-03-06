@@ -1,5 +1,5 @@
-github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/dotabuff/manta v1.4.7 h1:g+4zSgcf9ue2cnhK0mBetTy2dIZGfk4GJradLnKbRyU=
 github.com/dotabuff/manta v1.4.7/go.mod h1:LECH//XElrrs1Y/kK39zM22TB0fC2V4jW9aQL+rjCto=
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=

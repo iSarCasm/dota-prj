@@ -14,6 +14,7 @@ import (
 
 	"dota2/internal/abilities"
 	"dota2/internal/common"
+	"dota2/internal/lasthits"
 	"dota2/internal/mana"
 	"dota2/internal/pt"
 	"dota2/internal/strategic_states"
@@ -87,10 +88,11 @@ func main() {
 	manaHandler := mana.NewHandler(0, 15, timeAndPausesHandler)
 	abilitiesHandler := abilities.NewHandler(timeAndPausesHandler)
 	strategicStatesHandler := strategic_states.NewHandler(timeAndPausesHandler)
+	lasthitsHandler := lasthits.NewHandler(timeAndPausesHandler)
 	// PT needs to know about abilities and mana to be able to make insights
 	ptHandler := pt.NewHandler(abilitiesHandler, manaHandler)
 
-	replayHandlers := []common.ReplayHandler{timeAndPausesHandler, manaHandler, abilitiesHandler, strategicStatesHandler, ptHandler}
+	replayHandlers := []common.ReplayHandler{timeAndPausesHandler, manaHandler, abilitiesHandler, strategicStatesHandler, lasthitsHandler, ptHandler}
 
 	for _, h := range replayHandlers {
 		if err := h.Init(ctx); err != nil {

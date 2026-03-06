@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"os"
 	"runtime"
 	"sort"
@@ -37,10 +38,10 @@ func fDump(w io.Writer, e *manta.Entity) {
 
 func main() {
 	// unitDumps := [...]string{"CDOTA_Unit_Hero_Lina", "CDOTA_Ability_StormSpirit_StaticRemnant"}
-	unitDumps := [...]string{"CDOTAGamerulesProxy"}
+	unitDumps := [...]string{"CDOTA_BaseNPC_Creep_Lane"}
 
 	// f, err := os.Open("../replay1.dem")
-	f, err := os.Open("/Users/igortsykalo/workspace/dota2/dota-web/storage/replays/8698245943.dem")
+	f, err := os.Open("/Users/igortsykalo/workspace/dota2/dota-web/storage/replays/8676648471.dem")
 	if err != nil {
 		log.Fatalf("open: %v", err)
 	}
@@ -81,6 +82,7 @@ func main() {
 	// lastOwnerNPC := uint32(0)
 	// lastCreateTime := float32(0)
 
+	lastTimestamp := float32(0)
 	// Maintain our best-effort hero lookup index as entity updates stream in.
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
 		if e == nil {
@@ -91,6 +93,19 @@ func main() {
 		entityStats[cn]++
 
 		if _, ok := unitDumpLogs[cn]; ok {
+			timestamp, _ := e.GetFloat32("m_flCreateTime")
+			if timestamp > 0 {
+				log.Printf("Entity: %s, Timestamp: %f", cn, timestamp)
+			}
+
+			if timestamp > lastTimestamp {
+				lastTimestamp = timestamp
+			}
+
+			if lastTimestamp < 400 {
+				return nil
+			}
+
 			fDump(unitDumpLogs[cn], e)
 
 			// Print illusion specific stuff
@@ -125,6 +140,26 @@ func main() {
 			// 	lastCreateTime = m_flCreateTime
 			// 	fmt.Println("Last Create Time: ", lastCreateTime)
 			// }
+
+			// if rand is mod 10000 then exit program
+			if rand.Intn(2000) == 0 {
+				log.Printf("Exiting program")
+
+				sortedEntityStats := make([]string, 0, len(entityStats))
+				for cn := range entityStats {
+					sortedEntityStats = append(sortedEntityStats, cn)
+				}
+				sort.Slice(sortedEntityStats, func(i, j int) bool {
+					return entityStats[sortedEntityStats[i]] > entityStats[sortedEntityStats[j]]
+				})
+				for _, cn := range sortedEntityStats {
+					fEntityStats.WriteString(fmt.Sprintf("%s: %d\n", cn, entityStats[cn]))
+				}
+
+				log.Printf("Parse Complete!")
+
+				os.Exit(0)
+			}
 		}
 
 		return nil

@@ -173,3 +173,35 @@ Potentially interesting callbacks:
 - `m_pGameRules.m_flGameStartTime = 274.7667`
 - `m_pGameRules.m_flHeroPickStateTransitionTime = 140.70001`
 - `m_pGameRules.m_flPreGameStartTime = 184.76668`
+
+
+## Indexes
+
+- GetIndex() returns virtual/local index based on update packets while m_nEntityId is an index on the replay packet itself so it should be the same between parses.
+
+
+## Stringable Tables
+some string tables from https://github.com/dotabuff/manta/issues/75
+```
+2016/11/08 17:03:23 downloadables: 0
+2016/11/08 17:03:23 EffectDispatch: 8
+2016/11/08 17:03:23 VguiScreen: 9
+2016/11/08 17:03:23 ResponseKeys: 17
+2016/11/08 17:03:23 LuaModifiers: 18
+2016/11/08 17:03:23 ParticleAssets: 19
+2016/11/08 17:03:23 genericprecache: 1
+2016/11/08 17:03:23 decalprecache: 2
+2016/11/08 17:03:23 lightstyles: 4
+2016/11/08 17:03:23 EntityNames: 7
+2016/11/08 17:03:23 EconItems: 15
+2016/11/08 17:03:23 CombatLogNames: 16
+2016/11/08 17:03:23 instancebaseline: 3
+2016/11/08 17:03:23 userinfo: 5
+```
+
+
+```
+nameIndex, _ := e.GetInt32("m_pEntity.m_nameStringableIndex")
+name, ok := p.LookupStringByIndex("EntityNames", nameIndex)
+```
+will give `npc_dota_creep_lane` instead of `npc_dota_creep_badguys_ranged`
