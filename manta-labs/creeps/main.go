@@ -584,96 +584,96 @@ func main() {
 		log.Fatalf("NewStreamParser: %v", err)
 	}
 
-	nextIndex := int32(0)
+	// nextIndex := int32(0)
 	stringTables := &stringTables{
 		Tables:    make(map[int32]*stringTable),
 		NameIndex: make(map[string]int32),
 		nextIndex: 0,
 	}
-	p.Callbacks.OnCSVCMsg_CreateStringTable(func(m *dota.CSVCMsg_CreateStringTable) error {
-		// log.Printf("CreateStringTable: %s", m.String())
+	// p.Callbacks.OnCSVCMsg_CreateStringTable(func(m *dota.CSVCMsg_CreateStringTable) error {
+	// 	// log.Printf("CreateStringTable: %s", m.String())
 
-		t := &stringTable{
-			index:             nextIndex,
-			name:              m.GetName(),
-			Items:             make(map[int32]*stringTableItem),
-			userDataFixedSize: m.GetUserDataFixedSize(),
-			userDataSizeBits:  m.GetUserDataSizeBits(),
-			flags:             m.GetFlags(),
-			varintBitCounts:   m.GetUsingVarintBitcounts(),
-		}
+	// 	t := &stringTable{
+	// 		index:             nextIndex,
+	// 		name:              m.GetName(),
+	// 		Items:             make(map[int32]*stringTableItem),
+	// 		userDataFixedSize: m.GetUserDataFixedSize(),
+	// 		userDataSizeBits:  m.GetUserDataSizeBits(),
+	// 		flags:             m.GetFlags(),
+	// 		varintBitCounts:   m.GetUsingVarintBitcounts(),
+	// 	}
 
-		// Increment the index
-		nextIndex += 1
+	// 	// Increment the index
+	// 	nextIndex += 1
 
-		// Decompress the data if necessary
-		buf := m.GetStringData()
-		if m.GetDataCompressed() {
-			// old replays = lzss
-			// new replays = snappy
+	// 	// Decompress the data if necessary
+	// 	buf := m.GetStringData()
+	// 	if m.GetDataCompressed() {
+	// 		// old replays = lzss
+	// 		// new replays = snappy
 
-			r := newReader(buf)
-			var err error
+	// 		r := newReader(buf)
+	// 		var err error
 
-			if s := r.readStringN(4); s != "LZSS" {
-				if buf, err = snappy.Decode(nil, buf); err != nil {
-					return err
-				}
-			} else {
-				if buf, err = unlzss(buf); err != nil {
-					return err
-				}
-			}
-		}
+	// 		if s := r.readStringN(4); s != "LZSS" {
+	// 			if buf, err = snappy.Decode(nil, buf); err != nil {
+	// 				return err
+	// 			}
+	// 		} else {
+	// 			if buf, err = unlzss(buf); err != nil {
+	// 				return err
+	// 			}
+	// 		}
+	// 	}
 
-		// Parse the items out of the string table data
-		items := parseStringTable(buf, m.GetNumEntries(), t.name, t.userDataFixedSize, t.userDataSizeBits, t.flags, t.varintBitCounts)
+	// 	// Parse the items out of the string table data
+	// 	items := parseStringTable(buf, m.GetNumEntries(), t.name, t.userDataFixedSize, t.userDataSizeBits, t.flags, t.varintBitCounts)
 
-		// Insert the items into the table
-		for _, item := range items {
-			t.Items[item.Index] = item
-			log.Printf("String Table created: %s, Index: %d, Key: %s, Value: %s", t.name, item.Index, item.Key, string(item.Value))
-		}
+	// 	// Insert the items into the table
+	// 	for _, item := range items {
+	// 		t.Items[item.Index] = item
+	// 		log.Printf("String Table created: %s, Index: %d, Key: %s, Value: %s", t.name, item.Index, item.Key, string(item.Value))
+	// 	}
 
-		stringTables.Tables[t.index] = t
-		stringTables.NameIndex[t.name] = t.index
+	// 	stringTables.Tables[t.index] = t
+	// 	stringTables.NameIndex[t.name] = t.index
 
-		return nil
-	})
+	// 	return nil
+	// })
 
-	p.Callbacks.OnCSVCMsg_UpdateStringTable(func(m *dota.CSVCMsg_UpdateStringTable) error {
-		t, ok := stringTables.Tables[m.GetTableId()]
-		if !ok {
-			// _panicf("missing string table %d", m.GetTableId())
-			log.Printf("missing string table %d", m.GetTableId())
-			return nil
-		}
+	// p.Callbacks.OnCSVCMsg_UpdateStringTable(func(m *dota.CSVCMsg_UpdateStringTable) error {
+	// 	t, ok := stringTables.Tables[m.GetTableId()]
+	// 	if !ok {
+	// 		// _panicf("missing string table %d", m.GetTableId())
+	// 		log.Printf("missing string table %d", m.GetTableId())
+	// 		return nil
+	// 	}
 
-		// if v(5) {
-		// 	// _debugf("tick=%d name=%s changedEntries=%d size=%d", p.Tick, t.name, m.GetNumChangedEntries(), len(m.GetStringData()))
-		// 	log.Printf("tick=%d name=%s changedEntries=%d size=%d", p.Tick, t.name, m.GetNumChangedEntries(), len(m.GetStringData()))
-		// }
+	// 	// if v(5) {
+	// 	// 	// _debugf("tick=%d name=%s changedEntries=%d size=%d", p.Tick, t.name, m.GetNumChangedEntries(), len(m.GetStringData()))
+	// 	// 	log.Printf("tick=%d name=%s changedEntries=%d size=%d", p.Tick, t.name, m.GetNumChangedEntries(), len(m.GetStringData()))
+	// 	// }
 
-		// Parse the updates out of the string table data
-		items := parseStringTable(m.GetStringData(), m.GetNumChangedEntries(), t.name, t.userDataFixedSize, t.userDataSizeBits, t.flags, t.varintBitCounts)
+	// 	// Parse the updates out of the string table data
+	// 	items := parseStringTable(m.GetStringData(), m.GetNumChangedEntries(), t.name, t.userDataFixedSize, t.userDataSizeBits, t.flags, t.varintBitCounts)
 
-		// Apply the updates to the parser state
-		for _, item := range items {
-			index := item.Index
-			if _, ok := t.Items[index]; ok {
-				if item.Key != "" && item.Key != t.Items[index].Key {
-					t.Items[index].Key = item.Key
-				}
-				if len(item.Value) > 0 {
-					t.Items[index].Value = item.Value
-				}
-			} else {
-				t.Items[index] = item
-			}
-		}
+	// 	// Apply the updates to the parser state
+	// 	for _, item := range items {
+	// 		index := item.Index
+	// 		if _, ok := t.Items[index]; ok {
+	// 			if item.Key != "" && item.Key != t.Items[index].Key {
+	// 				t.Items[index].Key = item.Key
+	// 			}
+	// 			if len(item.Value) > 0 {
+	// 				t.Items[index].Value = item.Value
+	// 			}
+	// 		} else {
+	// 			t.Items[index] = item
+	// 		}
+	// 	}
 
-		return nil
-	})
+	// 	return nil
+	// })
 
 	// map entityId -> [health, name]
 	entityIdToHealthName := make(map[uint64]map[string]interface{}, 0)

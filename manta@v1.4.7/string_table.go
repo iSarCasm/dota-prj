@@ -1,6 +1,8 @@
 package manta
 
 import (
+	"log"
+
 	"github.com/dotabuff/manta/dota"
 	"github.com/golang/snappy"
 )
@@ -110,6 +112,7 @@ func (p *Parser) onCSVCMsg_CreateStringTable(m *dota.CSVCMsg_CreateStringTable) 
 	// Insert the items into the table
 	for _, item := range items {
 		t.Items[item.Index] = item
+		log.Printf("String Table created: %s, Index: %d, Key: %s, Value: %s", t.name, item.Index, item.Key, string(item.Value))
 	}
 
 	// Add the table to the parser state
