@@ -1,3 +1,4 @@
+github.com/dotabuff/manta v1.5.0 h1:JbqHBzfraAWEpZZs9y5rG7Ev9CikB6H13Ds/C/wYn3E=
 github.com/dotabuff/manta v1.5.0/go.mod h1:F0hQQaEr1HC61I1EJfe/mqXRRK4OOOH2VPrJ0CtULlI=
 github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
 github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
