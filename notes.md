@@ -139,3 +139,9 @@ PT stuff:
 ### Mistake type: Spell Missed
 - No enemies affected by it
 - Gleipnir, Meteor Hammer (minor)
+
+
+
+
+- Wed June 24
+wtf is going on
