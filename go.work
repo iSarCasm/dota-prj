@@ -1,8 +1,9 @@
 go 1.25.0
 
 use (
-	./manta-labs/creeps
 	./manta-labs/entity
 	./manta-labs/pt
+	./manta-labs/stringtables
+	./manta-master
 	./parser
 )
