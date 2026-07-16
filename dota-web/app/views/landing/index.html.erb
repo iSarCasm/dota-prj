@@ -1,0 +1,168 @@
+<% content_for :title, "DotaGym — Replay analysis that makes you better" %>
+
+<div class="landing-shell" data-controller="modal">
+  <div class="landing-atmosphere" aria-hidden="true"></div>
+  <div class="landing-lanes" aria-hidden="true"></div>
+
+  <section class="landing-copy">
+    <p class="landing-brand">Dota<span>Gym</span></p>
+    <h1 class="landing-headline">Every mistake. Called out. Fixed.</h1>
+    <p class="landing-lede">
+      Replay analysis that shows where you threw—and who on your team played the best and the worst.
+    </p>
+
+    <div class="landing-cta">
+      <%= render "form", waitlist_signup: @waitlist_signup, joined: @joined %>
+    </div>
+  </section>
+
+  <aside class="landing-visual">
+    <div class="landing-board" data-controller="tabs">
+      <div class="board-tabs" role="tablist" aria-label="Match review">
+        <button
+          type="button"
+          class="board-tab is-active"
+          role="tab"
+          aria-selected="true"
+          aria-controls="match-overview"
+          id="tab-match-overview"
+          data-tabs-target="tab"
+          data-action="tabs#select">
+          Match Overview
+        </button>
+        <button
+          type="button"
+          class="board-tab"
+          role="tab"
+          aria-selected="false"
+          aria-controls="improvements"
+          id="tab-improvements"
+          data-tabs-target="tab"
+          data-action="tabs#select">
+          Improvements
+        </button>
+      </div>
+
+      <div class="board-panels">
+        <div
+          class="board-panel is-active"
+          id="match-overview"
+          role="tabpanel"
+          aria-labelledby="tab-match-overview"
+          data-tabs-target="panel">
+          <ol class="board-events">
+            <li>
+              <time>0:07</time>
+              <span>Courier too far</span>
+            </li>
+            <li>
+              <time>1:37</time>
+              <span>Missed Powershot</span>
+            </li>
+            <li>
+              <time>7:32</time>
+              <span>Windrun not used <em>(death)</em></span>
+            </li>
+            <li class="is-defeat">
+              <time>44:33</time>
+              <span>Defeat</span>
+            </li>
+          </ol>
+
+          <div class="board-stats">
+            <div class="board-stats-label">Mistakes</div>
+            <div class="board-stat">
+              <span>Missed Last Hits</span>
+              <strong>32</strong>
+            </div>
+            <div class="board-stat">
+              <span>Bad Mana use</span>
+              <strong>13</strong>
+            </div>
+            <div class="board-stat">
+              <span>Uncontested enemy creep pulls</span>
+              <strong>5</strong>
+            </div>
+          </div>
+
+          <div class="board-impact">
+            <span>Overall Impact</span>
+            <strong>Horrible</strong>
+          </div>
+
+          <button type="button" class="board-details" data-action="modal#open">
+            Open Details
+          </button>
+        </div>
+
+        <div
+          class="board-panel"
+          id="improvements"
+          role="tabpanel"
+          aria-labelledby="tab-improvements"
+          data-tabs-target="panel"
+          aria-hidden="true">
+          <div class="board-tips">
+            <div class="board-stats-label">Tips for your next game</div>
+            <ul>
+              <li>
+                <a href="#">Contesting creep pulls during laning</a>
+              </li>
+              <li>
+                <a href="#">Early game ward locations</a>
+                <span class="board-tip-meta">average observer ward uptime: 2:31</span>
+              </li>
+              <li>
+                <a href="#">Switch Power Treads before using Spells</a>
+                <span class="board-tip-meta">36 opportunities missed last game</span>
+              </li>
+              <li>
+                <a href="#">Drop Mana/Health items before using Healing Lotus</a>
+                <span class="board-tip-meta">3 opportunities missed</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="board-wins">
+            <div class="board-stats-label">Improvements this game</div>
+            <p class="board-wins-baseline">based on your last week’s performance as a baseline</p>
+            <ul>
+              <li>
+                <strong>Less missed Last Hits</strong>
+                <span>33%, down from your average of 46%</span>
+              </li>
+              <li>
+                <strong>No Useless Buy Backs</strong>
+              </li>
+              <li>
+                <strong>More Good Ganks</strong>
+                <span>2 ganks leading to kills</span>
+              </li>
+              <li>
+                <strong>Contesting Power Runes</strong>
+                <span>helped your Mid get 1 Early Game Rune and 4 Mid Game Runes</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <dialog class="landing-modal" data-modal-target="dialog" data-action="click->modal#backdropClose">
+    <div class="landing-modal-content">
+      <button type="button" class="landing-modal-close" data-action="modal#close" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </button>
+
+      <h2 class="landing-modal-title">Full breakdowns are coming soon</h2>
+      <p class="landing-modal-lede">
+        Join the waitlist and we'll email you when detailed match reviews open up.
+      </p>
+
+      <%= render "form", waitlist_signup: @waitlist_signup, joined: @joined, container_id: "waitlist-form-modal" %>
+    </div>
+  </dialog>
+</div>

@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-body {
+body:not(.landing-page) {
   background-color: #000000;
   color: #ffffff;
   font-family: 'Courier New', Courier, monospace;

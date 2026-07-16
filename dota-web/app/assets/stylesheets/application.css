@@ -9,10 +9,17 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
-html, body {
+html:not(:has(body.landing-page)),
+body:not(.landing-page) {
   background-color: #000000 !important;
   color: #ffffff !important;
   font-family: 'Courier New', Courier, monospace !important;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body.landing-page {
   margin: 0;
   padding: 0;
   min-height: 100vh;

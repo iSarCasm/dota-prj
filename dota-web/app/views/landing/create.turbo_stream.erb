@@ -1,0 +1,7 @@
+<%= turbo_stream.replace "waitlist-form" do %>
+  <%= render "form", waitlist_signup: WaitlistSignup.new, joined: @joined %>
+<% end %>
+
+<%= turbo_stream.replace "waitlist-form-modal" do %>
+  <%= render "form", waitlist_signup: WaitlistSignup.new, joined: @joined, container_id: "waitlist-form-modal" %>
+<% end %>

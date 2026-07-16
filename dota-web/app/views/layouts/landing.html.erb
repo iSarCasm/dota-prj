@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title><%= content_for(:title) || "DotaGym — Replay analysis that makes you better" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="DotaGym analyzes your Dota 2 replays, points out your mistakes, and shows who on your team played best and worst.">
+    <meta name="application-name" content="DotaGym">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <link rel="icon" href="/icon2.png" type="image/png">
+    <%# <link rel="icon" href="/icon.svg" type="image/svg+xml"> %>
+    <link rel="apple-touch-icon" href="/icon2.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=Teko:wght@500;600&display=swap" rel="stylesheet">
+
+    <%= stylesheet_link_tag "tailwind", "application", "landing", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="landing-page">
+    <%= yield %>
+  </body>
+</html>

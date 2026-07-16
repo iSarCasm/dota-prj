@@ -1,6 +1,4 @@
 Rails.application.routes.draw do
-  get "home/index"
-
   devise_for :users, controllers: { omniauth_callbacks: 'users/omniauth_callbacks' }
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
@@ -12,10 +10,15 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
-  # Defines the root path route ("/")
-  # root "posts#index"
-  #
-  root "home#index"
+  root "landing#index"
+  post "waitlist", to: "landing#create", as: :waitlist
+
+  # Steam sign-in entry — not exposed in production
+  if Rails.env.local?
+    get "home/index"
+  end
+
+  get "landing/index"
 
   resources :matches, only: [:index, :show] do
     member do

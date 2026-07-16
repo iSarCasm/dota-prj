@@ -1,0 +1,24 @@
+<div id="<%= local_assigns.fetch(:container_id, "waitlist-form") %>">
+  <% if local_assigns[:joined] %>
+    <div class="landing-success" role="status">
+      <strong>You're on the list.</strong>
+      We'll email you when DotaGym opens.
+    </div>
+  <% else %>
+    <%= form_with model: waitlist_signup, url: waitlist_path, class: "landing-form" do |f| %>
+      <% if waitlist_signup.errors.any? %>
+        <p class="landing-error" style="flex-basis: 100%;">
+          <%= waitlist_signup.errors.full_messages.to_sentence %>
+        </p>
+      <% end %>
+
+      <%= f.email_field :email,
+            required: true,
+            autocomplete: "email",
+            placeholder: "you@email.com",
+            aria: { label: "Email address" } %>
+      <%= f.submit "Join waitlist" %>
+    <% end %>
+    <p class="landing-form-note">No spam. Just a heads-up when spots open.</p>
+  <% end %>
+</div>
