@@ -103,7 +103,7 @@ class MatchAnalysisJob < ApplicationJob
   end
 
   def run_parser(replay_path, dota_match, hero_name)
-    bin = ENV.fetch("REPLAY_PARSER_BIN")
+    bin = File.expand_path(ENV.fetch("REPLAY_PARSER_BIN"))
     unless File.executable?(bin)
       mark_error!(dota_match, "Parser binary not found or not executable: #{bin}")
       return
