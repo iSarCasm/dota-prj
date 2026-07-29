@@ -96,12 +96,14 @@ func (h *Handler) Init(ctx *common.ParseContext) error {
 // RegisterCallbacks registers PT-specific callbacks.
 func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 	p.Callbacks.OnCMsgDOTACombatLogEntry(func(m *dota.CMsgDOTACombatLogEntry) error {
+		// only care about item logs
 		if m.GetType() != dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_ITEM {
 			return nil
 		}
 
 		inflictorName := m.GetInflictorName()
 		inflictorAbilityName, inflictorOk := p.LookupStringByIndex("CombatLogNames", int32(inflictorName))
+		// we only care about PT item
 		if !inflictorOk || inflictorAbilityName != "item_power_treads" {
 			return nil
 		}
@@ -110,25 +112,13 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		attackerName := m.GetAttackerName()
 		realAttackerName, _ := p.LookupStringByIndex("CombatLogNames", int32(attackerName))
 
+		// Take a not that a PT was used
 		h.usages = append(h.usages, PTUsage{
 			Timestamp: timestamp - 10, // ~10 sec start screen offset
 			Hero:      realAttackerName,
 			Attacker:  attackerName,
 			Inflictor: inflictorName,
 		})
-
-		// if h.dumpOutput != nil {
-		// 	damageSourceName := m.GetDamageSourceName()
-		// 	targetName := m.GetTargetName()
-		// 	damageSourceAbilityName, _ := p.LookupStringByIndex("CombatLogNames", int32(damageSourceName))
-		// 	targetAbilityName, _ := p.LookupStringByIndex("CombatLogNames", int32(targetName))
-		// 	fmt.Fprintf(h.dumpOutput,
-		// 		"\n=== CMsgDOTACombatLogEntry ===\nType=%v Timestamp=%.4f Attacker=%d Inflictor=%d (%s) DamageSource=%d (%s) Target=%d (%s)\n",
-		// 		m.GetType(), timestamp, attackerName, inflictorName, inflictorAbilityName,
-		// 		damageSourceName, damageSourceAbilityName, targetName, targetAbilityName,
-		// 	)
-		// 	spew.Fdump(h.dumpOutput, m)
-		// }
 		return nil
 	})
 
@@ -160,15 +150,18 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 
 			for _, ptUsage := range h.usages {
 				heroClassName := common.GetHeroClassName(ptUsage.Hero)
-				toAttr, okAttr := e.GetInt32("m_iStat")
+				toAttr, okToAttr := e.GetInt32("m_iStat")
 				assembledAt, okAssembledAt := e.GetFloat32("m_flAssembledTime")
 
 				attrString := "unknown"
-				if okAttr && toAttr >= 0 && int(toAttr) < len(statStrings) {
+				if okToAttr && toAttr >= 0 && int(toAttr) < len(statStrings) {
 					attrString = statStrings[int(toAttr)]
 				}
 
-				if heroClassName == ownerHero && ownerHero == h.heroClass && okAssembledAt && ptUsage.Timestamp > assembledAt-0.01 {
+				// check that this PT belongs to a hero who used a PT
+				// check that this hero is the hero we are analyzing
+				// check that timestamps align
+				if heroClassName == ownerHero && ownerHero == h.heroClass && okAssembledAt && ptUsage.Timestamp >= assembledAt-0.01 {
 					emitKey := fmt.Sprintf("%.3f_%s", ptUsage.Timestamp, ownerHero)
 					if !h.emitted[emitKey] {
 						h.emitted[emitKey] = true

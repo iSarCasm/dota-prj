@@ -24,6 +24,7 @@ Parser functions:
   - [ ] Mid Game
   - [ ] Late Game
 - [ ] Testing Code
+- [ ] Benchmarking tool
 - [ ] Replay Pool System (from opendota)
 - [ ] Update Game Icons
 - [ ] Courier Moves Analysis
