@@ -118,8 +118,8 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			if !okT {
 				return nil
 			}
-			attackerClass := common.GuessHeroClassFromNPC(realAttackerName)
-			targetClass := common.GuessHeroClassFromNPC(realTargetName)
+			attackerClass := common.GetHeroClassName(realAttackerName)
+			targetClass := common.GetHeroClassName(realTargetName)
 
 			// Hero-vs-hero damage (no illusions, don't count deaths — only DAMAGE)
 			if m.GetIsAttackerHero() && m.GetIsTargetHero() && !m.GetIsAttackerIllusion() && !m.GetIsTargetIllusion() {
@@ -181,8 +181,8 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			if !okT {
 				return nil
 			}
-			sourceClass := common.GuessHeroClassFromNPC(realAttackerName)
-			targetClass := common.GuessHeroClassFromNPC(realTargetName)
+			sourceClass := common.GetHeroClassName(realAttackerName)
+			targetClass := common.GetHeroClassName(realTargetName)
 			if sourceClass == "" || targetClass == "" {
 				return nil
 			}

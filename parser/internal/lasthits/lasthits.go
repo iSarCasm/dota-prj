@@ -11,7 +11,7 @@ import (
 	"dota2/internal/timeandpauses"
 )
 
-const missedLastHitWindowSec = 5.0
+const missedLastHitWindowSec = 2.0
 
 // Event is a single last-hit, deny, or missed last-hit.
 type Event struct {
@@ -60,7 +60,7 @@ func (h *Handler) Init(ctx *common.ParseContext) error {
 	return nil
 }
 
-// creepTypeFromTargetName returns "lane", "jungle", or "" if target is not a creep we count.
+// returns "lane", "jungle", or "" if target is not a creep we count.
 func creepTypeFromTargetName(targetName string) string {
 	targetName = strings.ToLower(strings.TrimSpace(targetName))
 	if targetName == "" {
@@ -91,7 +91,7 @@ func (h *Handler) pruneDamagedCreeps(gameTime float32) {
 	h.damagedCreeps = h.damagedCreeps[:n]
 }
 
-// removeRecentDamageForCreep removes one recent damage record for the given creep name (within window) and returns true if found.
+// removes one recent damage record for the given creep name (within window) and returns true if found.
 func (h *Handler) removeRecentDamageForCreep(creepName string, deathTime float32) bool {
 	cutoff := deathTime - missedLastHitWindowSec
 	for i, r := range h.damagedCreeps {
@@ -105,7 +105,7 @@ func (h *Handler) removeRecentDamageForCreep(creepName string, deathTime float32
 	return false
 }
 
-// RegisterCallbacks registers lasthits callbacks.
+// registers lasthits callbacks.
 func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 	p.Callbacks.OnCMsgDOTACombatLogEntry(func(m *dota.CMsgDOTACombatLogEntry) error {
 		if h.timeAndPausesHandler.IsGameEnded() {
@@ -129,7 +129,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		switch ctype {
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DAMAGE:
 			// Record when we deal damage to a lane/neutral creep (to detect missed last hits later).
-			attackerClass := common.GuessHeroClassFromNPC(realAttackerName)
+			attackerClass := common.GetHeroClassName(realAttackerName)
 			if attackerClass != h.heroClass || m.GetIsAttackerIllusion() {
 				return nil
 			}
@@ -145,7 +145,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			}
 			h.pruneDamagedCreeps(gameTime)
 
-			attackerClass := common.GuessHeroClassFromNPC(realAttackerName)
+			attackerClass := common.GetHeroClassName(realAttackerName)
 			weAreKiller := attackerClass == h.heroClass && !m.GetIsAttackerIllusion()
 
 			if weAreKiller {

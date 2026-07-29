@@ -159,7 +159,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			}
 
 			for _, ptUsage := range h.usages {
-				heroClassName := common.GuessHeroClassFromNPC(ptUsage.Hero)
+				heroClassName := common.GetHeroClassName(ptUsage.Hero)
 				toAttr, okAttr := e.GetInt32("m_iStat")
 				assembledAt, okAssembledAt := e.GetFloat32("m_flAssembledTime")
 

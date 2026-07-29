@@ -35,9 +35,12 @@
     <% mana_data = out["mana"] %>
     <% ability_usages = out["ability_usages"].is_a?(Array) ? out["ability_usages"] : [] %>
     <% insights_data = out["insights"].is_a?(Array) ? out["insights"] : [] %>
+    <% last_hits_data = out["last_hits"].is_a?(Hash) ? out["last_hits"] : {} %>
+    <% missed_last_hits = last_hits_data["missed_last_hits"].is_a?(Array) ? last_hits_data["missed_last_hits"] : [] %>
     <% has_mana = mana_data.present? && mana_data.any? %>
     <% has_abilities = ability_usages.any? %>
     <% has_insights = insights_data.any? %>
+    <% has_last_hits = missed_last_hits.any? %>
 
     <style>
       .analysis-tabs { margin-bottom: 1rem; }
@@ -60,7 +63,8 @@
       .analysis-panel { display: none; padding-top: 1rem; }
       .analysis-tabs input#tab-mana:checked ~ .analysis-panel.mana-panel,
       .analysis-tabs input#tab-abilities:checked ~ .analysis-panel.abilities-panel,
-      .analysis-tabs input#tab-insights:checked ~ .analysis-panel.insights-panel { display: block; }
+      .analysis-tabs input#tab-insights:checked ~ .analysis-panel.insights-panel,
+      .analysis-tabs input#tab-lasthits:checked ~ .analysis-panel.lasthits-panel { display: block; }
     </style>
 
     <div class="analysis-tabs">
@@ -73,8 +77,12 @@
         <label for="tab-abilities">Abilities</label>
       <% end %>
       <% if has_insights %>
-        <input type="radio" name="analysis_tab" id="tab-insights" <%= "checked" if !has_mana && !has_abilities %>>
+        <input type="radio" name="analysis_tab" id="tab-insights" <%= "checked" if !has_mana && !has_abilities && !has_last_hits %>>
         <label for="tab-insights">Insights</label>
+      <% end %>
+      <% if has_last_hits %>
+        <input type="radio" name="analysis_tab" id="tab-lasthits" <%= "checked" if !has_mana && !has_abilities && !has_insights %>>
+        <label for="tab-lasthits">Last Hits (<%= last_hits_data["missed_last_hits_total"] || missed_last_hits.size %>)</label>
       <% end %>
 
       <% if has_mana %>
@@ -197,6 +205,37 @@
                     <td style="padding: 0.5rem;"><%= (u["ability_name"].to_s).gsub(/_/, ' ').split.map(&:capitalize).join(' ') %></td>
                     <td style="padding: 0.5rem;"><%= u["type"].to_s %></td>
                     <td style="padding: 0.5rem; text-align: right;"><%= u["mana_cost"].to_i %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% end %>
+
+      <% if has_last_hits %>
+        <div class="analysis-panel lasthits-panel">
+          <h3 style="font-size: 1rem; margin-bottom: 0.75rem; font-weight: bold;">Missed last hits (chronological)</h3>
+          <div style="overflow-x: auto; max-height: 60vh; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.3);">
+                  <th style="padding: 0.5rem; text-align: left;">Time</th>
+                  <th style="padding: 0.5rem; text-align: left;">Creep</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% missed_last_hits.each do |e| %>
+                  <% sec = e["timestamp"].to_f %>
+                  <% if sec < 0 %>
+                    <% abs_sec = sec.abs %>
+                    <% time_str = "-#{(abs_sec / 60).floor}m #{(abs_sec % 60).round}s" %>
+                  <% else %>
+                    <% time_str = "#{(sec / 60).floor}m #{(sec % 60).round}s" %>
+                  <% end %>
+                  <tr style="border-top: 1px solid rgba(255,255,255,0.1);">
+                    <td style="padding: 0.5rem;"><%= time_str %></td>
+                    <td style="padding: 0.5rem;"><%= e["creep_name"].to_s.gsub(/_/, ' ').split.map(&:capitalize).join(' ') %></td>
                   </tr>
                 <% end %>
               </tbody>

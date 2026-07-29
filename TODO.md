@@ -1,0 +1,29 @@
+Parser functions:
+
+- [ ] Creep farming / CS stats
+  - [x] Total CS calculator
+  - [ ] Correlate Creeps Correctly for missed CS
+  - [ ] Per-Creep-Wave info for each CS (attach creep wave number and lane to each CS)
+  - [ ] Display Missed CS
+- [ ] End Game Breakdown Matching Dotabuff / Dotaplus
+  - [ ] Total Hero Damage
+  - [ ] Total Heal
+  - [ ] Networh
+- [ ] Per-Hero stats
+- [ ] Extra End Game Stats
+  - [ ] Total Slow
+  - [ ] Total Stuns
+  - [ ] Total Root
+  - [ ] Total Silence
+  - [ ] Total Disarm
+  - [ ] Total Break
+  - [ ] Damage Blocked
+  - [ ] Total Creep Damage
+- [ ] Game Stages
+  - [ ] Laning Stage
+  - [ ] Mid Game
+  - [ ] Late Game
+- [ ] Testing Code
+- [ ] Replay Pool System (from opendota)
+- [ ] Update Game Icons
+- [ ] Courier Moves Analysis

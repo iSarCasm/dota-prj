@@ -12,8 +12,8 @@ type HeroRef struct {
 	EntityIdx uint32
 }
 
-// GuessHeroClassFromNPC converts npc_dota_hero_* string to CDOTA_Unit_Hero_* class name.
-func GuessHeroClassFromNPC(npc string) string {
+// converts npc_dota_hero_* string to CDOTA_Unit_Hero_* class name.
+func GetHeroClassName(npc string) string {
 	const prefix = "npc_dota_hero_"
 	if !strings.HasPrefix(npc, prefix) {
 		return ""

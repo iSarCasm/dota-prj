@@ -84,6 +84,7 @@ func (h *Handler) PauseTimeSoFar() float32 {
 	return h.totalPauseTime
 }
 
+// Returns time where 0 is when creeps start to go, so this time can be in the negative when the match begins
 func (h *Handler) CurrentGameTime() float32 {
 	// CurrentTickTime is tickTime when we set the preGameStartTick. The preGameStartTime can be 165 but the tickTime will be 121 at that time
 	// this is why we cant use the preGameStartTime directly, we use the preGameStartTick to calculate the game time

@@ -92,7 +92,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		if !ok {
 			return nil
 		}
-		heroClassName := common.GuessHeroClassFromNPC(realAttackerName)
+		heroClassName := common.GetHeroClassName(realAttackerName)
 		if heroClassName != h.heroClass {
 			return nil
 		}
