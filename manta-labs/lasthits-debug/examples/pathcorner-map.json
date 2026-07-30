@@ -1,0 +1,166 @@
+{
+  "replay": "../../dota-web/storage/replays/8915936762.dem",
+  "vote_mode": "unique",
+  "entries": [
+    {
+      "pathcorner": "lane_bot_pathcorner_badguys_1",
+      "presumed": "npc_dota_creep_badguys_melee",
+      "votes": {
+        "npc_dota_creep_badguys_flagbearer": 1,
+        "npc_dota_creep_badguys_melee": 43,
+        "npc_dota_creep_badguys_ranged": 4
+      },
+      "total": 48,
+      "conflict": false,
+      "spawn_max_health": {
+        "475": 7,
+        "529": 1
+      }
+    },
+    {
+      "pathcorner": "lane_bot_pathcorner_badguys_4",
+      "presumed": "npc_dota_creep_badguys_melee",
+      "votes": {
+        "npc_dota_creep_badguys_melee": 17,
+        "npc_dota_creep_badguys_ranged": 4
+      },
+      "total": 21,
+      "conflict": false,
+      "spawn_max_health": {
+        "700": 7,
+        "757": 1
+      }
+    },
+    {
+      "pathcorner": "lane_bot_pathcorner_goodguys_2",
+      "presumed": "npc_dota_creep_goodguys_ranged",
+      "votes": {
+        "npc_dota_creep_goodguys_flagbearer": 71,
+        "npc_dota_creep_goodguys_flagbearer_upgraded": 7,
+        "npc_dota_creep_goodguys_melee": 626,
+        "npc_dota_creep_goodguys_ranged": 921,
+        "npc_dota_creep_goodguys_ranged_upgraded": 10
+      },
+      "total": 1635,
+      "conflict": true,
+      "spawn_max_health": {
+        "300": 83
+      }
+    },
+    {
+      "pathcorner": "lane_bot_pathcorner_goodguys_3",
+      "presumed": "npc_dota_creep_goodguys_melee_upgraded",
+      "votes": {
+        "npc_dota_creep_goodguys_melee_upgraded": 1
+      },
+      "total": 1,
+      "conflict": false,
+      "spawn_max_health": {
+        "475": 5
+      }
+    },
+    {
+      "pathcorner": "lane_mid_pathcorner_badguys_4",
+      "presumed": "npc_dota_creep_badguys_melee",
+      "votes": {
+        "npc_dota_creep_badguys_flagbearer": 210,
+        "npc_dota_creep_badguys_melee": 215,
+        "npc_dota_creep_badguys_ranged": 66
+      },
+      "total": 491,
+      "conflict": true,
+      "spawn_max_health": {
+        "550": 45
+      }
+    },
+    {
+      "pathcorner": "lane_mid_pathcorner_badguys_7",
+      "presumed": "npc_dota_creep_badguys_melee",
+      "votes": {
+        "npc_dota_creep_badguys_flagbearer": 28,
+        "npc_dota_creep_badguys_melee": 992,
+        "npc_dota_creep_badguys_ranged": 289
+      },
+      "total": 1309,
+      "conflict": true,
+      "spawn_max_health": {
+        "550": 263
+      }
+    },
+    {
+      "pathcorner": "lane_mid_pathcorner_goodguys_1",
+      "presumed": "npc_dota_creep_goodguys_melee",
+      "votes": {
+        "npc_dota_creep_goodguys_flagbearer": 38,
+        "npc_dota_creep_goodguys_flagbearer_upgraded": 2,
+        "npc_dota_creep_goodguys_melee": 375,
+        "npc_dota_creep_goodguys_melee_upgraded": 7,
+        "npc_dota_creep_goodguys_ranged": 54,
+        "npc_dota_creep_goodguys_ranged_upgraded": 15
+      },
+      "total": 491,
+      "conflict": false,
+      "spawn_max_health": {
+        "300": 109
+      }
+    },
+    {
+      "pathcorner": "lane_mid_pathcorner_goodguys_3",
+      "presumed": "npc_dota_creep_goodguys_melee",
+      "votes": {
+        "npc_dota_creep_goodguys_flagbearer": 318,
+        "npc_dota_creep_goodguys_flagbearer_upgraded": 27,
+        "npc_dota_creep_goodguys_melee": 2643,
+        "npc_dota_creep_goodguys_melee_upgraded": 69,
+        "npc_dota_creep_goodguys_ranged": 130,
+        "npc_dota_creep_goodguys_ranged_upgraded": 83
+      },
+      "total": 3270,
+      "conflict": false,
+      "spawn_max_health": {
+        "550": 301
+      }
+    },
+    {
+      "pathcorner": "lane_top_pathcorner_badguys_2b",
+      "presumed": "npc_dota_creep_badguys_melee",
+      "votes": {
+        "npc_dota_creep_badguys_melee": 22,
+        "npc_dota_creep_badguys_ranged": 8
+      },
+      "total": 30,
+      "conflict": true,
+      "spawn_max_health": {
+        "700": 2,
+        "738": 1,
+        "757": 2
+      }
+    },
+    {
+      "pathcorner": "lane_top_pathcorner_badguys_4",
+      "presumed": "npc_dota_creep_badguys_melee",
+      "votes": {
+        "npc_dota_creep_badguys_flagbearer": 8,
+        "npc_dota_creep_badguys_melee": 170,
+        "npc_dota_creep_badguys_ranged": 50
+      },
+      "total": 228,
+      "conflict": true,
+      "spawn_max_health": {
+        "550": 33
+      }
+    }
+  ],
+  "lookup": {
+    "lane_bot_pathcorner_badguys_1": "npc_dota_creep_badguys_melee",
+    "lane_bot_pathcorner_badguys_4": "npc_dota_creep_badguys_melee",
+    "lane_bot_pathcorner_goodguys_2": "npc_dota_creep_goodguys_ranged",
+    "lane_bot_pathcorner_goodguys_3": "npc_dota_creep_goodguys_melee_upgraded",
+    "lane_mid_pathcorner_badguys_4": "npc_dota_creep_badguys_melee",
+    "lane_mid_pathcorner_badguys_7": "npc_dota_creep_badguys_melee",
+    "lane_mid_pathcorner_goodguys_1": "npc_dota_creep_goodguys_melee",
+    "lane_mid_pathcorner_goodguys_3": "npc_dota_creep_goodguys_melee",
+    "lane_top_pathcorner_badguys_2b": "npc_dota_creep_badguys_melee",
+    "lane_top_pathcorner_badguys_4": "npc_dota_creep_badguys_melee"
+  }
+}

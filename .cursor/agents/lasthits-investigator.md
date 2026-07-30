@@ -37,15 +37,15 @@ Combat log callbacks are assumed to run **before** entity updates in the same ti
 ```bash
 # Interleaved trace around the incident
 cd manta-labs/lasthits-debug
-go run . -replay ../../dota-web/storage/replays/8915936762.dem \
+go run . -replay ../../dota-replays/8915936762.dem \
   -mode trace -from 240 -to 252 -hero warlock
 
 # Warlock + badguys combat log compact view
-go run . -replay ../../dota-web/storage/replays/8915936762.dem \
+go run . -replay ../../dota-replays/8915936762.dem \
   -mode warlock-badguys -from 240 -to 252
 
 # Match a specific post-damage health to entity idx
-go run . -replay ../../dota-web/storage/replays/8915936762.dem \
+go run . -replay ../../dota-replays/8915936762.dem \
   -mode health-match -from 244 -to 248 -health <HP> -hero warlock
 ```
 

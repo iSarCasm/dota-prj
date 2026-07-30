@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-REPLAY="${REPLAY:-../../dota-web/storage/replays/8915936762.dem}"
+REPLAY="${REPLAY:-../../dota-replays/8915936762.dem}"
 if [[ ! -f "$REPLAY" ]]; then
   echo "Replay not found: $REPLAY" >&2
   exit 1

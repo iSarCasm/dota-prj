@@ -1,0 +1,40 @@
+# entity class: CDOTA_BaseNPC
+# examples: 3
+=== replay=8915936762.dem tick=3687 idx=1171 op=Created+Entered class=CDOTA_BaseNPC ===
+CBodyComponent.m_MeshGroupMask=18446744073709551615
+CBodyComponent.m_angRotation=[0,0,0]
+CBodyComponent.m_bClientClothCreationSuppressed=false
+CBodyComponent.m_bUseParentRenderBounds=false
+CBodyComponent.m_cellX=64
+CBodyComponent.m_cellY=134
+CBodyComponent.m_cellZ=128
+CBodyComponent.m_flPlaybackRate=1
+CBodyComponent.m_flRootBoneOffset_x=0
+CBodyComponent.m_flRootBoneOffset_y=0
+CBodyComponent.m_flRootBoneOffset_z=0
+CBodyComponent.m_flScale=1
+CBodyComponent.m_flWeight=1
+CBodyComponent.m_hModel=13200749704484416312
+CBodyComponent.m_hParent=16777215
+CBodyComponent.m_hierarchyAttachName=0
+CBodyComponent.m_materialGroup=0
+CBodyComponent.m_nAnimLoopMode=4
+CBodyComponent.m_nAnimStateNoInterpSerialNumber=0
+CBodyComponent.m_nIdealMotionType=3
+CBodyComponent.m_nNewSequenceParity=1
+CBodyComponent.m_nOutsideWorld=0
+CBodyComponent.m_nResetEventsParity=1
+CBodyComponent.m_nRootBoneOffsetResetSerialNumber=0
+CBodyComponent.m_name=0
+CBodyComponent.m_vecX=104
+CBodyComponent.m_vecY=0
+CBodyComponent.m_vecZ=38.9688
+m_CollisionGroup=12
+m_CustomHealthLabel=
+m_CustomHealthLabelColor=0
+m_MoveCollide=0
+m_MoveType=0
+m_NetworkActivity=0
+m_NetworkSequenceIndex=0
+m_anglediff=0
+m_bAnimatedEveryTick=false

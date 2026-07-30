@@ -1,0 +1,34 @@
+=== PROOF: pathcorner names ≠ combat-log creep NPC names ===
+
+CHECK 1: m_iUnitNameIndex never resolves to npc_dota_creep_* on lane creeps
+  entity updates with npc_dota_creep_* name: 0 (expected 0)
+  result: PASS
+
+CHECK 2: combat-log creep type ≠ entity pathcorner on health-correlated entity
+  gt=160.067 idx=2305 combat="npc_dota_creep_goodguys_melee" entity_pathcorner="lane_mid_pathcorner_badguys_7" health=142
+  gt=160.400 idx=2305 combat="npc_dota_creep_goodguys_melee" entity_pathcorner="lane_mid_pathcorner_badguys_7" health=108
+  gt=160.667 idx=2305 combat="npc_dota_creep_goodguys_melee" entity_pathcorner="lane_mid_pathcorner_badguys_7" health=106
+  ... and 50 more mismatches
+  correlated mismatches: 53 (expected >0)
+  result: PASS
+
+CHECK 3: same pathcorner at creep spawn (full health) with different max health (entire replay)
+  pathcorner="lane_bot_pathcorner_badguys_4" distinct_max_health=[700 757]
+    spawn gt=1357.933 idx=1806 max_health=700 (health==max at first sight)
+    spawn gt=1440.000 idx=3008 max_health=757 (health==max at first sight)
+  pathcorner="lane_top_pathcorner_badguys_2b" distinct_max_health=[700 738 757]
+    spawn gt=1369.800 idx=2825 max_health=700 (health==max at first sight)
+    spawn gt=1200.000 idx=2632 max_health=738 (health==max at first sight)
+    spawn gt=1380.000 idx=2315 max_health=757 (health==max at first sight)
+  ... and 1 more pathcorners
+  pathcorner proofs: 3 (expected >0)
+  result: PASS
+
+Sample pathcorner strings seen on entities:
+  - "lane_mid_pathcorner_goodguys_1"
+  - "lane_bot_pathcorner_goodguys_2"
+  - "lane_mid_pathcorner_goodguys_3"
+  - "lane_mid_pathcorner_badguys_7"
+  - "lane_mid_pathcorner_badguys_4"
+
+CONCLUSION: PASS — pathcorner names cannot map entity → combat-log creep NPC name.

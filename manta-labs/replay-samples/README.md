@@ -30,10 +30,10 @@ go mod tidy
 
 # Multiple replays via repeated -replay or positional args
 go run . -out output \
-  -replay ../../dota-web/storage/replays/8915936762.dem \
+  -replay ../../dota-replays/8915936762.dem \
   -replay /path/to/other.dem
 
-go run . -out output ../../dota-web/storage/replays/*.dem
+go run . -out output ../../dota-replays/*.dem
 ```
 
 | Flag | Default | Description |

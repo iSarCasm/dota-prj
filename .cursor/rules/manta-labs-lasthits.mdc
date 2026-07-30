@@ -1,0 +1,64 @@
+---
+description: manta-labs lasthits debug tooling and creep correlation findings
+globs: manta-labs/lasthits-debug/**,parser/internal/lasthits/**
+alwaysApply: false
+---
+
+# Last-hit debug lab and correlation rules
+
+## Keep lab tools in manta-labs
+
+Every finding must have a reproducible proof script + README. See **`manta-labs-findings`** rule and `manta-labs/proofs/README.md`.
+
+Missed last-hit / deny debugging lives in **`manta-labs/lasthits-debug/`** (not ad-hoc scripts under `parser/cmd/`). When adding or changing correlation logic, update:
+
+- `manta-labs/lasthits-debug/README.md` — usage and examples
+- `manta-labs/lasthits-debug/notes.md` — findings and walkthroughs
+- `manta-labs/lasthits-debug/examples/` — sample output (regenerate via `examples/regenerate.sh`)
+- `parser/engine_notes.md` — one-line pointer if behavior changes
+
+The lab is standalone (`gameclock.go` copies parser game-time math; cannot import `dota2/internal/*`).
+
+## Entity names do not identify lane creeps
+
+On `CDOTA_BaseNPC_Creep_Lane`, `EntityNames` lookup does **not** return combat-log NPC names:
+
+- `m_iUnitNameIndex` → pathcorner (e.g. `lane_mid_pathcorner_badguys_4`)
+- `m_pEntity.m_nameStringTableIndex` → generic `npc_dota_creep_lane`
+
+Do **not** correlate missed CS by matching entity name to combat-log `targetName`.
+
+**Proof:** `manta-labs/proofs/no-pathcorner-to-combatlog/run.sh` (all checks must PASS).
+
+## Manta packet order within a tick
+
+In `manta` `demo_packet.go`, inner messages are sorted by priority (lower = earlier):
+
+| Priority | Type | Runs |
+|----------|------|------|
+| 0 (default) | Combat-log entries | First |
+| 5 | `PacketEntities` | Second |
+| 10 | Legacy game events | Last |
+
+Combat log runs **before** entity updates on the same tick. Debug traces can show entity `gt` > combat `gt` — that is event timestamp, not callback order.
+
+## Production correlation (parser/internal/lasthits)
+
+1. Combat log **DAMAGE** (our hero) → append pending; collect candidates on **entity** health drops (forward match is primary)
+2. Close pending from **entity updates** (time epsilon) or **creep death** — not from “next combat-log line”
+3. **Never** call `closeAllPendingHeroDamage()` on every combat-log callback — later lines on the same tick run before entities and will finalize with 0 candidates
+4. **Never** consume/finalize a pending batch with 0 candidates — reopen; entity updates for that tick have not run yet
+5. After close: 1 candidate → unique bind; 2+ → **conflict group** (`conflictGroups[id].remainingCombatLogsCount`, `heroLastHitInGroup`)
+6. **Hero last hit** in group: decrement remaining, set `heroLastHitInGroup`, clear only the killed creep's track
+7. **Enemy kill** in group: defer while siblings alive; on last member emit miss if `!heroLastHitInGroup && remaining > 0`
+8. Entity death before combat-log **DEATH** on same tick: defer via `awaitingDeathCombatLog`, resolve when DEATH line arrives (exclude hero kills)
+
+Correlate by **post-damage health + delta** from combat log, not entity name.
+
+## Reference replay
+
+`dota-replays/8915936762.dem`, hero **Warlock**, missed deny ~**2:45** — Warlock damages `npc_dota_creep_badguys_flagbearer` (health 137), Huskar kills at 165.667.
+
+Fetch: `ruby dota-replays/fetch.rb`
+
+Debug: `cd manta-labs/lasthits-debug && go run . -replay <replay> -mode warlock-badguys -from 163 -to 170`

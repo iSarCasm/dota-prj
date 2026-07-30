@@ -1,8 +1,10 @@
 go 1.25.0
 
 use (
+	./manta-labs/replay-samples
 	./manta-labs/creeps
 	./manta-labs/entity
+	./manta-labs/lasthits-debug
 	./manta-labs/pt
 	./manta-labs/stringtables
 	./manta-master
