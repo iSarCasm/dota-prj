@@ -1,6 +1,6 @@
 1. Combat Log timestamps are usually +10 seconds from Entity log timestamps (probably start screen diff)
 
-2. Missed last-hit / deny debugging: see `manta-labs/lasthits-debug/` (README, notes, examples). Replays live in **`dota-replays/`** (`ruby dota-replays/fetch.rb`). Lane creep entity names are pathcorners — correlate by post-damage health from combat log, not EntityNames. **Proof:** `manta-labs/proofs/no-pathcorner-to-combatlog/run.sh`
+2. Missed last-hit / deny debugging: see `manta-labs/lasthits-debug/` (README, notes, examples). Replays live in **`dota-replays/`** (`ruby dota-replays/fetch.rb`). Lane creep entity names are pathcorners — correlate by post-damage health from combat log, not EntityNames. **Proof:** `manta-labs/proofs/pathcorner-map/run.sh`
 
 3. All manta-labs findings require a reproducible script + README — see `manta-labs/proofs/README.md` and Cursor rule `manta-labs-findings`.
 

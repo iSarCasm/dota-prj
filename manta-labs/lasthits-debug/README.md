@@ -63,7 +63,6 @@ go run . -replay <path.dem> [-mode <mode>] [-from SEC] [-to SEC] [filters]
 | `entity-names` | Dump EntityNames lookups — shows pathcorner vs generic names |
 | `health-match` | Match one post-damage health from combat log to entity index |
 | `dump-fields` | Dump identity-related entity fields (model, unit type, names) |
-| `proof-pathcorner` | **Proof** that pathcorner entity names ≠ combat-log creep NPC names |
 | `build-pathcorner-map` | Build presumed pathcorner → combat-log name mapping from health correlation |
 
 ### Build pathcorner → combat-log mapping
@@ -90,22 +89,13 @@ go run . -replay ../../dota-replays/8915936762.dem \
 
 Formal reproducible proofs live under `manta-labs/proofs/`. Index: [../proofs/README.md](../proofs/README.md).
 
-### Proof: cannot map pathcorner → combat-log creep name
+### Build pathcorner → combat-log mapping proof
 
 ```bash
-go run . -replay ../../dota-replays/8915936762.dem \
-  -mode proof-pathcorner -from 160 -to 170
+../../proofs/pathcorner-map/run.sh
 ```
 
-Or: `../../proofs/no-pathcorner-to-combatlog/run.sh`
-
-Expected: all three checks **PASS** and conclusion line. See `examples/proof-pathcorner.txt`.
-
-Checks:
-
-1. No `m_iUnitNameIndex` value resolves to `npc_dota_creep_*` on lane creeps.
-2. Health-correlated entity has a pathcorner string while combat log has a typed NPC name (e.g. `…_flagbearer` vs `lane_mid_pathcorner_badguys_4`).
-3. Same pathcorner at creep spawn (first full-health tick) with different `m_iMaxHealth` on different entities — pathcorner is a waypoint, not creep archetype.
+Expected output: vote table and presumed names. See `examples/pathcorner-map.txt`.
 
 ## Examples
 
@@ -168,7 +158,7 @@ Pre-captured snippets live in `examples/`:
 - `warlock-flagbearer-window.txt` — `warlock-badguys` mode
 - `entity-names-flagbearer.txt` — why name-based correlation fails
 - `health-match-137.txt` — combat log ↔ entity index
-- `proof-pathcorner.txt` — pathcorner ≠ combat-log NPC name proof
+- `pathcorner-map.txt` — pathcorner → combat-log name mapping
 
 Regenerate after parser or replay changes:
 

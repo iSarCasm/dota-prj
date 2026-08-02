@@ -14,8 +14,6 @@ go run . -replay "$REPLAY" -mode entity-names -from 164.1 -to 164.3 -health 137 
   > examples/entity-names-flagbearer.txt
 go run . -replay "$REPLAY" -mode health-match -from 164 -to 166 -health 137 \
   > examples/health-match-137.txt
-go run . -replay "$REPLAY" -mode proof-pathcorner -from 160 -to 170 \
-  > examples/proof-pathcorner.txt
 go run . -replay "$REPLAY" -mode build-pathcorner-map \
   > examples/pathcorner-map.txt
 go run . -replay "$REPLAY" -mode build-pathcorner-map -format json \

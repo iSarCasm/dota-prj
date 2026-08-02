@@ -25,9 +25,7 @@ Entity `idx=2382` at `gt=164.267`:
 
 Using entity name for `creepTypeFromTargetName()` always failed → **0 missed last hits** in the first entity-correlation attempt.
 
-**Proof script:** `manta-labs/proofs/no-pathcorner-to-combatlog/` (runs `lasthits-debug -mode proof-pathcorner`). See `manta-labs/proofs/README.md`.
-
-**Presumed mapping:** `lasthits-debug -mode build-pathcorner-map` health-correlates combat log → pathcorner across a full replay and outputs vote counts + JSON `lookup`. See `manta-labs/proofs/pathcorner-map/`. Treat `conflict: true` rows as ambiguous.
+See `-mode entity-names` and `examples/entity-names-flagbearer.txt`. Formal mapping proof: `manta-labs/proofs/pathcorner-map/`.
 
 ## Working approach (production)
 

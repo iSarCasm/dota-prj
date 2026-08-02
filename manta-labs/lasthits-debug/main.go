@@ -22,16 +22,15 @@ const (
 	modeWarlock         = "warlock-badguys"
 	modeEntityNames     = "entity-names"
 	modeHealthMatch     = "health-match"
-	modeDumpFields      = "dump-fields"
-	modeProofPathcorner     = "proof-pathcorner"
-	modeBuildPathcornerMap  = "build-pathcorner-map"
+	modeDumpFields         = "dump-fields"
+	modeBuildPathcornerMap = "build-pathcorner-map"
 )
 
 func main() {
 	log.SetOutput(os.Stderr)
 
 	replay := flag.String("replay", "", "path to .dem replay (required)")
-	mode := flag.String("mode", modeTrace, "trace | warlock-badguys | entity-names | health-match | dump-fields | proof-pathcorner | build-pathcorner-map")
+	mode := flag.String("mode", modeTrace, "trace | warlock-badguys | entity-names | health-match | dump-fields | build-pathcorner-map")
 	format := flag.String("format", "text", "for build-pathcorner-map: text | json")
 	mapVotes := flag.String("map-votes", "unique", "for build-pathcorner-map: unique | spawn")
 	from := flag.Float64("from", 160, "window start (game seconds, creep spawn = 0)")
@@ -85,21 +84,16 @@ func main() {
 		registerHealthMatchCallbacks(p, tp, out, windowStart, windowEnd, int32(*health))
 	case modeDumpFields:
 		registerDumpFieldsCallbacks(p, tp, out, windowStart, windowEnd, int32(*health))
-	case modeProofPathcorner:
-		registerProofPathcornerCallbacks(p, tp, out, windowStart, windowEnd)
 	case modeBuildPathcornerMap:
 		registerBuildPathcornerMapCallbacks(p, tp, *mapVotes)
 	default:
-		log.Fatalf("unknown mode %q (use trace, warlock-badguys, entity-names, health-match, dump-fields, proof-pathcorner, build-pathcorner-map)", *mode)
+		log.Fatalf("unknown mode %q (use trace, warlock-badguys, entity-names, health-match, dump-fields, build-pathcorner-map)", *mode)
 	}
 
 	if err := p.Start(); err != nil && err != io.EOF {
 		log.Fatalf("parse: %v", err)
 	}
 
-	if printProofPathcornerSummary != nil {
-		printProofPathcornerSummary(out)
-	}
 	if printPathcornerMapSummary != nil {
 		if *format == "json" {
 			writePathcornerMapJSON(out, pathcornerMapBuiltState, *replay)

@@ -28,7 +28,7 @@ On `CDOTA_BaseNPC_Creep_Lane`, `EntityNames` lookup does **not** return combat-l
 
 Do **not** correlate missed CS by matching entity name to combat-log `targetName`.
 
-**Proof:** `manta-labs/proofs/no-pathcorner-to-combatlog/run.sh` (all checks must PASS).
+**Proof:** `manta-labs/proofs/pathcorner-map/run.sh` and `-mode entity-names` example in `lasthits-debug/examples/entity-names-flagbearer.txt`.
 
 ## Manta packet order within a tick
 
