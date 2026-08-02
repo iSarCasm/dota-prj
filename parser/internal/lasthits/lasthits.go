@@ -128,6 +128,10 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			if creepTypeFromTargetName(realTargetName) == "" {
 				return nil
 			}
+			// Only right-click (auto-attack) damage counts toward missed CS; spells/items set inflictor_name.
+			if m.GetInflictorName() != 0 {
+				return nil
+			}
 			h.nextPendingDamageID++
 			h.pendingHeroDamage = append(h.pendingHeroDamage, pendingCLogCreepEvent{
 				id:        h.nextPendingDamageID,
@@ -202,7 +206,11 @@ func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
 	}
 }
 
-// returns "lane", "jungle", or "" if target is not a creep we count.
+// MissedEvents returns detected missed last-hit events (for tooling / quality reports).
+func (h *Handler) MissedEvents() []Event {
+	return h.missedEvents
+}
+
 func creepTypeFromTargetName(targetName string) string {
 	targetName = strings.ToLower(strings.TrimSpace(targetName))
 	if targetName == "" {
