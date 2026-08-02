@@ -1,4 +1,4 @@
-# replay-samples
+# entity-samples
 
 Extract **example combat-log and entity lines** from one or more replays, grouped by type or entity class.
 
@@ -25,7 +25,7 @@ Each file under `entities/` contains up to N full entity snapshots for that clas
 ## Usage
 
 ```bash
-cd manta-labs/replay-samples
+cd manta-labs/entity-samples
 go mod tidy
 
 # Multiple replays via repeated -replay or positional args

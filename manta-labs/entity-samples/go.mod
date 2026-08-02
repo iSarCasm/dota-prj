@@ -1,4 +1,4 @@
-module replay-samples
+module entity-samples
 
 go 1.23
 

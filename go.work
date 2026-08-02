@@ -1,7 +1,7 @@
 go 1.25.0
 
 use (
-	./manta-labs/replay-samples
+	./manta-labs/entity-samples
 	./manta-labs/creeps
 	./manta-labs/entity
 	./manta-labs/lasthits-debug

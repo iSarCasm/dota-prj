@@ -1,4 +1,4 @@
-// Command replay-samples extracts example combat-log and entity lines from replays.
+// Command entity-samples extracts example combat-log and entity lines from replays.
 package main
 
 import (
