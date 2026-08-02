@@ -15,6 +15,7 @@ const (
 	missedLastHitWindowSec = 2.0
 	conflictCloseEpsilon   = float32(0.03) // sub-tick slop for entity updates trailing combat log
 	retroactiveDropMaxLag  = float32(0.1)  // entity game time can trail combat log on the same tick
+	deathCombatLogEpsilon  = float32(0.05) // combat-log DEATH can trail entity death on the same tick
 )
 
 // Event is a single last-hit, deny, or missed last-hit.
@@ -64,7 +65,7 @@ type Handler struct {
 	missedEvents         []Event
 	pendingHeroDamage    []pendingCLogCreepEvent
 	pendingOtherDeath    []pendingCLogCreepEvent
-	pedingHeroKills      []pendingCLogCreepEvent // combat-log DEATH where our hero was killer
+	pendingHeroKills     []pendingCLogCreepEvent // combat-log DEATH where our hero was killer
 	creepTracks          map[int32]*creepTrack
 	conflictGroups       map[uint64]*conflictGroup // keyed by pending damage id
 	nextPendingDamageID  uint64
@@ -78,7 +79,7 @@ func NewHandler(timeAndPausesHandler *timeandpauses.Handler) *Handler {
 		missedEvents:         make([]Event, 0, 128),
 		pendingHeroDamage:    make([]pendingCLogCreepEvent, 0, 64),
 		pendingOtherDeath:    make([]pendingCLogCreepEvent, 0, 64),
-		pedingHeroKills:      make([]pendingCLogCreepEvent, 0, 64),
+		pendingHeroKills:     make([]pendingCLogCreepEvent, 0, 64),
 		creepTracks:          make(map[int32]*creepTrack, 256),
 		conflictGroups:       make(map[uint64]*conflictGroup, 32),
 		timeAndPausesHandler: timeAndPausesHandler,
@@ -153,7 +154,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			weAreKiller := attackerClass == h.heroClass && !m.GetIsAttackerIllusion()
 
 			if weAreKiller {
-				h.pedingHeroKills = append(h.pedingHeroKills, pendingCLogCreepEvent{
+				h.pendingHeroKills = append(h.pendingHeroKills, pendingCLogCreepEvent{
 					creepName: realTargetName,
 					gameTime:  gameTime,
 				})
@@ -236,7 +237,7 @@ func (h *Handler) prunePendingEvents(gameTime float32) {
 	cutoff := gameTime - missedLastHitWindowSec
 	h.pendingHeroDamage = prunePendingByTime(h.pendingHeroDamage, cutoff)
 	h.pendingOtherDeath = prunePendingByTime(h.pendingOtherDeath, cutoff)
-	h.pedingHeroKills = prunePendingByTime(h.pedingHeroKills, cutoff)
+	h.pendingHeroKills = prunePendingByTime(h.pendingHeroKills, cutoff)
 }
 
 func prunePendingByTime(events []pendingCLogCreepEvent, cutoff float32) []pendingCLogCreepEvent {
@@ -275,8 +276,8 @@ func (h *Handler) pruneConsumedPending() {
 
 func (h *Handler) hasPendingLasthit(creepName string, deathTime float32) bool {
 	cutoff := deathTime - missedLastHitWindowSec
-	for _, sk := range h.pedingHeroKills {
-		if sk.creepName == creepName && sk.gameTime >= cutoff && sk.gameTime <= deathTime+0.05 {
+	for _, sk := range h.pendingHeroKills {
+		if sk.creepName == creepName && sk.gameTime >= cutoff && sk.gameTime <= deathTime+deathCombatLogEpsilon {
 			return true
 		}
 	}
@@ -286,14 +287,14 @@ func (h *Handler) hasPendingLasthit(creepName string, deathTime float32) bool {
 func (h *Handler) consumePendingLasthit(creepName string, deathTime float32) {
 	cutoff := deathTime - missedLastHitWindowSec
 	n := 0
-	for _, sk := range h.pedingHeroKills {
-		if sk.creepName == creepName && sk.gameTime >= cutoff && sk.gameTime <= deathTime+0.05 {
+	for _, sk := range h.pendingHeroKills {
+		if sk.creepName == creepName && sk.gameTime >= cutoff && sk.gameTime <= deathTime+deathCombatLogEpsilon {
 			continue
 		}
-		h.pedingHeroKills[n] = sk
+		h.pendingHeroKills[n] = sk
 		n++
 	}
-	h.pedingHeroKills = h.pedingHeroKills[:n]
+	h.pendingHeroKills = h.pendingHeroKills[:n]
 }
 
 func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, healthReduced bool) bool {
@@ -452,10 +453,15 @@ func (h *Handler) correlateHeroDamage(idx int32, track *creepTrack, health int32
 		if !heroDamageCorrelates(*pd, track.prevHealth, health, healthReduced) {
 			continue
 		}
+		found := false
 		for _, c := range pd.candidates {
 			if c == idx {
-				return
+				found = true
+				break
 			}
+		}
+		if found {
+			continue
 		}
 		pd.candidates = append(pd.candidates, idx)
 	}
@@ -520,18 +526,6 @@ func (h *Handler) resolveAwaitingDeathCombatLog(creepName string, gameTime float
 		track.awaitingDeathCombatLog = false
 		h.handleCreepDeath(idx, track, gameTime, true)
 	}
-}
-
-func (h *Handler) clearConflictGroup(groupID uint64) {
-	// Hero resolved or group missed; unmark all member tracks.
-	for _, track := range h.creepTracks {
-		if track.conflictGroupID == groupID {
-			track.conflictGroupID = 0
-			track.heroDamagedAt = 0
-			track.creepName = ""
-		}
-	}
-	delete(h.conflictGroups, groupID)
 }
 
 func (h *Handler) clearConflictTrack(idx int32) {

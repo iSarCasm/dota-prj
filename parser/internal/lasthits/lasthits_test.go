@@ -70,7 +70,7 @@ func TestPrunePendingByTime(t *testing.T) {
 
 func TestHasPendingSelfKill(t *testing.T) {
 	h := testHandler()
-	h.pedingHeroKills = []pendingCLogCreepEvent{
+	h.pendingHeroKills = []pendingCLogCreepEvent{
 		{creepName: testMeleeName, gameTime: 246.0},
 	}
 	if !h.hasPendingLasthit(testMeleeName, 246.1) {
@@ -168,7 +168,7 @@ func TestLastHit_LasthitClearsMiss(t *testing.T) {
 	seedCreep(h, idx, 160, 245.9)
 	h.onCreepHealthUpdate(idx, 120, manta.EntityOpUpdated, 246.0)
 
-	h.pedingHeroKills = []pendingCLogCreepEvent{
+	h.pendingHeroKills = []pendingCLogCreepEvent{
 		{creepName: testRangedName, gameTime: 246.1},
 	}
 	h.onCreepHealthUpdate(idx, 0, manta.EntityOpUpdated, 246.1)
@@ -199,7 +199,7 @@ func TestTwoRangedCreepsSamePostHealth_NoFalseMissWhenHeroGetsLH(t *testing.T) {
 	h.onCreepHealthUpdate(creepA, 120, manta.EntityOpUpdated, 245.9)
 
 	// Warlock last-hits creep A (entity); combat-log kill confirms hero LH in group.
-	h.pedingHeroKills = []pendingCLogCreepEvent{
+	h.pendingHeroKills = []pendingCLogCreepEvent{
 		{creepName: testRangedName, gameTime: 246.0},
 	}
 	h.onCreepHealthUpdate(creepA, 0, manta.EntityOpUpdated, 246.0)
@@ -252,11 +252,11 @@ func TestTwoSameTickHeroDamage_ThreeMatchingCreeps_NoFalseMiss(t *testing.T) {
 	}
 
 	// Hero last-hits A and C.
-	h.pedingHeroKills = []pendingCLogCreepEvent{
+	h.pendingHeroKills = []pendingCLogCreepEvent{
 		{creepName: testRangedName, gameTime: tick + 0.5},
 	}
 	h.onCreepHealthUpdate(creepA, 0, manta.EntityOpUpdated, tick+0.5)
-	h.pedingHeroKills = []pendingCLogCreepEvent{
+	h.pendingHeroKills = []pendingCLogCreepEvent{
 		{creepName: testRangedName, gameTime: tick + 0.6},
 	}
 	h.onCreepHealthUpdate(creepC, 0, manta.EntityOpUpdated, tick+0.6)
@@ -297,7 +297,7 @@ func TestFalseCorrelatedCreepDiesFirst_ThenHeroLastHitsTrueCreep_NoFalseMiss(t *
 	h.onCreepHealthUpdate(creepB, 0, manta.EntityOpUpdated, 246.5)
 
 	// Hero then last-hits the creep they actually damaged.
-	h.pedingHeroKills = []pendingCLogCreepEvent{
+	h.pendingHeroKills = []pendingCLogCreepEvent{
 		{creepName: testRangedName, gameTime: 247.0},
 	}
 	h.onCreepHealthUpdate(creepA, 0, manta.EntityOpUpdated, 247.0)
