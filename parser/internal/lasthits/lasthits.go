@@ -2,12 +2,12 @@ package lasthits
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/dotabuff/manta"
 	"github.com/dotabuff/manta/dota"
 
 	"dota2/internal/common"
+	"dota2/internal/creeps"
 	"dota2/internal/slicesx"
 	"dota2/internal/timeandpauses"
 )
@@ -28,11 +28,11 @@ type Event struct {
 
 // pendingCLogCreepEvent is a combat-log creep event waiting for OnEntity correlation.
 type pendingCLogCreepEvent struct {
-	id         uint64  // shared with conflictGroups key when match is ambiguous
+	id         uint64 // shared with conflictGroups key when match is ambiguous
 	creepName  string
 	gameTime   float32
-	health     int32 // post-damage health from combat log
-	damage     int32 // damage dealt (value); prev health = health + damage
+	health     int32   // post-damage health from combat log
+	damage     int32   // damage dealt (value); prev health = health + damage
 	candidates []int32 // entity idxs whose health drop matched this line
 	closed     bool    // true once candidate collection finished
 	consumed   bool    // true once bound to entity track(s)
@@ -127,7 +127,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			if attackerClass != h.heroClass || m.GetIsAttackerIllusion() {
 				return nil
 			}
-			if creepTypeFromTargetName(realTargetName) == "" {
+			if creeps.TypeFromTargetName(realTargetName) == "" {
 				return nil
 			}
 			// Only right-click (auto-attack) damage counts toward missed CS; spells/items set inflictor_name.
@@ -146,7 +146,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			return nil
 
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DEATH:
-			creepType := creepTypeFromTargetName(realTargetName)
+			creepType := creeps.TypeFromTargetName(realTargetName)
 			if creepType == "" {
 				return nil
 			}
@@ -211,27 +211,6 @@ func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
 // MissedEvents returns detected missed last-hit events (for tooling / quality reports).
 func (h *Handler) MissedEvents() []Event {
 	return h.missedEvents
-}
-
-func creepTypeFromTargetName(targetName string) string {
-	targetName = strings.ToLower(strings.TrimSpace(targetName))
-	if targetName == "" {
-		return ""
-	}
-	if strings.HasPrefix(targetName, "npc_dota_neutral_") {
-		return "jungle"
-	}
-	if strings.HasPrefix(targetName, "npc_dota_creep_goodguys_") || strings.HasPrefix(targetName, "npc_dota_creep_badguys_") {
-		return "lane"
-	}
-	if strings.HasPrefix(targetName, "npc_dota_creep_siege") {
-		return "lane"
-	}
-	return ""
-}
-
-func isCreepEntityClass(className string) bool {
-	return strings.HasPrefix(className, "CDOTA_BaseNPC_Creep")
 }
 
 func (h *Handler) prunePendingEvents(gameTime float32) {
@@ -344,6 +323,7 @@ type pendingBatchKey struct {
 
 func (h *Handler) finalizeClosedPendingHeroDamage() {
 	// Group closed pendings by signature, then bind each batch.
+	// We can have multiple same combat log events on the same tick (e.g. aoe damage)
 	batches := make(map[pendingBatchKey][]*pendingCLogCreepEvent)
 	var order []pendingBatchKey
 
@@ -574,7 +554,7 @@ func (h *Handler) consumeMatchingOtherDeath(creepName string, heroDamagedAt floa
 }
 
 func (h *Handler) onCreepEntity(e *manta.Entity, op manta.EntityOp, gameTime float32) {
-	if !isCreepEntityClass(e.GetClassName()) {
+	if !creeps.IsEntityClass(e.GetClassName()) {
 		return
 	}
 	health, ok := e.GetInt32("m_iHealth")
