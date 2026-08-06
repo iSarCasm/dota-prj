@@ -8,6 +8,7 @@ import (
 	"github.com/dotabuff/manta/dota"
 
 	"dota2/internal/common"
+	"dota2/internal/slicesx"
 	"dota2/internal/timeandpauses"
 )
 
@@ -378,17 +379,11 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 		return
 	}
 
-	candidateSet := make(map[int32]struct{})
+	var allCandidates []int32
 	for _, pd := range batch {
-		for _, idx := range pd.candidates {
-			candidateSet[idx] = struct{}{}
-		}
+		allCandidates = append(allCandidates, pd.candidates...)
 	}
-
-	candidates := make([]int32, 0, len(candidateSet))
-	for idx := range candidateSet {
-		candidates = append(candidates, idx)
-	}
+	candidates := slicesx.Unique(allCandidates)
 
 	if len(candidates) == 0 {
 		// Same-tick combat logs are processed before entity updates; keep collecting.
