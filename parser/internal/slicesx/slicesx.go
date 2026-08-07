@@ -16,3 +16,13 @@ func Unique[T comparable](in []T) []T {
 	}
 	return out
 }
+
+// AppendIfMissing appends v to slice when v is not already present.
+func AppendIfMissing[T comparable](slice []T, v T) []T {
+	for _, existing := range slice {
+		if existing == v {
+			return slice
+		}
+	}
+	return append(slice, v)
+}

@@ -331,16 +331,7 @@ func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, dr
 	if dropGameTime < pd.gameTime {
 		return false
 	}
-	if pd.health > 0 {
-		if health != pd.health {
-			return false
-		}
-		if pd.damage > 0 && prevHealth != pd.health+pd.damage {
-			return false
-		}
-		return true
-	}
-	return false
+	return health == pd.health && prevHealth == pd.health+pd.damage
 }
 
 func (h *Handler) closePendingHeroDamageBefore(gameTime float32) {
@@ -523,20 +514,10 @@ func (h *Handler) correlateHeroDamage(entityId int32, track *creepTrack, health 
 		if pd.consumed || pd.closed {
 			continue
 		}
-		if !heroDamageCorrelates(*pd, track.prevHealth, health, dropGameTime) {
-			continue
+
+		if heroDamageCorrelates(*pd, track.prevHealth, health, dropGameTime) {
+			pd.candidates = slicesx.AppendIfMissing(pd.candidates, entityId)
 		}
-		found := false
-		for _, c := range pd.candidates {
-			if c == entityId {
-				found = true
-				break
-			}
-		}
-		if found {
-			continue
-		}
-		pd.candidates = append(pd.candidates, entityId)
 	}
 }
 
