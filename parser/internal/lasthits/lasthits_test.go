@@ -325,24 +325,21 @@ func TestFalseCorrelatedCreepDiesFirst_ThenHeroLastHitsTrueCreep_NoFalseMiss(t *
 	}
 }
 
-func TestFlagbearerMiss_EntityBeforeCombatLogOnSameTick(t *testing.T) {
-	// Replay 8915936762 ~2:45: manta processes entity updates before combat log per tick.
+func TestFlagbearerMiss_SameTickCombatLogThenEntity(t *testing.T) {
+	// Replay 8915936762 ~2:45 — manta runs combat log before entity updates on the same tick.
 	const idx int32 = 2382
 	const flagbearer = "npc_dota_creep_badguys_flagbearer"
 	h := testHandler()
 
-	// Tick 11315: entity drop first, then combat damage.
+	// Tick 11315: combat damage queued, then entity drop (forward correlation).
 	seedCreep(h, idx, 196, 164.2)
-	h.onCreepHealthUpdate(idx, 137, manta.EntityOpUpdated, 164.267)
-
 	h.pendingHeroDamage = append(h.pendingHeroDamage, pendingCLogCreepEvent{
 		id: h.GetNextUniqueId(), creepName: flagbearer, gameTime: 164.2, health: 137, damage: 59,
 	})
-	h.retroactiveCorrelateOpenPending()
-	h.closePendingHeroDamageBefore(164.267)
+	h.onCreepHealthUpdate(idx, 137, manta.EntityOpUpdated, 164.267)
 
 	if h.creepTracks[idx].heroDamagedAt == 0 {
-		t.Fatalf("track not bound after retroactive correlate: %+v", h.creepTracks[idx])
+		t.Fatalf("track not bound after forward correlate: %+v", h.creepTracks[idx])
 	}
 
 	// Later damage updates (huskar).

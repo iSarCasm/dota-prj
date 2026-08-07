@@ -17,8 +17,7 @@ const (
 	missedLastHitWindowSec = 2.0
 	dotaTickRate           = float32(30)
 	tickDuration           = 1 / dotaTickRate // one server tick; candidate collection window per combat-log line
-	retroactiveDropMaxLag  = float32(0.1)     // entity game time can trail combat log on the same tick
-	deathCombatLogEpsilon  = float32(0.05)    // combat-log DEATH can trail entity death on the same tick
+	deathCombatLogEpsilon  = float32(0.05)  // combat-log DEATH can trail entity death on the same tick
 )
 
 // Event is a single last-hit, deny, or missed last-hit.
@@ -47,8 +46,6 @@ type creepTrack struct {
 	hasHealth              bool
 	heroDamagedAt          float32 // 0 if our hero has not damaged this creep recently
 	conflictGroupID        uint64  // pending damage id when ambiguous; 0 = unique match
-	healthBeforeLastDrop   int32   // prev HP when last drop was observed (for retroactive match)
-	lastDropAt             float32 // game time of last health drop
 	awaitingDeathCombatLog bool    // entity died before combat-log DEATH line on same tick
 }
 
@@ -161,7 +158,6 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 			health:    m.GetHealth(),
 			damage:    int32(m.GetValue()),
 		})
-		h.retroactiveCorrelateOpenPending()
 		return nil
 
 	case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DEATH:
@@ -524,57 +520,6 @@ func (h *Handler) correlateHeroDamage(entityId int32, track *creepTrack, health 
 	}
 }
 
-func (h *Handler) retroactiveCorrelateOpenPending() {
-	// Manta dispatches PacketEntities before combat log on the same tick, so entity
-	// health drops may already be recorded when the DAMAGE line arrives.
-	for i := range h.pendingHeroDamage {
-		pd := &h.pendingHeroDamage[i]
-		if pd.consumed || pd.closed {
-			continue
-		}
-		for idx, track := range h.creepTracks {
-			if !retroactiveTrackMatchesPending(*pd, track) {
-				continue
-			}
-			found := false
-			for _, c := range pd.candidates {
-				if c == idx {
-					found = true
-					break
-				}
-			}
-			if !found {
-				pd.candidates = append(pd.candidates, idx)
-			}
-		}
-	}
-}
-
-func retroactiveTrackMatchesPending(pd pendingCLogCreepEvent, track *creepTrack) bool {
-	if !track.hasHealth {
-		return false
-	}
-	dropTimeOK := dropTimeMatchesPending(track.lastDropAt, pd.gameTime)
-	if track.prevHealth == pd.health && dropTimeOK {
-		if pd.damage <= 0 || track.healthBeforeLastDrop == pd.health+pd.damage {
-			return true
-		}
-	}
-	// Same-tick kill: entity dropped to post-damage HP then died before combat log ran.
-	if pd.damage > 0 && track.healthBeforeLastDrop == pd.health+pd.damage && dropTimeOK {
-		return true
-	}
-	return false
-}
-
-func dropTimeMatchesPending(dropAt, pendingAt float32) bool {
-	d := dropAt - pendingAt
-	if d < 0 {
-		d = -d
-	}
-	return d <= retroactiveDropMaxLag
-}
-
 func (h *Handler) resolveAwaitingDeathCombatLog(creepName string, gameTime float32) {
 	for idx, track := range h.creepTracks {
 		if !track.awaitingDeathCombatLog || track.creepName != creepName {
@@ -658,11 +603,6 @@ func (h *Handler) onCreepHealthUpdate(idx int32, health int32, op manta.EntityOp
 	healthReduced := track.hasHealth && health < track.prevHealth
 	justDied := (track.hasHealth && health <= 0 && track.prevHealth > 0) ||
 		op.Flag(manta.EntityOpDeleted) || op.Flag(manta.EntityOpDeletedLeft)
-
-	if healthReduced {
-		track.healthBeforeLastDrop = track.prevHealth
-		track.lastDropAt = gameTime
-	}
 
 	h.correlateHeroDamage(idx, track, health, healthReduced, gameTime)
 
