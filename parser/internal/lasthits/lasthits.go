@@ -242,7 +242,6 @@ func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, op manta.Ent
 	track.prevHealth = health
 	track.hasPrevHealth = true
 
-	h.finalizeAmbiguousPending()
 	h.closePendingHeroDamageBefore(gameTime)
 
 	if justDied {
@@ -367,47 +366,6 @@ func (h *Handler) closePendingHeroDamageForDeadCreep(deadIdx int32) {
 	h.finalizeClosedPendingHeroDamage()
 }
 
-// finalizeAmbiguousPending closes a pending line once multiple entity idxs match it.
-// When several combat-log lines share the same signature on one tick, wait one tick
-// so each line can bind a distinct creep before finalizing the batch.
-func (h *Handler) finalizeAmbiguousPending() {
-	openByKey := make(map[pendingBatchKey]int)
-	for i := range h.pendingHeroDamageLogs {
-		pd := &h.pendingHeroDamageLogs[i]
-		if pd.consumed || pd.closed {
-			continue
-		}
-		key := pendingBatchKey{
-			gameTime:  pd.gameTime,
-			creepName: pd.creepName,
-			health:    pd.health,
-			damage:    pd.damage,
-		}
-		openByKey[key]++
-	}
-
-	for i := range h.pendingHeroDamageLogs {
-		pd := &h.pendingHeroDamageLogs[i]
-		if pd.consumed || pd.closed {
-			continue
-		}
-		if len(slicesx.Unique(pd.candidates)) < 2 {
-			continue
-		}
-		key := pendingBatchKey{
-			gameTime:  pd.gameTime,
-			creepName: pd.creepName,
-			health:    pd.health,
-			damage:    pd.damage,
-		}
-		if openByKey[key] > 1 {
-			continue
-		}
-		pd.closed = true
-	}
-	h.finalizeClosedPendingHeroDamage()
-}
-
 type pendingBatchKey struct {
 	gameTime  float32
 	creepName string
@@ -415,9 +373,18 @@ type pendingBatchKey struct {
 	damage    int32 // batches same-tick identical damage lines into one conflict group
 }
 
+func (pd pendingCLogCreepEvent) batchKey() pendingBatchKey {
+	return pendingBatchKey{
+		gameTime:  pd.gameTime,
+		creepName: pd.creepName,
+		health:    pd.health,
+		damage:    pd.damage,
+	}
+}
+
+// Group closed pending logs by signature, then bind each batch.
+// We can have multiple same combat log events on the same tick (e.g. aoe damage)
 func (h *Handler) finalizeClosedPendingHeroDamage() {
-	// Group closed pendings by signature, then bind each batch.
-	// We can have multiple same combat log events on the same tick (e.g. aoe damage)
 	batches := make(map[pendingBatchKey][]*pendingCLogCreepEvent)
 	var order []pendingBatchKey
 
@@ -426,12 +393,7 @@ func (h *Handler) finalizeClosedPendingHeroDamage() {
 		if !pd.closed || pd.consumed {
 			continue
 		}
-		key := pendingBatchKey{
-			gameTime:  pd.gameTime,
-			creepName: pd.creepName,
-			health:    pd.health,
-			damage:    pd.damage,
-		}
+		key := pd.batchKey()
 		if _, ok := batches[key]; !ok {
 			order = append(order, key)
 		}

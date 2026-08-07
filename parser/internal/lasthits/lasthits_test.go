@@ -184,6 +184,71 @@ func TestTwoRangedCreepsSamePostHealth_NoFalseMissWhenHeroGetsLH(t *testing.T) {
 	}
 }
 
+// One hero DAMAGE combat-log line; three creeps share the post-health signature.
+// All matching drops within the tick window must join one conflict group before finalize.
+func TestOneHeroDamage_ThreeMatchingCreeps_AllCorrelated(t *testing.T) {
+	h := testHandler()
+	const (
+		creepA int32 = 10 // hero actually damaged
+		creepB int32 = 11 // collision
+		creepC int32 = 12 // collision
+	)
+	const tick = float32(100.0)
+
+	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
+		{id: 1, creepName: testRangedName, gameTime: tick, health: 120, damage: 40},
+	}
+
+	seedCreep(h, creepA, 160, tick-0.1)
+	seedCreep(h, creepB, 160, tick-0.1)
+	seedCreep(h, creepC, 160, tick-0.1)
+
+	h.onCreepHealthUpdate(creepB, 120, manta.EntityOpUpdated, tick+0.03)
+	h.onCreepHealthUpdate(creepA, 120, manta.EntityOpUpdated, tick+0.03)
+
+	if h.creepTracks[creepA].conflictGroupID != 0 || h.creepTracks[creepB].conflictGroupID != 0 {
+		t.Fatal("expected pending to stay open collecting candidates before tick window closes")
+	}
+	if len(h.pendingHeroDamageLogs) != 1 || h.pendingHeroDamageLogs[0].consumed {
+		t.Fatal("pending hero damage should stay open after 2 matching drops")
+	}
+	if len(h.pendingHeroDamageLogs[0].candidates) != 2 {
+		t.Fatalf("candidates = %v, want 2 before 3rd drop", h.pendingHeroDamageLogs[0].candidates)
+	}
+
+	h.onCreepHealthUpdate(creepC, 120, manta.EntityOpUpdated, tick+0.1)
+
+	groupID := h.creepTracks[creepA].conflictGroupID
+	if groupID == 0 {
+		t.Fatal("expected conflict group after 3rd matching health drop")
+	}
+	if h.creepTracks[creepB].conflictGroupID != groupID || h.creepTracks[creepC].conflictGroupID != groupID {
+		t.Fatal("all three creeps should share the same conflict group")
+	}
+	if h.conflictGroups[groupID].remainingCombatLogsCount != 1 {
+		t.Fatalf("remainingCombatLogsCount = %d, want 1 for single combat-log line", h.conflictGroups[groupID].remainingCombatLogsCount)
+	}
+
+	h.pendingHeroKills = []pendingCLogCreepEvent{
+		{creepName: testRangedName, gameTime: tick + 0.5},
+	}
+	h.onCreepHealthUpdate(creepA, 0, manta.EntityOpUpdated, tick+0.5)
+
+	h.pendingOtherDeath = []pendingCLogCreepEvent{
+		{creepName: testRangedName, gameTime: tick + 0.6},
+	}
+	h.onCreepHealthUpdate(creepC, 0, manta.EntityOpUpdated, tick+0.6)
+
+	h.pendingOtherDeath = []pendingCLogCreepEvent{
+		{creepName: testRangedName, gameTime: tick + 0.7},
+	}
+	h.onCreepHealthUpdate(creepB, 0, manta.EntityOpUpdated, tick+0.7)
+
+	if len(h.missedEvents) != 0 {
+		t.Fatalf("missedEvents = %+v, want none", h.missedEvents)
+	}
+}
+
 // Two hero DAMAGE combat-log lines on the same tick, but three creeps could match
 // the shared post-health signature. Only two should bind (one per damage line);
 // the third must stay uncorrelated so an enemy kill there is not a false miss.
