@@ -307,9 +307,7 @@ func (h *Handler) closePendingHeroDamageBefore(gameTime float32) {
 func (h *Handler) closeAllPendingHeroDamage() {
 	// Next combat log line or creep death: no more entity updates will match this pending line.
 	for i := range h.pendingHeroDamage {
-		if !h.pendingHeroDamage[i].consumed {
-			h.pendingHeroDamage[i].closed = true
-		}
+		h.pendingHeroDamage[i].closed = true
 	}
 	h.finalizeClosedPendingHeroDamage()
 }
