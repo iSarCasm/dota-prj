@@ -25,37 +25,6 @@ func seedCreep(h *Handler, idx int32, health int32, gameTime float32) {
 	h.onCreepHealthUpdate(idx, health, manta.EntityOpCreatedEntered, gameTime)
 }
 
-func TestCreepTypeFromTargetName(t *testing.T) {
-	tests := []struct {
-		name   string
-		target string
-		want   string
-	}{
-		{"lane badguys melee", "npc_dota_creep_badguys_melee", "lane"},
-		{"lane goodguys ranged", "npc_dota_creep_goodguys_ranged", "lane"},
-		{"lane siege", "npc_dota_creep_siege", "lane"},
-		{"jungle neutral", "npc_dota_neutral_kobold", "jungle"},
-		{"hero not creep", "npc_dota_hero_warlock", ""},
-		{"empty", "", ""},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := creepTypeFromTargetName(tt.target); got != tt.want {
-				t.Fatalf("creepTypeFromTargetName(%q) = %q, want %q", tt.target, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestIsCreepEntityClass(t *testing.T) {
-	if !isCreepEntityClass("CDOTA_BaseNPC_Creep_Lane") {
-		t.Fatal("expected lane creep class")
-	}
-	if isCreepEntityClass("CDOTA_Unit_Hero_Warlock") {
-		t.Fatal("hero should not be creep class")
-	}
-}
-
 func TestPrunePendingByTime(t *testing.T) {
 	events := []pendingCLogCreepEvent{
 		{gameTime: 10, creepName: "a"},
@@ -269,6 +238,55 @@ func TestTwoSameTickHeroDamage_ThreeMatchingCreeps_NoFalseMiss(t *testing.T) {
 
 	if len(h.missedEvents) != 0 {
 		t.Fatalf("missedEvents = %+v, want none (third creep stole pending or wrong idx bound)", h.missedEvents)
+	}
+}
+
+// CL1 damages creep1, CL2 damages creep2 (same signature). creep3 is an undamaged
+// collision creep that also matches CL2. When creep1 dies before epsilon closes CL2,
+// closeAllPendingHeroDamage must not finalize CL2 early — creep3 still needs to join.
+func TestUnrelatedCreepDeath_DoesNotPrematurelyFinalizeOtherPending(t *testing.T) {
+	h := testHandler()
+	const (
+		creep1 int32 = 10 // CL1 target
+		creep2 int32 = 11 // CL2 target
+		creep3 int32 = 12 // undamaged collision creep for CL2 signature
+	)
+	const (
+		cl1Time = float32(100.0)
+		cl2Time = float32(100.02)
+	)
+
+	h.pendingHeroDamage = []pendingCLogCreepEvent{
+		{id: 1, creepName: testRangedName, gameTime: cl1Time, health: 120, damage: 40},
+		{id: 2, creepName: testRangedName, gameTime: cl2Time, health: 120, damage: 40},
+	}
+
+	seedCreep(h, creep1, 160, cl1Time-0.1)
+	seedCreep(h, creep2, 160, cl2Time-0.1)
+	seedCreep(h, creep3, 160, cl2Time-0.1)
+
+	// Hero damage drops for both targets.
+	h.onCreepHealthUpdate(creep1, 120, manta.EntityOpUpdated, cl1Time+0.01)
+	h.onCreepHealthUpdate(creep2, 120, manta.EntityOpUpdated, cl2Time+0.01)
+
+	// Unrelated creep1 dies before CL2's epsilon window closes.
+	h.pendingOtherDeath = []pendingCLogCreepEvent{
+		{creepName: testRangedName, gameTime: cl2Time + 0.02},
+	}
+	h.onCreepHealthUpdate(creep1, 0, manta.EntityOpUpdated, cl2Time+0.02)
+
+	// Collision creep3 drops to the same post-health; should join CL2's ambiguity set.
+	h.onCreepHealthUpdate(creep3, 120, manta.EntityOpUpdated, cl2Time+0.025)
+
+	groupID := h.creepTracks[creep2].conflictGroupID
+	if groupID == 0 {
+		t.Fatal("CL2 should form a conflict group once creep3 matches, not unique bind to creep2 only")
+	}
+	if h.creepTracks[creep3].conflictGroupID != groupID {
+		t.Fatalf("creep3 conflictGroupID = %d, want %d (collision creep must bind to CL2 group)", h.creepTracks[creep3].conflictGroupID, groupID)
+	}
+	if h.conflictGroups[groupID].remainingCombatLogsCount != 1 {
+		t.Fatalf("remainingCombatLogsCount = %d, want 1 for single CL2 line", h.conflictGroups[groupID].remainingCombatLogsCount)
 	}
 }
 

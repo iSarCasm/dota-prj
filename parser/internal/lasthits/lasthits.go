@@ -2,12 +2,13 @@ package lasthits
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/dotabuff/manta"
 	"github.com/dotabuff/manta/dota"
 
 	"dota2/internal/common"
+	"dota2/internal/creeps"
+	"dota2/internal/slicesx"
 	"dota2/internal/timeandpauses"
 )
 
@@ -137,7 +138,7 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 		if attackerClass != h.heroClass || m.GetIsAttackerIllusion() {
 			return nil
 		}
-		if creepTypeFromTargetName(realTargetName) == "" {
+		if creeps.TypeFromTargetName(realTargetName) == "" {
 			return nil
 		}
 		// Only right-click (auto-attack) damage counts toward missed CS; spells/items set inflictor_name.
@@ -156,7 +157,7 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 		return nil
 
 	case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DEATH:
-		creepType := creepTypeFromTargetName(realTargetName)
+		creepType := creeps.TypeFromTargetName(realTargetName)
 		if creepType == "" {
 			return nil
 		}
@@ -211,27 +212,6 @@ func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
 // MissedEvents returns detected missed last-hit events (for tooling / quality reports).
 func (h *Handler) MissedEvents() []Event {
 	return h.missedEvents
-}
-
-func creepTypeFromTargetName(targetName string) string {
-	targetName = strings.ToLower(strings.TrimSpace(targetName))
-	if targetName == "" {
-		return ""
-	}
-	if strings.HasPrefix(targetName, "npc_dota_neutral_") {
-		return "jungle"
-	}
-	if strings.HasPrefix(targetName, "npc_dota_creep_goodguys_") || strings.HasPrefix(targetName, "npc_dota_creep_badguys_") {
-		return "lane"
-	}
-	if strings.HasPrefix(targetName, "npc_dota_creep_siege") {
-		return "lane"
-	}
-	return ""
-}
-
-func isCreepEntityClass(className string) bool {
-	return strings.HasPrefix(className, "CDOTA_BaseNPC_Creep")
 }
 
 func (h *Handler) prunePendingEvents(gameTime float32) {
@@ -325,11 +305,16 @@ func (h *Handler) closePendingHeroDamageBefore(gameTime float32) {
 	h.finalizeClosedPendingHeroDamage()
 }
 
-func (h *Handler) closeAllPendingHeroDamage() {
-	// Next combat log line or creep death: no more entity updates will match this pending line.
+func (h *Handler) closeAllPendingHeroDamage(gameTime float32) {
+	// Creep death on this tick: close pending lines past the candidate window.
+	// Lines still within epsilon may get more entity updates on the same tick.
 	for i := range h.pendingHeroDamage {
-		if !h.pendingHeroDamage[i].consumed {
-			h.pendingHeroDamage[i].closed = true
+		pd := &h.pendingHeroDamage[i]
+		if pd.consumed || pd.closed {
+			continue
+		}
+		if gameTime > pd.gameTime+conflictCloseEpsilon {
+			pd.closed = true
 		}
 	}
 	h.finalizeClosedPendingHeroDamage()
@@ -344,6 +329,7 @@ type pendingBatchKey struct {
 
 func (h *Handler) finalizeClosedPendingHeroDamage() {
 	// Group closed pendings by signature, then bind each batch.
+	// We can have multiple same combat log events on the same tick (e.g. aoe damage)
 	batches := make(map[pendingBatchKey][]*pendingCLogCreepEvent)
 	var order []pendingBatchKey
 
@@ -379,17 +365,11 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 		return
 	}
 
-	candidateSet := make(map[int32]struct{})
+	var allCandidates []int32
 	for _, pd := range batch {
-		for _, idx := range pd.candidates {
-			candidateSet[idx] = struct{}{}
-		}
+		allCandidates = append(allCandidates, pd.candidates...)
 	}
-
-	candidates := make([]int32, 0, len(candidateSet))
-	for idx := range candidateSet {
-		candidates = append(candidates, idx)
-	}
+	candidates := slicesx.Unique(allCandidates)
 
 	if len(candidates) == 0 {
 		// Same-tick combat logs are processed before entity updates; keep collecting.
@@ -581,7 +561,7 @@ func (h *Handler) consumeMatchingOtherDeath(creepName string, heroDamagedAt floa
 
 func (h *Handler) onCreepEntity(e *manta.Entity, op manta.EntityOp) error {
 	gameTime := h.timeAndPausesHandler.CurrentGameTime()
-	if !isCreepEntityClass(e.GetClassName()) {
+	if !creeps.IsEntityClass(e.GetClassName()) {
 		return nil
 	}
 	health, ok := e.GetInt32("m_iHealth")
@@ -616,7 +596,7 @@ func (h *Handler) onCreepHealthUpdate(idx int32, health int32, op manta.EntityOp
 	h.closePendingHeroDamageBefore(gameTime)
 
 	if justDied {
-		h.closeAllPendingHeroDamage()
+		h.closeAllPendingHeroDamage(gameTime)
 		h.handleCreepDeath(idx, track, gameTime, false)
 	}
 
