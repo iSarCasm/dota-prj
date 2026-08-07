@@ -158,7 +158,7 @@ func TestTwoRangedCreepsSamePostHealth_NoFalseMissWhenHeroGetsLH(t *testing.T) {
 	)
 
 	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
-		{creepName: testRangedName, gameTime: 245.8, health: 120, damage: 40},
+		{id: 1, creepName: testRangedName, gameTime: 245.8, health: 120, damage: 40},
 	}
 
 	// Both creeps share post-damage HP; B updates first and steals correlation.
@@ -197,8 +197,8 @@ func TestTwoSameTickHeroDamage_ThreeMatchingCreeps_NoFalseMiss(t *testing.T) {
 	const tick = float32(100.0)
 
 	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
-		{creepName: testRangedName, gameTime: tick, health: 120, damage: 40},
-		{creepName: testRangedName, gameTime: tick, health: 120, damage: 40},
+		{id: 1, creepName: testRangedName, gameTime: tick, health: 120, damage: 40},
+		{id: 2, creepName: testRangedName, gameTime: tick, health: 120, damage: 40},
 	}
 
 	// All three creeps share 160→120; update order B, A, C.
@@ -306,7 +306,7 @@ func TestFalseCorrelatedCreepDiesFirst_ThenHeroLastHitsTrueCreep_NoFalseMiss(t *
 	)
 
 	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
-		{creepName: testRangedName, gameTime: 245.8, health: 120, damage: 40},
+		{id: 1, creepName: testRangedName, gameTime: 245.8, health: 120, damage: 40},
 	}
 
 	seedCreep(h, creepA, 160, 245.7)
