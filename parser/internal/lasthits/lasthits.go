@@ -2,6 +2,7 @@ package lasthits
 
 import (
 	"errors"
+	"log"
 
 	"github.com/dotabuff/manta"
 	"github.com/dotabuff/manta/dota"
@@ -421,7 +422,18 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 	candidates := slicesx.Unique(allCandidates)
 
 	if len(candidates) == 0 {
-		// Same-tick combat logs are processed before entity updates; keep collecting.
+		// Abnormal: pending was closed before any entity idx correlated. Reopen and keep collecting.
+		primary := batch[0]
+		ids := make([]uint64, len(batch))
+		for i, pd := range batch {
+			ids[i] = pd.id
+		}
+		log.Printf(
+			"WARNING lasthits: finalizePendingBatch with ZERO entity candidates (not normal)\n"+
+				"  creep=%q gameTime=%.3f postHealth=%d damage=%d pendingLines=%d ids=%v\n"+
+				"  action=reopening closed pending lines; no entity health drop matched yet",
+			primary.creepName, primary.gameTime, primary.health, primary.damage, len(batch), ids,
+		)
 		for _, pd := range batch {
 			pd.closed = false
 		}
