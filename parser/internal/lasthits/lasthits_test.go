@@ -335,9 +335,8 @@ func TestFlagbearerMiss_EntityBeforeCombatLogOnSameTick(t *testing.T) {
 	seedCreep(h, idx, 196, 164.2)
 	h.onCreepHealthUpdate(idx, 137, manta.EntityOpUpdated, 164.267)
 
-	h.nextPendingDamageID++
 	h.pendingHeroDamage = append(h.pendingHeroDamage, pendingCLogCreepEvent{
-		id: 1, creepName: flagbearer, gameTime: 164.2, health: 137, damage: 59,
+		id: h.GetNextUniqueId(), creepName: flagbearer, gameTime: 164.2, health: 137, damage: 59,
 	})
 	h.retroactiveCorrelateOpenPending()
 	h.closePendingHeroDamageBefore(164.267)

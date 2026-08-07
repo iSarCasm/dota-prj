@@ -17,8 +17,8 @@ const (
 	missedLastHitWindowSec = 2.0
 	dotaTickRate           = float32(30)
 	tickDuration           = 1 / dotaTickRate // one server tick; candidate collection window per combat-log line
-	retroactiveDropMaxLag  = float32(0.1)   // entity game time can trail combat log on the same tick
-	deathCombatLogEpsilon  = float32(0.05)  // combat-log DEATH can trail entity death on the same tick
+	retroactiveDropMaxLag  = float32(0.1)     // entity game time can trail combat log on the same tick
+	deathCombatLogEpsilon  = float32(0.05)    // combat-log DEATH can trail entity death on the same tick
 )
 
 // Event is a single last-hit, deny, or missed last-hit.
@@ -71,7 +71,7 @@ type Handler struct {
 	pendingHeroKills     []pendingCLogCreepEvent // combat-log DEATH where our hero was killer
 	creepTracks          map[int32]*creepTrack
 	conflictGroups       map[uint64]*conflictGroup // keyed by pending damage id
-	nextPendingDamageID  uint64
+	nextUniqueId         uint64
 	timeAndPausesHandler *timeandpauses.Handler
 }
 
@@ -99,6 +99,11 @@ func (h *Handler) Init(ctx *common.ParseContext) error {
 		return errors.New("lasthits handler requires timeandpauses dependency")
 	}
 	return nil
+}
+
+func (h *Handler) GetNextUniqueId() uint64 {
+	h.nextUniqueId++
+	return h.nextUniqueId
 }
 
 // registers lasthits callbacks.
@@ -144,12 +149,13 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 			return nil
 		}
 		// Only right-click (auto-attack) damage counts toward missed CS; spells/items set inflictor_name.
+		// TODO: handle other inflictors, right now its problematic because fatal bonds, etc. would
+		// be counted as missed CS
 		if m.GetInflictorName() != 0 {
 			return nil
 		}
-		h.nextPendingDamageID++
 		h.pendingHeroDamage = append(h.pendingHeroDamage, pendingCLogCreepEvent{
-			id:        h.nextPendingDamageID,
+			id:        h.GetNextUniqueId(),
 			creepName: realTargetName,
 			gameTime:  gameTime,
 			health:    m.GetHealth(),
@@ -389,8 +395,7 @@ func (h *Handler) finalizeClosedPendingHeroDamage() {
 			continue
 		}
 		if pd.id == 0 {
-			h.nextPendingDamageID++
-			pd.id = h.nextPendingDamageID
+			pd.id = h.GetNextUniqueId()
 		}
 		key := pendingBatchKey{
 			gameTime:  pd.gameTime,
@@ -421,9 +426,10 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 	}
 	candidates := slicesx.Unique(allCandidates)
 
+	primary := batch[0]
+
 	if len(candidates) == 0 {
 		// Abnormal: pending was closed before any entity idx correlated. Reopen and keep collecting.
-		primary := batch[0]
 		ids := make([]uint64, len(batch))
 		for i, pd := range batch {
 			ids[i] = pd.id
@@ -440,7 +446,6 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 		return
 	}
 
-	primary := batch[0]
 	for _, pd := range batch {
 		pd.consumed = true
 	}
@@ -452,36 +457,29 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 
 	groupID := primary.id
 	h.conflictGroups[groupID] = &conflictGroup{
-		remainingCombatLogsCount: len(batch),
+		remainingCombatLogsCount: len(batch), // this will be >1 if there are multiple identical combat logs on same tick
 	}
-	for _, idx := range candidates {
-		h.bindConflictCandidate(idx, groupID, primary.creepName, primary.gameTime)
+	for _, entityId := range candidates {
+		h.bindConflictCandidate(entityId, groupID, primary.creepName, primary.gameTime)
 	}
 }
 
-func (h *Handler) bindUniqueCandidate(idx int32, creepName string, gameTime float32) {
-	track := h.creepTracks[idx]
-	if track == nil {
-		track = &creepTrack{}
-		h.creepTracks[idx] = track
-	}
-	track.creepName = creepName
-	track.heroDamagedAt = gameTime
-	track.conflictGroupID = 0
+func (h *Handler) bindUniqueCandidate(entityId int32, creepName string, gameTime float32) {
+	h.bindConflictCandidate(entityId, 0, creepName, gameTime)
 }
 
-func (h *Handler) bindConflictCandidate(idx int32, groupID uint64, creepName string, gameTime float32) {
-	track := h.creepTracks[idx]
+func (h *Handler) bindConflictCandidate(entityId int32, groupID uint64, creepName string, gameTime float32) {
+	track := h.creepTracks[entityId]
 	if track == nil {
 		track = &creepTrack{}
-		h.creepTracks[idx] = track
+		h.creepTracks[entityId] = track
 	}
 	track.creepName = creepName
 	track.heroDamagedAt = gameTime
 	track.conflictGroupID = groupID
 }
 
-func (h *Handler) correlateHeroDamage(idx int32, track *creepTrack, health int32, healthReduced bool, dropGameTime float32) {
+func (h *Handler) correlateHeroDamage(entityId int32, track *creepTrack, health int32, healthReduced bool, dropGameTime float32) {
 	// Bind to the most recent open combat-log line at or before this drop; same-tick
 	// batches share gameTime and all receive the candidate.
 	var bestTime float32 = -1
@@ -510,12 +508,11 @@ func (h *Handler) correlateHeroDamage(idx int32, track *creepTrack, health int32
 			continue
 		}
 		if pd.id == 0 {
-			h.nextPendingDamageID++
-			pd.id = h.nextPendingDamageID
+			pd.id = h.GetNextUniqueId()
 		}
 		found := false
 		for _, c := range pd.candidates {
-			if c == idx {
+			if c == entityId {
 				found = true
 				break
 			}
@@ -523,7 +520,7 @@ func (h *Handler) correlateHeroDamage(idx int32, track *creepTrack, health int32
 		if found {
 			continue
 		}
-		pd.candidates = append(pd.candidates, idx)
+		pd.candidates = append(pd.candidates, entityId)
 	}
 }
 
