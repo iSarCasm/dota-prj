@@ -42,13 +42,13 @@ func TestHasPendingSelfKill(t *testing.T) {
 	h.pendingHeroKills = []pendingCLogCreepEvent{
 		{creepName: testMeleeName, gameTime: 246.0},
 	}
-	if !h.hasPendingLasthit(testMeleeName, 246.1) {
+	if !h.hasPendingHeroKill(testMeleeName, 246.1) {
 		t.Fatal("expected self kill in window")
 	}
-	if h.hasPendingLasthit(testMeleeName, 250.0) {
+	if h.hasPendingHeroKill(testMeleeName, 250.0) {
 		t.Fatal("self kill outside window should not match")
 	}
-	if h.hasPendingLasthit(testRangedName, 246.1) {
+	if h.hasPendingHeroKill(testRangedName, 246.1) {
 		t.Fatal("wrong creep name should not match")
 	}
 }
@@ -346,16 +346,11 @@ func TestFlagbearerMiss_SameTickCombatLogThenEntity(t *testing.T) {
 	h.onCreepHealthUpdate(idx, 118, manta.EntityOpUpdated, 164.4)
 	h.onCreepHealthUpdate(idx, 20, manta.EntityOpUpdated, 165.4)
 
-	// Tick 11359: entity death first, then combat death.
-	h.onCreepHealthUpdate(idx, 0, manta.EntityOpUpdated, 165.733)
-	if !h.creepTracks[idx].awaitingDeathCombatLog {
-		t.Fatal("expected awaitingDeathCombatLog before combat-log DEATH")
-	}
-
+	// Tick 11359: combat death queued, then entity death (manta order).
 	h.pendingOtherDeath = append(h.pendingOtherDeath, pendingCLogCreepEvent{
 		creepName: flagbearer, gameTime: 165.667,
 	})
-	h.resolveAwaitingDeathCombatLog(flagbearer, 165.667)
+	h.onCreepHealthUpdate(idx, 0, manta.EntityOpUpdated, 165.733)
 
 	if len(h.missedEvents) != 1 {
 		t.Fatalf("missedEvents = %+v, want 1 flagbearer miss", h.missedEvents)

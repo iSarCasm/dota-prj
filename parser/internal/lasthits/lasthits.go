@@ -17,7 +17,7 @@ const (
 	missedLastHitWindowSec = 2.0
 	dotaTickRate           = float32(30)
 	tickDuration           = 1 / dotaTickRate // one server tick; candidate collection window per combat-log line
-	deathCombatLogEpsilon  = float32(0.05)  // combat-log DEATH can trail entity death on the same tick
+	deathCombatLogEpsilon  = float32(0.05) // slop when matching entity death time to combat-log DEATH time
 )
 
 // Event is a single last-hit, deny, or missed last-hit.
@@ -46,7 +46,6 @@ type creepTrack struct {
 	hasHealth              bool
 	heroDamagedAt          float32 // 0 if our hero has not damaged this creep recently
 	conflictGroupID        uint64  // pending damage id when ambiguous; 0 = unique match
-	awaitingDeathCombatLog bool    // entity died before combat-log DEATH line on same tick
 }
 
 // conflictGroup tracks ambiguous hero-damage correlation across multiple entity idxs.
@@ -192,7 +191,6 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 				creepName: realTargetName,
 				gameTime:  gameTime,
 			})
-			h.resolveAwaitingDeathCombatLog(realTargetName, gameTime)
 		}
 	}
 	return nil
@@ -260,10 +258,10 @@ func (h *Handler) pruneConsumedPending() {
 	h.pendingOtherDeath = h.pendingOtherDeath[:n]
 }
 
-func (h *Handler) hasPendingLasthit(creepName string, deathTime float32) bool {
+func (h *Handler) hasPendingHeroKill(creepName string, deathTime float32) bool {
 	cutoff := deathTime - missedLastHitWindowSec
-	for _, sk := range h.pendingHeroKills {
-		if sk.creepName == creepName && sk.gameTime >= cutoff && sk.gameTime <= deathTime+deathCombatLogEpsilon {
+	for _, phk := range h.pendingHeroKills {
+		if phk.creepName == creepName && phk.gameTime >= cutoff && phk.gameTime <= deathTime+deathCombatLogEpsilon {
 			return true
 		}
 	}
@@ -520,16 +518,6 @@ func (h *Handler) correlateHeroDamage(entityId int32, track *creepTrack, health 
 	}
 }
 
-func (h *Handler) resolveAwaitingDeathCombatLog(creepName string, gameTime float32) {
-	for idx, track := range h.creepTracks {
-		if !track.awaitingDeathCombatLog || track.creepName != creepName {
-			continue
-		}
-		track.awaitingDeathCombatLog = false
-		h.handleCreepDeath(idx, track, gameTime, true)
-	}
-}
-
 func (h *Handler) clearConflictTrack(idx int32) {
 	track := h.creepTracks[idx]
 	if track == nil {
@@ -614,7 +602,7 @@ func (h *Handler) onCreepHealthUpdate(idx int32, health int32, op manta.EntityOp
 
 	if justDied {
 		h.closePendingHeroDamageForDeadCreep(idx)
-		h.handleCreepDeath(idx, track, gameTime, false)
+		h.handleCreepDeath(idx, track, gameTime)
 	}
 
 	h.pruneConsumedPending()
@@ -624,16 +612,10 @@ func (h *Handler) onCreepHealthUpdate(idx int32, health int32, op manta.EntityOp
 	}
 }
 
-func (h *Handler) handleCreepDeath(idx int32, track *creepTrack, gameTime float32, fromCombatLog bool) {
+func (h *Handler) handleCreepDeath(idx int32, track *creepTrack, gameTime float32) {
 	// Unique tracks: immediate miss on enemy steal; conflict groups defer until resolved.
-	enemyKill := fromCombatLog || h.consumeMatchingOtherDeath(track.creepName, track.heroDamagedAt, gameTime)
-	heroKill := h.hasPendingLasthit(track.creepName, gameTime)
-
-	if !fromCombatLog && !enemyKill && !heroKill && track.heroDamagedAt > 0 && track.creepName != "" {
-		// Entity death arrived before combat-log DEATH on the same tick.
-		track.awaitingDeathCombatLog = true
-		return
-	}
+	enemyKill := h.consumeMatchingOtherDeath(track.creepName, track.heroDamagedAt, gameTime)
+	heroKill := h.hasPendingHeroKill(track.creepName, gameTime)
 
 	if track.conflictGroupID != 0 {
 		groupID := track.conflictGroupID

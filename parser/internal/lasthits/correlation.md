@@ -31,3 +31,16 @@ Implementation sketch (removed from code):
 - The only unit test that used retroactive called it **directly** after manually simulating entity-before-combat-log — it did not exercise the production hook.
 
 If manta ordering ever changes or a replay proves entity-first delivery, retroactive correlation could be reintroduced. Until then, forward correlation plus the zero-candidate reopen guard in `finalizePendingBatch` is sufficient.
+
+## Deferred death until combat log (removed)
+
+**Idea:** When an entity’s health hit 0 before a matching combat-log `DEATH` line was seen, set `awaitingDeathCombatLog` on the track and defer miss/last-hit resolution. When the `DEATH` line arrived later, `resolveAwaitingDeathCombatLog` would finish `handleCreepDeath`.
+
+**Why removed:** Same mistaken assumption as retroactive damage correlation — that entity callbacks can run before combat log on the same tick. Manta order is combat log first, then entities. On a kill tick:
+
+1. Combat-log `DEATH` appends `pendingOtherDeath` (or `pendingHeroKills`).
+2. Entity health → 0 runs `handleCreepDeath`, which consumes that pending entry via `consumeMatchingOtherDeath` / `hasPendingHeroKill`.
+
+The defer branch was only exercised when unit tests manually simulated entity death before queuing `pendingOtherDeath`. Real replays and integration tests never needed it.
+
+Entity death timestamps can still be **later** than combat-log death timestamps on the same tick; that is game-time on the event, not callback order.
