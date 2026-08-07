@@ -27,11 +27,11 @@ type Event struct {
 
 // pendingCLogCreepEvent is a combat-log creep event waiting for OnEntity correlation.
 type pendingCLogCreepEvent struct {
-	id         uint64  // shared with conflictGroups key when match is ambiguous
+	id         uint64 // shared with conflictGroups key when match is ambiguous
 	creepName  string
 	gameTime   float32
-	health     int32 // post-damage health from combat log
-	damage     int32 // damage dealt (value); prev health = health + damage
+	health     int32   // post-damage health from combat log
+	damage     int32   // damage dealt (value); prev health = health + damage
 	candidates []int32 // entity idxs whose health drop matched this line
 	closed     bool    // true once candidate collection finished
 	consumed   bool    // true once bound to entity track(s)
@@ -104,92 +104,93 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		if h.timeAndPausesHandler.IsGameEnded() {
 			return nil
 		}
-		gameTime := h.timeAndPausesHandler.CurrentGameTime()
-		h.closePendingHeroDamageBefore(gameTime)
-		h.prunePendingEvents(gameTime)
-
-		attackerNameIdx := m.GetAttackerName()
-		targetNameIdx := m.GetTargetName()
-		realAttackerName, okA := p.LookupStringByIndex("CombatLogNames", int32(attackerNameIdx))
-		if !okA {
-			return nil
-		}
-		realTargetName, okT := p.LookupStringByIndex("CombatLogNames", int32(targetNameIdx))
-		if !okT {
-			return nil
-		}
-
-		combatLogType := m.GetType()
-		switch combatLogType {
-		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DAMAGE:
-			attackerClass := common.GetHeroClassName(realAttackerName)
-			if attackerClass != h.heroClass || m.GetIsAttackerIllusion() {
-				return nil
-			}
-			if creepTypeFromTargetName(realTargetName) == "" {
-				return nil
-			}
-			// Only right-click (auto-attack) damage counts toward missed CS; spells/items set inflictor_name.
-			if m.GetInflictorName() != 0 {
-				return nil
-			}
-			h.nextPendingDamageID++
-			h.pendingHeroDamage = append(h.pendingHeroDamage, pendingCLogCreepEvent{
-				id:        h.nextPendingDamageID,
-				creepName: realTargetName,
-				gameTime:  gameTime,
-				health:    m.GetHealth(),
-				damage:    int32(m.GetValue()),
-			})
-			h.retroactiveCorrelateOpenPending()
-			return nil
-
-		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DEATH:
-			creepType := creepTypeFromTargetName(realTargetName)
-			if creepType == "" {
-				return nil
-			}
-
-			attackerClass := common.GetHeroClassName(realAttackerName)
-			weAreKiller := attackerClass == h.heroClass && !m.GetIsAttackerIllusion()
-
-			if weAreKiller {
-				h.pendingHeroKills = append(h.pendingHeroKills, pendingCLogCreepEvent{
-					creepName: realTargetName,
-					gameTime:  gameTime,
-				})
-				switch creepType {
-				case "lane":
-					if m.GetAttackerTeam() == m.GetTargetTeam() {
-						h.denies++
-						h.events = append(h.events, Event{Timestamp: gameTime, Type: "deny", CreepName: realTargetName})
-					} else {
-						h.lastHitsLane++
-						h.events = append(h.events, Event{Timestamp: gameTime, Type: "last_hit", CreepName: realTargetName})
-					}
-				case "jungle":
-					h.lastHitsJungle++
-					h.events = append(h.events, Event{Timestamp: gameTime, Type: "last_hit", CreepName: realTargetName})
-				}
-			} else {
-				h.pendingOtherDeath = append(h.pendingOtherDeath, pendingCLogCreepEvent{
-					creepName: realTargetName,
-					gameTime:  gameTime,
-				})
-				h.resolveAwaitingDeathCombatLog(realTargetName, gameTime)
-			}
-		}
-		return nil
+		return h.onCombatLogEntry(p, m)
 	})
 
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
 		if e == nil || h.timeAndPausesHandler.IsGameEnded() {
 			return nil
 		}
-		gameTime := h.timeAndPausesHandler.CurrentGameTime()
-		h.onCreepEntity(e, op, gameTime)
-		return nil
+		return h.onCreepEntity(e, op)
 	})
+}
+
+func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEntry) error {
+	gameTime := h.timeAndPausesHandler.CurrentGameTime()
+	h.closePendingHeroDamageBefore(gameTime)
+	h.prunePendingEvents(gameTime)
+
+	attackerNameIdx := m.GetAttackerName()
+	targetNameIdx := m.GetTargetName()
+	realAttackerName, okA := p.LookupStringByIndex("CombatLogNames", int32(attackerNameIdx))
+	if !okA {
+		return nil
+	}
+	realTargetName, okT := p.LookupStringByIndex("CombatLogNames", int32(targetNameIdx))
+	if !okT {
+		return nil
+	}
+
+	switch m.GetType() {
+	case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DAMAGE:
+		attackerClass := common.GetHeroClassName(realAttackerName)
+		if attackerClass != h.heroClass || m.GetIsAttackerIllusion() {
+			return nil
+		}
+		if creepTypeFromTargetName(realTargetName) == "" {
+			return nil
+		}
+		// Only right-click (auto-attack) damage counts toward missed CS; spells/items set inflictor_name.
+		if m.GetInflictorName() != 0 {
+			return nil
+		}
+		h.nextPendingDamageID++
+		h.pendingHeroDamage = append(h.pendingHeroDamage, pendingCLogCreepEvent{
+			id:        h.nextPendingDamageID,
+			creepName: realTargetName,
+			gameTime:  gameTime,
+			health:    m.GetHealth(),
+			damage:    int32(m.GetValue()),
+		})
+		h.retroactiveCorrelateOpenPending()
+		return nil
+
+	case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DEATH:
+		creepType := creepTypeFromTargetName(realTargetName)
+		if creepType == "" {
+			return nil
+		}
+
+		attackerClass := common.GetHeroClassName(realAttackerName)
+		weAreKiller := attackerClass == h.heroClass && !m.GetIsAttackerIllusion()
+
+		if weAreKiller {
+			h.pendingHeroKills = append(h.pendingHeroKills, pendingCLogCreepEvent{
+				creepName: realTargetName,
+				gameTime:  gameTime,
+			})
+			switch creepType {
+			case "lane":
+				if m.GetAttackerTeam() == m.GetTargetTeam() {
+					h.denies++
+					h.events = append(h.events, Event{Timestamp: gameTime, Type: "deny", CreepName: realTargetName})
+				} else {
+					h.lastHitsLane++
+					h.events = append(h.events, Event{Timestamp: gameTime, Type: "last_hit", CreepName: realTargetName})
+				}
+			case "jungle":
+				h.lastHitsJungle++
+				h.events = append(h.events, Event{Timestamp: gameTime, Type: "last_hit", CreepName: realTargetName})
+			}
+		} else {
+			h.pendingOtherDeath = append(h.pendingOtherDeath, pendingCLogCreepEvent{
+				creepName: realTargetName,
+				gameTime:  gameTime,
+			})
+			h.resolveAwaitingDeathCombatLog(realTargetName, gameTime)
+		}
+	}
+	return nil
 }
 
 // Output returns the handler's contribution to the final JSON.
@@ -578,15 +579,17 @@ func (h *Handler) consumeMatchingOtherDeath(creepName string, heroDamagedAt floa
 	return false
 }
 
-func (h *Handler) onCreepEntity(e *manta.Entity, op manta.EntityOp, gameTime float32) {
+func (h *Handler) onCreepEntity(e *manta.Entity, op manta.EntityOp) error {
+	gameTime := h.timeAndPausesHandler.CurrentGameTime()
 	if !isCreepEntityClass(e.GetClassName()) {
-		return
+		return nil
 	}
 	health, ok := e.GetInt32("m_iHealth")
 	if !ok {
-		return
+		return nil
 	}
 	h.onCreepHealthUpdate(e.GetIndex(), health, op, gameTime)
+	return nil
 }
 
 func (h *Handler) onCreepHealthUpdate(idx int32, health int32, op manta.EntityOp, gameTime float32) {
