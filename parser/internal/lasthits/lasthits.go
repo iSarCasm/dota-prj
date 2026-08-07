@@ -17,7 +17,7 @@ const (
 	missedLastHitWindowSec = 2.0
 	dotaTickRate           = float32(30)
 	tickDuration           = 1 / dotaTickRate // one server tick; candidate collection window per combat-log line
-	deathCombatLogEpsilon  = float32(0.05) // slop when matching entity death time to combat-log DEATH time
+	deathCombatLogEpsilon  = float32(0.05)    // slop when matching entity death time to combat-log DEATH time
 )
 
 // Event is a single last-hit, deny, or missed last-hit.
@@ -41,11 +41,11 @@ type pendingCLogCreepEvent struct {
 
 // creepTrack holds per-entity creep state for correlating combat log with entity updates.
 type creepTrack struct {
-	creepName              string // npc name from combat log once correlated
-	prevHealth             int32
-	hasHealth              bool
-	heroDamagedAt          float32 // 0 if our hero has not damaged this creep recently
-	conflictGroupID        uint64  // pending damage id when ambiguous; 0 = unique match
+	creepName       string // npc name from combat log once correlated
+	prevHealth      int32
+	hasPrevHealth   bool
+	heroDamagedAt   float32 // 0 if our hero has not damaged this creep recently
+	conflictGroupID uint64  // pending damage id when ambiguous; 0 = unique match
 }
 
 // conflictGroup tracks ambiguous hero-damage correlation across multiple entity idxs.
@@ -117,6 +117,21 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		}
 		return h.onCreepEntity(e, op)
 	})
+}
+
+// Output returns the handler's contribution to the final JSON.
+func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
+	return map[string]interface{}{
+		"last_hits": map[string]interface{}{
+			"lane":                   h.lastHitsLane,
+			"jungle":                 h.lastHitsJungle,
+			"total":                  h.lastHitsLane + h.lastHitsJungle,
+			"denies":                 h.denies,
+			"last_hits":              h.events,
+			"missed_last_hits":       h.missedEvents,
+			"missed_last_hits_total": len(h.missedEvents),
+		},
+	}
 }
 
 func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEntry) error {
@@ -196,18 +211,47 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 	return nil
 }
 
-// Output returns the handler's contribution to the final JSON.
-func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
-	return map[string]interface{}{
-		"last_hits": map[string]interface{}{
-			"lane":                   h.lastHitsLane,
-			"jungle":                 h.lastHitsJungle,
-			"total":                  h.lastHitsLane + h.lastHitsJungle,
-			"denies":                 h.denies,
-			"last_hits":              h.events,
-			"missed_last_hits":       h.missedEvents,
-			"missed_last_hits_total": len(h.missedEvents),
-		},
+func (h *Handler) onCreepEntity(e *manta.Entity, op manta.EntityOp) error {
+	gameTime := h.timeAndPausesHandler.CurrentGameTime()
+	if !creeps.IsEntityClass(e.GetClassName()) {
+		return nil
+	}
+	health, ok := e.GetInt32("m_iHealth")
+	if !ok {
+		return nil
+	}
+	h.onCreepHealthUpdate(e.GetIndex(), health, op, gameTime)
+	return nil
+}
+
+func (h *Handler) onCreepHealthUpdate(idx int32, health int32, op manta.EntityOp, gameTime float32) {
+	track := h.creepTracks[idx]
+	if track == nil {
+		track = &creepTrack{}
+		h.creepTracks[idx] = track
+	}
+
+	healthReduced := track.hasPrevHealth && health < track.prevHealth
+	justDied := (track.hasPrevHealth && health <= 0 && track.prevHealth > 0) ||
+		op.Flag(manta.EntityOpDeleted) || op.Flag(manta.EntityOpDeletedLeft)
+
+	h.correlateHeroDamage(idx, track, health, healthReduced, gameTime)
+
+	track.prevHealth = health
+	track.hasPrevHealth = true
+
+	h.finalizeAmbiguousPending()
+	h.closePendingHeroDamageBefore(gameTime)
+
+	if justDied {
+		h.closePendingHeroDamageForDeadCreep(idx)
+		h.handleCreepDeath(idx, track, gameTime)
+	}
+
+	h.pruneConsumedPending()
+
+	if op.Flag(manta.EntityOpDeleted) || op.Flag(manta.EntityOpDeletedLeft) {
+		delete(h.creepTracks, idx)
 	}
 }
 
@@ -546,7 +590,7 @@ func (h *Handler) aliveConflictGroupMembers(groupID uint64, excludeIdx int32) in
 		if idx == excludeIdx || track.conflictGroupID != groupID {
 			continue
 		}
-		if track.hasHealth && track.prevHealth > 0 {
+		if track.hasPrevHealth && track.prevHealth > 0 {
 			n++
 		}
 	}
@@ -566,50 +610,6 @@ func (h *Handler) consumeMatchingOtherDeath(creepName string, heroDamagedAt floa
 		return true
 	}
 	return false
-}
-
-func (h *Handler) onCreepEntity(e *manta.Entity, op manta.EntityOp) error {
-	gameTime := h.timeAndPausesHandler.CurrentGameTime()
-	if !creeps.IsEntityClass(e.GetClassName()) {
-		return nil
-	}
-	health, ok := e.GetInt32("m_iHealth")
-	if !ok {
-		return nil
-	}
-	h.onCreepHealthUpdate(e.GetIndex(), health, op, gameTime)
-	return nil
-}
-
-func (h *Handler) onCreepHealthUpdate(idx int32, health int32, op manta.EntityOp, gameTime float32) {
-	track := h.creepTracks[idx]
-	if track == nil {
-		track = &creepTrack{}
-		h.creepTracks[idx] = track
-	}
-
-	healthReduced := track.hasHealth && health < track.prevHealth
-	justDied := (track.hasHealth && health <= 0 && track.prevHealth > 0) ||
-		op.Flag(manta.EntityOpDeleted) || op.Flag(manta.EntityOpDeletedLeft)
-
-	h.correlateHeroDamage(idx, track, health, healthReduced, gameTime)
-
-	track.prevHealth = health
-	track.hasHealth = true
-
-	h.finalizeAmbiguousPending()
-	h.closePendingHeroDamageBefore(gameTime)
-
-	if justDied {
-		h.closePendingHeroDamageForDeadCreep(idx)
-		h.handleCreepDeath(idx, track, gameTime)
-	}
-
-	h.pruneConsumedPending()
-
-	if op.Flag(manta.EntityOpDeleted) || op.Flag(manta.EntityOpDeletedLeft) {
-		delete(h.creepTracks, idx)
-	}
 }
 
 func (h *Handler) handleCreepDeath(idx int32, track *creepTrack, gameTime float32) {

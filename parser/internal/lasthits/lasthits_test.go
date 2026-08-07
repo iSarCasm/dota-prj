@@ -84,7 +84,7 @@ func TestCorrelateHeroDamage_BindsFirstMatchingPending(t *testing.T) {
 	h.pendingHeroDamage = []pendingCLogCreepEvent{
 		{id: 1, creepName: testMeleeName, gameTime: 100, health: 50, damage: 30},
 	}
-	track := &creepTrack{prevHealth: 80, hasHealth: true}
+	track := &creepTrack{prevHealth: 80, hasPrevHealth: true}
 	h.creepTracks[idx] = track
 
 	h.correlateHeroDamage(idx, track, 50, true, 100.0)
