@@ -54,7 +54,7 @@ func TestHasPendingSelfKill(t *testing.T) {
 }
 
 func TestHeroDamageCorrelates(t *testing.T) {
-	pd := pendingCLogCreepEvent{health: 137, damage: 59}
+	pd := pendingCLogCreepEvent{gameTime: 100, health: 137, damage: 59}
 
 	tests := []struct {
 		name           string
@@ -70,7 +70,7 @@ func TestHeroDamageCorrelates(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := heroDamageCorrelates(pd, tt.prev, tt.health, tt.healthReduced)
+			got := heroDamageCorrelates(pd, tt.prev, tt.health, tt.healthReduced, 100.0)
 			if got != tt.wantCorrelates {
 				t.Fatalf("heroDamageCorrelates() = %v, want %v", got, tt.wantCorrelates)
 			}
@@ -87,7 +87,7 @@ func TestCorrelateHeroDamage_BindsFirstMatchingPending(t *testing.T) {
 	track := &creepTrack{prevHealth: 80, hasHealth: true}
 	h.creepTracks[idx] = track
 
-	h.correlateHeroDamage(idx, track, 50, true)
+	h.correlateHeroDamage(idx, track, 50, true, 100.0)
 	h.closePendingHeroDamageBefore(100.1)
 
 	if track.creepName != testMeleeName {
@@ -243,7 +243,8 @@ func TestTwoSameTickHeroDamage_ThreeMatchingCreeps_NoFalseMiss(t *testing.T) {
 
 // CL1 damages creep1, CL2 damages creep2 (same signature). creep3 is an undamaged
 // collision creep that also matches CL2. When creep1 dies before epsilon closes CL2,
-// closeAllPendingHeroDamage must not finalize CL2 early — creep3 still needs to join.
+// When creep1 dies before CL2's epsilon window closes,
+// closePendingHeroDamageForDeadCreep must not finalize CL2 early — creep3 still needs to join.
 func TestUnrelatedCreepDeath_DoesNotPrematurelyFinalizeOtherPending(t *testing.T) {
 	h := testHandler()
 	const (

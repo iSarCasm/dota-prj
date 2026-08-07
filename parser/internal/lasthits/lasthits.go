@@ -278,7 +278,10 @@ func (h *Handler) consumePendingLasthit(creepName string, deathTime float32) {
 	h.pendingHeroKills = h.pendingHeroKills[:n]
 }
 
-func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, healthReduced bool) bool {
+func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, healthReduced bool, dropGameTime float32) bool {
+	if dropGameTime < pd.gameTime {
+		return false
+	}
 	if pd.health > 0 {
 		if health != pd.health || !healthReduced {
 			return false
@@ -305,17 +308,61 @@ func (h *Handler) closePendingHeroDamageBefore(gameTime float32) {
 	h.finalizeClosedPendingHeroDamage()
 }
 
-func (h *Handler) closeAllPendingHeroDamage(gameTime float32) {
-	// Creep death on this tick: close pending lines past the candidate window.
-	// Lines still within epsilon may get more entity updates on the same tick.
+// closePendingHeroDamageForDeadCreep closes pending lines that matched the dying entity.
+// Unrelated pending lines (other combat-log damage still collecting candidates) stay open.
+func (h *Handler) closePendingHeroDamageForDeadCreep(deadIdx int32) {
 	for i := range h.pendingHeroDamage {
 		pd := &h.pendingHeroDamage[i]
 		if pd.consumed || pd.closed {
 			continue
 		}
-		if gameTime > pd.gameTime+conflictCloseEpsilon {
-			pd.closed = true
+		for _, c := range pd.candidates {
+			if c == deadIdx {
+				pd.closed = true
+				break
+			}
 		}
+	}
+	h.finalizeClosedPendingHeroDamage()
+}
+
+// finalizeAmbiguousPending closes a pending line once multiple entity idxs match it.
+// When several combat-log lines share the same signature on one tick, wait for epsilon
+// so each line can bind a distinct creep before finalizing the batch.
+func (h *Handler) finalizeAmbiguousPending() {
+	openByKey := make(map[pendingBatchKey]int)
+	for i := range h.pendingHeroDamage {
+		pd := &h.pendingHeroDamage[i]
+		if pd.consumed || pd.closed {
+			continue
+		}
+		key := pendingBatchKey{
+			gameTime:  pd.gameTime,
+			creepName: pd.creepName,
+			health:    pd.health,
+			damage:    pd.damage,
+		}
+		openByKey[key]++
+	}
+
+	for i := range h.pendingHeroDamage {
+		pd := &h.pendingHeroDamage[i]
+		if pd.consumed || pd.closed {
+			continue
+		}
+		if len(slicesx.Unique(pd.candidates)) < 2 {
+			continue
+		}
+		key := pendingBatchKey{
+			gameTime:  pd.gameTime,
+			creepName: pd.creepName,
+			health:    pd.health,
+			damage:    pd.damage,
+		}
+		if openByKey[key] > 1 {
+			continue
+		}
+		pd.closed = true
 	}
 	h.finalizeClosedPendingHeroDamage()
 }
@@ -420,19 +467,37 @@ func (h *Handler) bindConflictCandidate(idx int32, groupID uint64, creepName str
 	track.conflictGroupID = groupID
 }
 
-func (h *Handler) correlateHeroDamage(idx int32, track *creepTrack, health int32, healthReduced bool) {
-	// Append entity idx to open pending lines it matches; no exclusive bind yet.
+func (h *Handler) correlateHeroDamage(idx int32, track *creepTrack, health int32, healthReduced bool, dropGameTime float32) {
+	// Bind to the most recent open combat-log line at or before this drop; same-tick
+	// batches share gameTime and all receive the candidate.
+	var bestTime float32 = -1
 	for i := range h.pendingHeroDamage {
 		pd := &h.pendingHeroDamage[i]
 		if pd.consumed || pd.closed {
 			continue
 		}
+		if !heroDamageCorrelates(*pd, track.prevHealth, health, healthReduced, dropGameTime) {
+			continue
+		}
+		if pd.gameTime > bestTime {
+			bestTime = pd.gameTime
+		}
+	}
+	if bestTime < 0 {
+		return
+	}
+
+	for i := range h.pendingHeroDamage {
+		pd := &h.pendingHeroDamage[i]
+		if pd.consumed || pd.closed || pd.gameTime != bestTime {
+			continue
+		}
+		if !heroDamageCorrelates(*pd, track.prevHealth, health, healthReduced, dropGameTime) {
+			continue
+		}
 		if pd.id == 0 {
 			h.nextPendingDamageID++
 			pd.id = h.nextPendingDamageID
-		}
-		if !heroDamageCorrelates(*pd, track.prevHealth, health, healthReduced) {
-			continue
 		}
 		found := false
 		for _, c := range pd.candidates {
@@ -588,15 +653,16 @@ func (h *Handler) onCreepHealthUpdate(idx int32, health int32, op manta.EntityOp
 		track.lastDropAt = gameTime
 	}
 
-	h.correlateHeroDamage(idx, track, health, healthReduced)
+	h.correlateHeroDamage(idx, track, health, healthReduced, gameTime)
 
 	track.prevHealth = health
 	track.hasHealth = true
 
+	h.finalizeAmbiguousPending()
 	h.closePendingHeroDamageBefore(gameTime)
 
 	if justDied {
-		h.closeAllPendingHeroDamage(gameTime)
+		h.closePendingHeroDamageForDeadCreep(idx)
 		h.handleCreepDeath(idx, track, gameTime, false)
 	}
 
