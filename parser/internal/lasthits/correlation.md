@@ -44,3 +44,21 @@ If manta ordering ever changes or a replay proves entity-first delivery, retroac
 The defer branch was only exercised when unit tests manually simulated entity death before queuing `pendingOtherDeath`. Real replays and integration tests never needed it.
 
 Entity death timestamps can still be **later** than combat-log death timestamps on the same tick; that is game-time on the event, not callback order.
+
+## Close all pending on any creep death (fixed)
+
+**Bug:** `closeAllPendingHeroDamage()` ran on every creep death and finalized **all** open hero-damage pending lines, often with zero entity candidates.
+
+**Scenario:**
+
+1. Combat-log damage 1  
+2. Combat-log damage 2  
+3. Unrelated creep dies  
+4. Entity health drop 1  
+5. Entity health drop 2  
+
+If step 3 closes every pending line before steps 4–5, both combat-log lines finalize with no candidates and miss detection breaks.
+
+**Fix:** `closePendingHeroDamageForDeadCreep(deadIdx)` only closes pending lines that already include `deadIdx` in `candidates`. Unrelated deaths do not touch other lines still collecting candidates.
+
+See `TestUnrelatedCreepDeath_DoesNotPrematurelyFinalizeOtherPending`.

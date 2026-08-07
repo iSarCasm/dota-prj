@@ -70,7 +70,7 @@ func TestHeroDamageCorrelates(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := heroDamageCorrelates(pd, tt.prev, tt.health, tt.healthReduced, 100.0)
+			got := heroDamageCorrelates(pd, tt.prev, tt.health, 100.0)
 			if got != tt.wantCorrelates {
 				t.Fatalf("heroDamageCorrelates() = %v, want %v", got, tt.wantCorrelates)
 			}
@@ -81,13 +81,13 @@ func TestHeroDamageCorrelates(t *testing.T) {
 func TestCorrelateHeroDamage_BindsFirstMatchingPending(t *testing.T) {
 	h := testHandler()
 	const idx int32 = 42
-	h.pendingHeroDamage = []pendingCLogCreepEvent{
+	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
 		{id: 1, creepName: testMeleeName, gameTime: 100, health: 50, damage: 30},
 	}
 	track := &creepTrack{prevHealth: 80, hasPrevHealth: true}
 	h.creepTracks[idx] = track
 
-	h.correlateHeroDamage(idx, track, 50, true, 100.0)
+	h.correlateHeroDamage(idx, track, 50, 100.0)
 	h.closePendingHeroDamageBefore(100.1)
 
 	if track.creepName != testMeleeName {
@@ -99,7 +99,7 @@ func TestCorrelateHeroDamage_BindsFirstMatchingPending(t *testing.T) {
 	if track.conflictGroupID != 0 {
 		t.Fatalf("conflictGroupID = %d, want 0 for unique match", track.conflictGroupID)
 	}
-	if !h.pendingHeroDamage[0].consumed {
+	if !h.pendingHeroDamageLogs[0].consumed {
 		t.Fatal("pending hero damage should be consumed")
 	}
 }
@@ -108,7 +108,7 @@ func TestMissedLastHit_EnemyStealsAfterHeroDamage(t *testing.T) {
 	h := testHandler()
 	const idx int32 = 42
 
-	h.pendingHeroDamage = []pendingCLogCreepEvent{
+	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
 		{creepName: testMeleeName, gameTime: 100, health: 50, damage: 30},
 	}
 	seedCreep(h, idx, 80, 99.9)
@@ -131,7 +131,7 @@ func TestLastHit_LasthitClearsMiss(t *testing.T) {
 	h := testHandler()
 	const idx int32 = 42
 
-	h.pendingHeroDamage = []pendingCLogCreepEvent{
+	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
 		{creepName: testRangedName, gameTime: 246, health: 120, damage: 40},
 	}
 	seedCreep(h, idx, 160, 245.9)
@@ -157,7 +157,7 @@ func TestTwoRangedCreepsSamePostHealth_NoFalseMissWhenHeroGetsLH(t *testing.T) {
 		creepB int32 = 101
 	)
 
-	h.pendingHeroDamage = []pendingCLogCreepEvent{
+	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
 		{creepName: testRangedName, gameTime: 245.8, health: 120, damage: 40},
 	}
 
@@ -196,7 +196,7 @@ func TestTwoSameTickHeroDamage_ThreeMatchingCreeps_NoFalseMiss(t *testing.T) {
 	)
 	const tick = float32(100.0)
 
-	h.pendingHeroDamage = []pendingCLogCreepEvent{
+	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
 		{creepName: testRangedName, gameTime: tick, health: 120, damage: 40},
 		{creepName: testRangedName, gameTime: tick, health: 120, damage: 40},
 	}
@@ -241,52 +241,58 @@ func TestTwoSameTickHeroDamage_ThreeMatchingCreeps_NoFalseMiss(t *testing.T) {
 	}
 }
 
-// CL1 damages creep1, CL2 damages creep2 (same signature). creep3 is an undamaged
-// collision creep that also matches CL2. When creep1 dies before CL2's tick window closes,
-// closePendingHeroDamageForDeadCreep must not finalize CL2 early — creep3 still needs to join.
+// Regression: any creep death used to close ALL pending hero-damage candidate search
+// (closeAllPendingHeroDamage), finalizing every line with zero candidates before entity
+// health drops arrived.
+//
+// Scenario:
+//  1. Combat-log damage 1
+//  2. Combat-log damage 2  (same signature, same tick)
+//  3. Unrelated creep dies   (must not close CL1/CL2 while they still have no candidates)
+//  4. Creep health drop 1
+//  5. Creep health drop 2
+//
+// Want: both combat-log lines bound into one conflict group with both creeps.
+// Bad:  both lines finalized with no candidates.
 func TestUnrelatedCreepDeath_DoesNotPrematurelyFinalizeOtherPending(t *testing.T) {
 	h := testHandler()
 	const (
-		creep1 int32 = 10 // CL1 target
-		creep2 int32 = 11 // CL2 target
-		creep3 int32 = 12 // undamaged collision creep for CL2 signature
+		creep1    int32 = 10
+		creep2    int32 = 11
+		unrelated int32 = 99
 	)
-	const (
-		cl1Time = float32(100.0)
-		cl2Time = float32(100.02)
-	)
+	const tick = float32(100.0)
 
-	h.pendingHeroDamage = []pendingCLogCreepEvent{
-		{id: 1, creepName: testRangedName, gameTime: cl1Time, health: 120, damage: 40},
-		{id: 2, creepName: testRangedName, gameTime: cl2Time, health: 120, damage: 40},
+	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
+		{id: 1, creepName: testRangedName, gameTime: tick, health: 120, damage: 40},
+		{id: 2, creepName: testRangedName, gameTime: tick, health: 120, damage: 40},
 	}
 
-	seedCreep(h, creep1, 160, cl1Time-0.1)
-	seedCreep(h, creep2, 160, cl2Time-0.1)
-	seedCreep(h, creep3, 160, cl2Time-0.1)
+	seedCreep(h, creep1, 160, tick-0.1)
+	seedCreep(h, creep2, 160, tick-0.1)
+	seedCreep(h, unrelated, 500, tick)
 
-	// Hero damage drops for both targets.
-	h.onCreepHealthUpdate(creep1, 120, manta.EntityOpUpdated, cl1Time+0.01)
-	h.onCreepHealthUpdate(creep2, 120, manta.EntityOpUpdated, cl2Time+0.01)
-
-	// Unrelated creep1 dies before CL2's tick window closes.
-	h.pendingOtherDeath = []pendingCLogCreepEvent{
-		{creepName: testRangedName, gameTime: cl2Time + 0.02},
+	// Step 3: unrelated creep dies before any hero-damage health drops.
+	h.onCreepHealthUpdate(unrelated, 0, manta.EntityOpUpdated, tick+0.01)
+	for _, pd := range h.pendingHeroDamageLogs {
+		if pd.consumed {
+			t.Fatal("unrelated creep death must not consume open hero-damage pending lines")
+		}
 	}
-	h.onCreepHealthUpdate(creep1, 0, manta.EntityOpUpdated, cl2Time+0.02)
 
-	// Collision creep3 drops to the same post-health; should join CL2's ambiguity set.
-	h.onCreepHealthUpdate(creep3, 120, manta.EntityOpUpdated, cl2Time+0.025)
+	// Steps 4–5: entity health drops for the two hero-damaged creeps.
+	h.onCreepHealthUpdate(creep1, 120, manta.EntityOpUpdated, tick+0.02)
+	h.onCreepHealthUpdate(creep2, 120, manta.EntityOpUpdated, tick+tickDuration+0.001)
 
-	groupID := h.creepTracks[creep2].conflictGroupID
+	groupID := h.creepTracks[creep1].conflictGroupID
 	if groupID == 0 {
-		t.Fatal("CL2 should form a conflict group once creep3 matches, not unique bind to creep2 only")
+		t.Fatal("expected conflict group after both health drops correlated")
 	}
-	if h.creepTracks[creep3].conflictGroupID != groupID {
-		t.Fatalf("creep3 conflictGroupID = %d, want %d (collision creep must bind to CL2 group)", h.creepTracks[creep3].conflictGroupID, groupID)
+	if h.creepTracks[creep2].conflictGroupID != groupID {
+		t.Fatalf("creep2 conflictGroupID = %d, want %d", h.creepTracks[creep2].conflictGroupID, groupID)
 	}
-	if h.conflictGroups[groupID].remainingCombatLogsCount != 1 {
-		t.Fatalf("remainingCombatLogsCount = %d, want 1 for single CL2 line", h.conflictGroups[groupID].remainingCombatLogsCount)
+	if h.conflictGroups[groupID].remainingCombatLogsCount != 2 {
+		t.Fatalf("remainingCombatLogsCount = %d, want 2 (one slot per combat-log line)", h.conflictGroups[groupID].remainingCombatLogsCount)
 	}
 }
 
@@ -299,7 +305,7 @@ func TestFalseCorrelatedCreepDiesFirst_ThenHeroLastHitsTrueCreep_NoFalseMiss(t *
 		creepB int32 = 101 // falsely correlated
 	)
 
-	h.pendingHeroDamage = []pendingCLogCreepEvent{
+	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
 		{creepName: testRangedName, gameTime: 245.8, health: 120, damage: 40},
 	}
 
@@ -333,7 +339,7 @@ func TestFlagbearerMiss_SameTickCombatLogThenEntity(t *testing.T) {
 
 	// Tick 11315: combat damage queued, then entity drop (forward correlation).
 	seedCreep(h, idx, 196, 164.2)
-	h.pendingHeroDamage = append(h.pendingHeroDamage, pendingCLogCreepEvent{
+	h.pendingHeroDamageLogs = append(h.pendingHeroDamageLogs, pendingCLogCreepEvent{
 		id: h.GetNextUniqueId(), creepName: flagbearer, gameTime: 164.2, health: 137, damage: 59,
 	})
 	h.onCreepHealthUpdate(idx, 137, manta.EntityOpUpdated, 164.267)
@@ -361,7 +367,7 @@ func TestMissedLastHit_OutsideWindowNotCounted(t *testing.T) {
 	h := testHandler()
 	const idx int32 = 42
 
-	h.pendingHeroDamage = []pendingCLogCreepEvent{
+	h.pendingHeroDamageLogs = []pendingCLogCreepEvent{
 		{creepName: testMeleeName, gameTime: 100, health: 50, damage: 30},
 	}
 	seedCreep(h, idx, 80, 99.9)

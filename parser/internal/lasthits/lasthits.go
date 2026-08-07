@@ -56,32 +56,32 @@ type conflictGroup struct {
 
 // Handler implements common.ReplayHandler for last-hit, deny, and missed last-hit counting.
 type Handler struct {
-	heroClass            string
-	lastHitsLane         int
-	lastHitsJungle       int
-	denies               int
-	events               []Event
-	missedEvents         []Event
-	pendingHeroDamage    []pendingCLogCreepEvent
-	pendingOtherDeath    []pendingCLogCreepEvent
-	pendingHeroKills     []pendingCLogCreepEvent // combat-log DEATH where our hero was killer
-	creepTracks          map[int32]*creepTrack
-	conflictGroups       map[uint64]*conflictGroup // keyed by pending damage id
-	nextUniqueId         uint64
-	timeAndPausesHandler *timeandpauses.Handler
+	heroClass             string
+	lastHitsLane          int
+	lastHitsJungle        int
+	denies                int
+	events                []Event
+	missedEvents          []Event
+	pendingHeroDamageLogs []pendingCLogCreepEvent
+	pendingOtherDeath     []pendingCLogCreepEvent
+	pendingHeroKills      []pendingCLogCreepEvent // combat-log DEATH where our hero was killer
+	creepTracks           map[int32]*creepTrack
+	conflictGroups        map[uint64]*conflictGroup // keyed by pending damage id
+	nextUniqueId          uint64
+	timeAndPausesHandler  *timeandpauses.Handler
 }
 
 // NewHandler creates a lasthits handler.
 func NewHandler(timeAndPausesHandler *timeandpauses.Handler) *Handler {
 	return &Handler{
-		events:               make([]Event, 0, 256),
-		missedEvents:         make([]Event, 0, 128),
-		pendingHeroDamage:    make([]pendingCLogCreepEvent, 0, 64),
-		pendingOtherDeath:    make([]pendingCLogCreepEvent, 0, 64),
-		pendingHeroKills:     make([]pendingCLogCreepEvent, 0, 64),
-		creepTracks:          make(map[int32]*creepTrack, 256),
-		conflictGroups:       make(map[uint64]*conflictGroup, 32),
-		timeAndPausesHandler: timeAndPausesHandler,
+		events:                make([]Event, 0, 256),
+		missedEvents:          make([]Event, 0, 128),
+		pendingHeroDamageLogs: make([]pendingCLogCreepEvent, 0, 64),
+		pendingOtherDeath:     make([]pendingCLogCreepEvent, 0, 64),
+		pendingHeroKills:      make([]pendingCLogCreepEvent, 0, 64),
+		creepTracks:           make(map[int32]*creepTrack, 256),
+		conflictGroups:        make(map[uint64]*conflictGroup, 32),
+		timeAndPausesHandler:  timeAndPausesHandler,
 	}
 }
 
@@ -165,7 +165,7 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 		if m.GetInflictorName() != 0 {
 			return nil
 		}
-		h.pendingHeroDamage = append(h.pendingHeroDamage, pendingCLogCreepEvent{
+		h.pendingHeroDamageLogs = append(h.pendingHeroDamageLogs, pendingCLogCreepEvent{
 			id:        h.GetNextUniqueId(),
 			creepName: realTargetName,
 			gameTime:  gameTime,
@@ -224,18 +224,20 @@ func (h *Handler) onCreepEntity(e *manta.Entity, op manta.EntityOp) error {
 	return nil
 }
 
-func (h *Handler) onCreepHealthUpdate(idx int32, health int32, op manta.EntityOp, gameTime float32) {
-	track := h.creepTracks[idx]
+func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, op manta.EntityOp, gameTime float32) {
+	track := h.creepTracks[entityId]
 	if track == nil {
 		track = &creepTrack{}
-		h.creepTracks[idx] = track
+		h.creepTracks[entityId] = track
 	}
 
 	healthReduced := track.hasPrevHealth && health < track.prevHealth
 	justDied := (track.hasPrevHealth && health <= 0 && track.prevHealth > 0) ||
 		op.Flag(manta.EntityOpDeleted) || op.Flag(manta.EntityOpDeletedLeft)
 
-	h.correlateHeroDamage(idx, track, health, healthReduced, gameTime)
+	if healthReduced {
+		h.correlateHeroDamage(entityId, track, health, gameTime)
+	}
 
 	track.prevHealth = health
 	track.hasPrevHealth = true
@@ -244,14 +246,14 @@ func (h *Handler) onCreepHealthUpdate(idx int32, health int32, op manta.EntityOp
 	h.closePendingHeroDamageBefore(gameTime)
 
 	if justDied {
-		h.closePendingHeroDamageForDeadCreep(idx)
-		h.handleCreepDeath(idx, track, gameTime)
+		h.closePendingHeroDamageForDeadCreep(entityId)
+		h.handleCreepDeath(entityId, track, gameTime)
 	}
 
 	h.pruneConsumedPending()
 
 	if op.Flag(manta.EntityOpDeleted) || op.Flag(manta.EntityOpDeletedLeft) {
-		delete(h.creepTracks, idx)
+		delete(h.creepTracks, entityId)
 	}
 }
 
@@ -263,7 +265,7 @@ func (h *Handler) MissedEvents() []Event {
 func (h *Handler) prunePendingEvents(gameTime float32) {
 	cutoff := gameTime - missedLastHitWindowSec
 	// sometimes hero damage does not follow by creep death within the cutoff window
-	h.pendingHeroDamage = prunePendingByTime(h.pendingHeroDamage, cutoff)
+	h.pendingHeroDamageLogs = prunePendingByTime(h.pendingHeroDamageLogs, cutoff)
 	h.pendingOtherDeath = prunePendingByTime(h.pendingOtherDeath, cutoff)
 	h.pendingHeroKills = prunePendingByTime(h.pendingHeroKills, cutoff)
 }
@@ -282,14 +284,14 @@ func prunePendingByTime(events []pendingCLogCreepEvent, cutoff float32) []pendin
 
 func (h *Handler) pruneConsumedPending() {
 	n := 0
-	for _, e := range h.pendingHeroDamage {
+	for _, e := range h.pendingHeroDamageLogs {
 		if e.consumed {
 			continue
 		}
-		h.pendingHeroDamage[n] = e
+		h.pendingHeroDamageLogs[n] = e
 		n++
 	}
-	h.pendingHeroDamage = h.pendingHeroDamage[:n]
+	h.pendingHeroDamageLogs = h.pendingHeroDamageLogs[:n]
 
 	n = 0
 	for _, e := range h.pendingOtherDeath {
@@ -325,12 +327,12 @@ func (h *Handler) consumePendingLasthit(creepName string, deathTime float32) {
 	h.pendingHeroKills = h.pendingHeroKills[:n]
 }
 
-func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, healthReduced bool, dropGameTime float32) bool {
+func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, dropGameTime float32) bool {
 	if dropGameTime < pd.gameTime {
 		return false
 	}
 	if pd.health > 0 {
-		if health != pd.health || !healthReduced {
+		if health != pd.health {
 			return false
 		}
 		if pd.damage > 0 && prevHealth != pd.health+pd.damage {
@@ -338,13 +340,13 @@ func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, he
 		}
 		return true
 	}
-	return healthReduced
+	return false
 }
 
 func (h *Handler) closePendingHeroDamageBefore(gameTime float32) {
 	// Stop collecting candidates for old damage lines, then bind unique or conflict group.
-	for i := range h.pendingHeroDamage {
-		pd := &h.pendingHeroDamage[i]
+	for i := range h.pendingHeroDamageLogs {
+		pd := &h.pendingHeroDamageLogs[i]
 		if pd.consumed || pd.closed {
 			continue
 		}
@@ -355,11 +357,12 @@ func (h *Handler) closePendingHeroDamageBefore(gameTime float32) {
 	h.finalizeClosedPendingHeroDamage()
 }
 
-// closePendingHeroDamageForDeadCreep closes pending lines that matched the dying entity.
-// Unrelated pending lines (other combat-log damage still collecting candidates) stay open.
+// closePendingHeroDamageForDeadCreep closes pending lines that already listed the dying
+// entity as a candidate. Unrelated pending lines stay open (regression: any creep death
+// used to close all pending hero-damage search).
 func (h *Handler) closePendingHeroDamageForDeadCreep(deadIdx int32) {
-	for i := range h.pendingHeroDamage {
-		pd := &h.pendingHeroDamage[i]
+	for i := range h.pendingHeroDamageLogs {
+		pd := &h.pendingHeroDamageLogs[i]
 		if pd.consumed || pd.closed {
 			continue
 		}
@@ -378,8 +381,8 @@ func (h *Handler) closePendingHeroDamageForDeadCreep(deadIdx int32) {
 // so each line can bind a distinct creep before finalizing the batch.
 func (h *Handler) finalizeAmbiguousPending() {
 	openByKey := make(map[pendingBatchKey]int)
-	for i := range h.pendingHeroDamage {
-		pd := &h.pendingHeroDamage[i]
+	for i := range h.pendingHeroDamageLogs {
+		pd := &h.pendingHeroDamageLogs[i]
 		if pd.consumed || pd.closed {
 			continue
 		}
@@ -392,8 +395,8 @@ func (h *Handler) finalizeAmbiguousPending() {
 		openByKey[key]++
 	}
 
-	for i := range h.pendingHeroDamage {
-		pd := &h.pendingHeroDamage[i]
+	for i := range h.pendingHeroDamageLogs {
+		pd := &h.pendingHeroDamageLogs[i]
 		if pd.consumed || pd.closed {
 			continue
 		}
@@ -427,13 +430,10 @@ func (h *Handler) finalizeClosedPendingHeroDamage() {
 	batches := make(map[pendingBatchKey][]*pendingCLogCreepEvent)
 	var order []pendingBatchKey
 
-	for i := range h.pendingHeroDamage {
-		pd := &h.pendingHeroDamage[i]
+	for i := range h.pendingHeroDamageLogs {
+		pd := &h.pendingHeroDamageLogs[i]
 		if !pd.closed || pd.consumed {
 			continue
-		}
-		if pd.id == 0 {
-			pd.id = h.GetNextUniqueId()
 		}
 		key := pendingBatchKey{
 			gameTime:  pd.gameTime,
@@ -517,36 +517,14 @@ func (h *Handler) bindConflictCandidate(entityId int32, groupID uint64, creepNam
 	track.conflictGroupID = groupID
 }
 
-func (h *Handler) correlateHeroDamage(entityId int32, track *creepTrack, health int32, healthReduced bool, dropGameTime float32) {
-	// Bind to the most recent open combat-log line at or before this drop; same-tick
-	// batches share gameTime and all receive the candidate.
-	var bestTime float32 = -1
-	for i := range h.pendingHeroDamage {
-		pd := &h.pendingHeroDamage[i]
+func (h *Handler) correlateHeroDamage(entityId int32, track *creepTrack, health int32, dropGameTime float32) {
+	for i := range h.pendingHeroDamageLogs {
+		pd := &h.pendingHeroDamageLogs[i]
 		if pd.consumed || pd.closed {
 			continue
 		}
-		if !heroDamageCorrelates(*pd, track.prevHealth, health, healthReduced, dropGameTime) {
+		if !heroDamageCorrelates(*pd, track.prevHealth, health, dropGameTime) {
 			continue
-		}
-		if pd.gameTime > bestTime {
-			bestTime = pd.gameTime
-		}
-	}
-	if bestTime < 0 {
-		return
-	}
-
-	for i := range h.pendingHeroDamage {
-		pd := &h.pendingHeroDamage[i]
-		if pd.consumed || pd.closed || pd.gameTime != bestTime {
-			continue
-		}
-		if !heroDamageCorrelates(*pd, track.prevHealth, health, healthReduced, dropGameTime) {
-			continue
-		}
-		if pd.id == 0 {
-			pd.id = h.GetNextUniqueId()
 		}
 		found := false
 		for _, c := range pd.candidates {
