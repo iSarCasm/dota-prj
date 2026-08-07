@@ -14,9 +14,10 @@ import (
 
 const (
 	missedLastHitWindowSec = 2.0
-	conflictCloseEpsilon   = float32(0.03) // sub-tick slop for entity updates trailing combat log
-	retroactiveDropMaxLag  = float32(0.1)  // entity game time can trail combat log on the same tick
-	deathCombatLogEpsilon  = float32(0.05) // combat-log DEATH can trail entity death on the same tick
+	dotaTickRate           = float32(30)
+	tickDuration           = 1 / dotaTickRate // one server tick; candidate collection window per combat-log line
+	retroactiveDropMaxLag  = float32(0.1)   // entity game time can trail combat log on the same tick
+	deathCombatLogEpsilon  = float32(0.05)  // combat-log DEATH can trail entity death on the same tick
 )
 
 // Event is a single last-hit, deny, or missed last-hit.
@@ -216,6 +217,7 @@ func (h *Handler) MissedEvents() []Event {
 
 func (h *Handler) prunePendingEvents(gameTime float32) {
 	cutoff := gameTime - missedLastHitWindowSec
+	// sometimes hero damage does not follow by creep death within the cutoff window
 	h.pendingHeroDamage = prunePendingByTime(h.pendingHeroDamage, cutoff)
 	h.pendingOtherDeath = prunePendingByTime(h.pendingOtherDeath, cutoff)
 	h.pendingHeroKills = prunePendingByTime(h.pendingHeroKills, cutoff)
@@ -301,7 +303,7 @@ func (h *Handler) closePendingHeroDamageBefore(gameTime float32) {
 		if pd.consumed || pd.closed {
 			continue
 		}
-		if gameTime > pd.gameTime+conflictCloseEpsilon {
+		if gameTime > pd.gameTime+tickDuration {
 			pd.closed = true
 		}
 	}
@@ -327,7 +329,7 @@ func (h *Handler) closePendingHeroDamageForDeadCreep(deadIdx int32) {
 }
 
 // finalizeAmbiguousPending closes a pending line once multiple entity idxs match it.
-// When several combat-log lines share the same signature on one tick, wait for epsilon
+// When several combat-log lines share the same signature on one tick, wait one tick
 // so each line can bind a distinct creep before finalizing the batch.
 func (h *Handler) finalizeAmbiguousPending() {
 	openByKey := make(map[pendingBatchKey]int)

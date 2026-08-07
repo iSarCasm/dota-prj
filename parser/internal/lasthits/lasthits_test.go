@@ -242,8 +242,7 @@ func TestTwoSameTickHeroDamage_ThreeMatchingCreeps_NoFalseMiss(t *testing.T) {
 }
 
 // CL1 damages creep1, CL2 damages creep2 (same signature). creep3 is an undamaged
-// collision creep that also matches CL2. When creep1 dies before epsilon closes CL2,
-// When creep1 dies before CL2's epsilon window closes,
+// collision creep that also matches CL2. When creep1 dies before CL2's tick window closes,
 // closePendingHeroDamageForDeadCreep must not finalize CL2 early — creep3 still needs to join.
 func TestUnrelatedCreepDeath_DoesNotPrematurelyFinalizeOtherPending(t *testing.T) {
 	h := testHandler()
@@ -270,7 +269,7 @@ func TestUnrelatedCreepDeath_DoesNotPrematurelyFinalizeOtherPending(t *testing.T
 	h.onCreepHealthUpdate(creep1, 120, manta.EntityOpUpdated, cl1Time+0.01)
 	h.onCreepHealthUpdate(creep2, 120, manta.EntityOpUpdated, cl2Time+0.01)
 
-	// Unrelated creep1 dies before CL2's epsilon window closes.
+	// Unrelated creep1 dies before CL2's tick window closes.
 	h.pendingOtherDeath = []pendingCLogCreepEvent{
 		{creepName: testRangedName, gameTime: cl2Time + 0.02},
 	}
