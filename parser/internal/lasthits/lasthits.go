@@ -309,7 +309,22 @@ func (h *Handler) hasPendingHeroKill(creepName string, deathTime float32) bool {
 	return false
 }
 
-func (h *Handler) consumePendingLasthit(creepName string, deathTime float32) {
+func (h *Handler) hasPendingOtherKill(creepName string, heroDamagedAt float32) bool {
+	for i := range h.pendingOtherKillLogs {
+		pendingOtherKillLog := &h.pendingOtherKillLogs[i]
+		if pendingOtherKillLog.entityMatched || pendingOtherKillLog.creepName != creepName {
+			continue
+		}
+		if heroDamagedAt <= 0 || pendingOtherKillLog.gameTime-heroDamagedAt > missedLastHitWindowSec {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// instead of marking as matched, we just remove the log from the list
+func (h *Handler) matchPendingHeroKill(creepName string, deathTime float32) {
 	cutoff := deathTime - missedLastHitWindowSec
 	n := 0
 	for _, cLog := range h.pendingHeroKillLogs {
@@ -320,6 +335,20 @@ func (h *Handler) consumePendingLasthit(creepName string, deathTime float32) {
 		n++
 	}
 	h.pendingHeroKillLogs = h.pendingHeroKillLogs[:n]
+}
+
+// instead of marking as matched, we just remove the log from the list
+func (h *Handler) matchPendingOtherKill(creepName string, deathTime float32) {
+	cutoff := deathTime - missedLastHitWindowSec
+	n := 0
+	for _, cLog := range h.pendingOtherKillLogs {
+		if cLog.creepName == creepName && cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+deathCombatLogEpsilon {
+			continue
+		}
+		h.pendingOtherKillLogs[n] = cLog
+		n++
+	}
+	h.pendingOtherKillLogs = h.pendingOtherKillLogs[:n]
 }
 
 func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, dropGameTime float32) bool {
@@ -514,12 +543,15 @@ func (h *Handler) consumeMatchingOtherDeath(creepName string, heroDamagedAt floa
 func (h *Handler) handleCreepDeath(idx int32, track *creepTrack, gameTime float32) {
 	// Both enemyKill and heroKill can be true at the same if there are 2+ combat logs for creep death on the same tick
 	// in this case we assume there is no miss
-	enemyKill := h.consumeMatchingOtherDeath(track.creepName, track.heroDamagedAt)
+	enemyKill := h.hasPendingOtherKill(track.creepName, track.heroDamagedAt)
 	heroKill := h.hasPendingHeroKill(track.creepName, gameTime)
 
+	log.Printf("Creep %s died at %f; enemyKill=%v heroKill=%v", track.creepName, gameTime, enemyKill, heroKill)
 	if track.conflictGroupID == 0 {
+		log.Printf("handleCreepDeathWithoutConflict")
 		h.handleCreepDeathWithoutConflict(heroKill, enemyKill, track, gameTime)
 	} else {
+		log.Printf("handleCreepDeathWithConflict")
 		h.handleCreepDeathWithConflict(idx, heroKill, enemyKill, track, gameTime)
 	}
 }
@@ -527,7 +559,7 @@ func (h *Handler) handleCreepDeath(idx int32, track *creepTrack, gameTime float3
 func (h *Handler) handleCreepDeathWithoutConflict(heroKill bool, enemyKill bool, track *creepTrack, gameTime float32) {
 	if heroKill {
 		track.heroDamagedAt = 0
-		h.consumePendingLasthit(track.creepName, gameTime)
+		h.matchPendingHeroKill(track.creepName, gameTime)
 		return
 	}
 
@@ -547,18 +579,22 @@ func (h *Handler) handleCreepDeathWithConflict(entityIdx int32, heroKill bool, e
 
 	if enemyKill {
 		if h.aliveConflictGroupMembers(groupID, entityIdx) > 0 {
+			log.Printf("	No missed event for enemy kill because there are still alive creeps in the group")
 			return
 		}
 		if group.remainingCombatLogsCount > 0 {
+			log.Printf("	Adding missed event for enemy kill")
 			h.missedEvents = append(h.missedEvents, Event{
 				Timestamp: gameTime,
 				Type:      "missed_last_hit",
 				CreepName: track.creepName,
 			})
+		} else {
+			log.Printf("	No missed event for enemy kill because there are no remaining combat logs in the group")
 		}
 		delete(h.conflictGroups, groupID)
 	} else if heroKill {
-		h.consumePendingLasthit(track.creepName, gameTime)
+		h.matchPendingHeroKill(track.creepName, gameTime)
 		h.resolveConflictGroupHeroLastHit(groupID, entityIdx)
 	}
 }
