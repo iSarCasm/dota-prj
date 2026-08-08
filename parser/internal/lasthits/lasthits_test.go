@@ -302,7 +302,7 @@ func TestLasthits(t *testing.T) {
 			seedCreep(h, creep2, 160, tick-0.1)
 
 			// 2. creep 1 matched combat log
-			h.onCreepHealthUpdate(creep1, 120, manta.EntityOpUpdated, tick+tickDuration+0.001)
+			h.onCreepHealthUpdate(creep1, 120, manta.EntityOpUpdated, tick+timeandpauses.TickDuration+0.001)
 			if h.creepTracks[creep1].heroDamagedAt != tick {
 				t.Fatalf("creep1 heroDamagedAt = %v, want %v", h.creepTracks[creep1].heroDamagedAt, tick)
 			}
@@ -587,7 +587,7 @@ func TestUnrelatedCreepDeath_DoesNotPrematurelyFinalizeOtherPending(t *testing.T
 
 	// Steps 4–5: entity health drops for the two hero-damaged creeps.
 	h.onCreepHealthUpdate(creep1, 120, manta.EntityOpUpdated, tick+0.02)
-	h.onCreepHealthUpdate(creep2, 120, manta.EntityOpUpdated, tick+tickDuration+0.001)
+	h.onCreepHealthUpdate(creep2, 120, manta.EntityOpUpdated, tick+timeandpauses.TickDuration+0.001)
 
 	groupID := h.creepTracks[creep1].conflictGroupID
 	if groupID == 0 {

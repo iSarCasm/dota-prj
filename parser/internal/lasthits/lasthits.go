@@ -15,8 +15,6 @@ import (
 
 const (
 	missedLastHitWindowSec = 2.0
-	dotaTickRate           = float32(30)
-	tickDuration           = 1 / dotaTickRate // one server tick; candidate collection window per combat-log line
 )
 
 // Event is a single last-hit, deny, or missed last-hit.
@@ -313,7 +311,7 @@ func (h *Handler) hasPendingHeroKill(creepName string, deathTime float32) bool {
 		if cLog.entityMatched || cLog.creepName != creepName {
 			continue
 		}
-		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+tickDuration {
+		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+timeandpauses.TickDuration {
 			return true
 		}
 	}
@@ -341,7 +339,7 @@ func (h *Handler) matchPendingHeroKill(creepName string, deathTime float32) {
 		if cLog.entityMatched || cLog.creepName != creepName {
 			continue
 		}
-		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+tickDuration {
+		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+timeandpauses.TickDuration {
 			cLog.entityMatched = true
 			return
 		}
@@ -355,7 +353,7 @@ func (h *Handler) matchPendingOtherKill(creepName string, deathTime float32) {
 		if cLog.entityMatched || cLog.creepName != creepName {
 			continue
 		}
-		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+tickDuration {
+		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+timeandpauses.TickDuration {
 			cLog.entityMatched = true
 			return
 		}
@@ -376,7 +374,7 @@ func (h *Handler) closePendingHeroDamageBefore(gameTime float32) {
 		if pd.closed {
 			continue
 		}
-		if gameTime > pd.gameTime+tickDuration {
+		if gameTime > pd.gameTime+timeandpauses.TickDuration {
 			pd.closed = true
 		}
 	}

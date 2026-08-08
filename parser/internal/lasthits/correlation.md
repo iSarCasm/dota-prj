@@ -10,7 +10,7 @@ Flow:
 
 1. `onCombatLogEntry` queues a pending hero-damage line (creep name, post-damage health, damage value, game time).
 2. `onCreepHealthUpdate` runs `correlateHeroDamage`: if an entity’s health drop matches the signature and `dropGameTime >= pd.gameTime`, append that entity idx to `pd.candidates`.
-3. After the tick window (`tickDuration`), pending lines finalize into a unique bind or a conflict group.
+3. After the tick window (`timeandpauses.DefaultTickInterval`), pending lines finalize into a unique bind or a conflict group.
 
 Entity game timestamps can be slightly **later** than the combat-log timestamp on the same tick; that is wall-clock on the event, not callback order. Forward correlation handles this because the entity callback runs after the combat-log callback.
 
