@@ -17,8 +17,6 @@ const (
 	missedLastHitWindowSec = 2.0
 	dotaTickRate           = float32(30)
 	tickDuration           = 1 / dotaTickRate // one server tick; candidate collection window per combat-log line
-	// this value is questionable, need more integration testing
-	deathCombatLogEpsilon = float32(0.05) // slop when matching entity death time to combat-log DEATH time
 )
 
 // Event is a single last-hit, deny, or missed last-hit.
@@ -315,7 +313,7 @@ func (h *Handler) hasPendingHeroKill(creepName string, deathTime float32) bool {
 		if cLog.entityMatched || cLog.creepName != creepName {
 			continue
 		}
-		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+deathCombatLogEpsilon {
+		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+tickDuration {
 			return true
 		}
 	}
@@ -343,7 +341,7 @@ func (h *Handler) matchPendingHeroKill(creepName string, deathTime float32) {
 		if cLog.entityMatched || cLog.creepName != creepName {
 			continue
 		}
-		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+deathCombatLogEpsilon {
+		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+tickDuration {
 			cLog.entityMatched = true
 			return
 		}
@@ -357,7 +355,7 @@ func (h *Handler) matchPendingOtherKill(creepName string, deathTime float32) {
 		if cLog.entityMatched || cLog.creepName != creepName {
 			continue
 		}
-		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+deathCombatLogEpsilon {
+		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+tickDuration {
 			cLog.entityMatched = true
 			return
 		}
