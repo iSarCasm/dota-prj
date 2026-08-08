@@ -9,7 +9,11 @@ import (
 	"dota2/internal/common"
 )
 
-const defaultTickInterval = float32(0.033333335)
+const (
+	TickRate     = float32(30)
+	TickDuration = 1 / TickRate
+)
+
 const preGameOffsetSeconds = float32(90)
 const gameStartEpsilon = float32(0.05)
 
@@ -39,7 +43,7 @@ type Handler struct {
 func NewHandler() *Handler {
 	return &Handler{
 		intervals:    make([]Interval, 0, 64),
-		tickInterval: defaultTickInterval,
+		tickInterval: TickDuration,
 	}
 }
 

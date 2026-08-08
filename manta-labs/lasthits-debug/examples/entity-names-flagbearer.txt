@@ -1,0 +1,1 @@
+gt=164.267 idx=2382 health=137 m_iUnitNameIndex=142->"lane_mid_pathcorner_badguys_4"(ok=true) m_nameStringTableIndex=513->"npc_dota_creep_lane"(ok=true)

@@ -1,0 +1,21 @@
+---
+description: Every manta-labs finding must have a reproducible proof script and README
+globs: manta-labs/**
+alwaysApply: true
+---
+
+# manta-labs findings require proof scripts
+
+Every technical finding documented in this repo (notes, engine_notes, parser comments, chat conclusions) **must** have:
+
+1. **A script in `manta-labs/`** that reproduces or proves the finding on a real replay
+2. **A README** (in the script's folder or `manta-labs/proofs/<name>/README.md`) with:
+   - What is being proved
+   - Exact command(s) to run
+   - Which replay/file to use
+   - Expected output (or path to `examples/` snippet)
+   - How to regenerate example output (`examples/regenerate.sh` or `run.sh`)
+
+Do not land findings as prose-only. If you change a finding, update the script and README together.
+
+Proof index: `manta-labs/proofs/README.md`

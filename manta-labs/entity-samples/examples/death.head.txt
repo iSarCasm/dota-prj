@@ -1,0 +1,5 @@
+# combat log type: DOTA_COMBATLOG_DEATH
+# examples: 15
+replay=8915936762.dem tick=5417 timestamp=209.133 type=DOTA_COMBATLOG_DEATH attacker=npc_dota_hero_pudge target=npc_dota_observer_wards damage_source=npc_dota_hero_pudge value=50 attacker_team=3 target_team=2 last_hits=1 is_attacker_hero=true
+replay=8915936762.dem tick=5725 timestamp=219.400 type=DOTA_COMBATLOG_DEATH attacker=npc_dota_hero_huskar target=npc_dota_hero_pudge damage_source=npc_dota_hero_huskar value=7 attacker_team=2 target_team=3 damage_type=1 damage_category=1 is_attacker_hero=true is_target_hero=true
+replay=8915936762.dem tick=6167 timestamp=234.100 type=DOTA_COMBATLOG_DEATH attacker=npc_dota_hero_skywrath_mage target=npc_dota_sentry_wards damage_source=npc_dota_hero_skywrath_mage value=50 attacker_team=2 target_team=3 last_hits=1 is_attacker_hero=true

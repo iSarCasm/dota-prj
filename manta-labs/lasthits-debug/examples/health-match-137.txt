@@ -1,0 +1,2 @@
+COMBAT gt=164.200 target=npc_dota_creep_badguys_flagbearer postDamageHealth=137 tick=11315
+ENTITY gt=164.267 idx=2382 health=137 op=Updated tick=11315

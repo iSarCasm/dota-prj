@@ -1,0 +1,5 @@
+# combat log type: DOTA_COMBATLOG_DAMAGE
+# examples: 15
+replay=8915936762.dem tick=5417 timestamp=209.133 type=DOTA_COMBATLOG_DAMAGE attacker=npc_dota_hero_pudge target=npc_dota_observer_wards damage_source=npc_dota_hero_pudge value=50 attacker_team=3 target_team=2 is_attacker_hero=true
+replay=8915936762.dem tick=5509 timestamp=212.167 type=DOTA_COMBATLOG_DAMAGE attacker=npc_dota_hero_pudge target=npc_dota_hero_skywrath_mage inflictor=pudge_meat_hook damage_source=npc_dota_hero_pudge health=592 value=150 attacker_team=3 target_team=2 last_hits=1 damage_type=4 is_attacker_hero=true is_target_hero=true
+replay=8915936762.dem tick=5535 timestamp=213.067 type=DOTA_COMBATLOG_DAMAGE attacker=npc_dota_hero_skywrath_mage target=npc_dota_hero_night_stalker inflictor=skywrath_mage_concussive_shot damage_source=npc_dota_hero_skywrath_mage health=692 value=88 attacker_team=2 target_team=3 damage_type=2 is_attacker_hero=true is_target_hero=true

@@ -1,0 +1,7 @@
+gt=163.267 DAMAGE attacker=npc_dota_hero_skeleton_king target=npc_dota_creep_badguys_flagbearer health=0 value=10 tick=11287
+gt=163.267 DEATH attacker=npc_dota_hero_skeleton_king target=npc_dota_creep_badguys_flagbearer health=0 value=10 tick=11287
+gt=164.200 DAMAGE attacker=npc_dota_hero_warlock target=npc_dota_creep_badguys_flagbearer health=137 value=59 tick=11315
+gt=164.733 DAMAGE attacker=npc_dota_hero_huskar target=npc_dota_creep_badguys_flagbearer health=67 value=52 tick=11331
+gt=165.667 DAMAGE attacker=npc_dota_hero_huskar target=npc_dota_creep_badguys_flagbearer health=0 value=21 tick=11359
+gt=165.667 DEATH attacker=npc_dota_hero_huskar target=npc_dota_creep_badguys_flagbearer health=0 value=21 tick=11359
+gt=169.333 DAMAGE attacker=npc_dota_hero_huskar target=npc_dota_creep_badguys_melee health=133 value=52 tick=11469

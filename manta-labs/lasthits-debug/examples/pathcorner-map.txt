@@ -1,0 +1,25 @@
+# pathcorner → combat-log mapping
+# replay: ../../dota-web/storage/replays/8915936762.dem
+# mode: build-pathcorner-map (vote_mode=unique, team-filtered)
+# pathcorner | presumed | votes | total | conflict
+lane_bot_pathcorner_badguys_1 | npc_dota_creep_badguys_melee | badguys_flagbearer:1 badguys_melee:43 badguys_ranged:4 | 48 | false
+  spawn_max_health: 475:7 529:1
+lane_bot_pathcorner_badguys_4 | npc_dota_creep_badguys_melee | badguys_melee:17 badguys_ranged:4 | 21 | false
+  spawn_max_health: 700:7 757:1
+lane_bot_pathcorner_goodguys_2 | npc_dota_creep_goodguys_ranged | goodguys_flagbearer:71 goodguys_flagbearer_upgraded:7 goodguys_melee:626 goodguys_ranged:921 goodguys_ranged_upgraded:10 | 1635 | true
+  spawn_max_health: 300:83
+lane_bot_pathcorner_goodguys_3 | npc_dota_creep_goodguys_melee_upgraded | goodguys_melee_upgraded:1 | 1 | false
+  spawn_max_health: 475:5
+lane_mid_pathcorner_badguys_4 | npc_dota_creep_badguys_melee | badguys_flagbearer:210 badguys_melee:215 badguys_ranged:66 | 491 | true
+  spawn_max_health: 550:45
+lane_mid_pathcorner_badguys_7 | npc_dota_creep_badguys_melee | badguys_flagbearer:28 badguys_melee:992 badguys_ranged:289 | 1309 | true
+  spawn_max_health: 550:263
+lane_mid_pathcorner_goodguys_1 | npc_dota_creep_goodguys_melee | goodguys_flagbearer:38 goodguys_flagbearer_upgraded:2 goodguys_melee:375 goodguys_melee_upgraded:7 goodguys_ranged:54 goodguys_ranged_upgraded:15 | 491 | false
+  spawn_max_health: 300:109
+lane_mid_pathcorner_goodguys_3 | npc_dota_creep_goodguys_melee | goodguys_flagbearer:318 goodguys_flagbearer_upgraded:27 goodguys_melee:2643 goodguys_melee_upgraded:69 goodguys_ranged:130 goodguys_ranged_upgraded:83 | 3270 | false
+  spawn_max_health: 550:301
+lane_top_pathcorner_badguys_2b | npc_dota_creep_badguys_melee | badguys_melee:22 badguys_ranged:8 | 30 | true
+  spawn_max_health: 700:2 738:1 757:2
+lane_top_pathcorner_badguys_4 | npc_dota_creep_badguys_melee | badguys_flagbearer:8 badguys_melee:170 badguys_ranged:50 | 228 | true
+  spawn_max_health: 550:33
+# entries: 10
