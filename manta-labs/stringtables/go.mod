@@ -12,5 +12,3 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
-
-replace github.com/dotabuff/manta => ../../manta-master

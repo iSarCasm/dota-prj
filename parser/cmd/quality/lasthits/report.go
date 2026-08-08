@@ -60,6 +60,17 @@ func shortCreepName(name string) string {
 	return strings.TrimPrefix(name, "npc_dota_creep_")
 }
 
+func formatTags(tags []CaseTag) string {
+	if len(tags) == 0 {
+		return "—"
+	}
+	parts := make([]string, len(tags))
+	for i, t := range tags {
+		parts[i] = string(t)
+	}
+	return strings.Join(parts, ", ")
+}
+
 func expectedLabel(expectMiss bool) string {
 	if expectMiss {
 		return "should miss"
@@ -82,46 +93,83 @@ func writeReport(w io.Writer, results []caseResult) {
 			mark = "✗"
 		}
 		fmt.Fprintf(w, "  %s  %s\n", mark, c.Label)
-		fmt.Fprintf(w, "       replay: %s   hero: %s   role: %s   type: %s\n",
-			c.Replay, c.Hero, c.HeroRole.Label(), c.CaseType.Label())
+		fmt.Fprintf(w, "       replay: %s   hero: %s   role: %s   tags: %s\n",
+			c.Replay, c.Hero, c.HeroRole.Label(), formatTags(c.Tags))
 		fmt.Fprintf(w, "       %s\n", c.Description)
 		fmt.Fprintf(w, "       expect: %-16s  actual: %s\n", expectedLabel(c.ExpectMiss), r.Detail)
 		fmt.Fprintln(w)
 	}
 
-	pass, buckets := summarize(results)
+	pass, groupBuckets, tagBuckets := summarize(results)
 
 	fmt.Fprintln(w, strings.Repeat("=", width))
 	fmt.Fprintln(w, "  Summary")
 	fmt.Fprintln(w, strings.Repeat("-", width))
 	fmt.Fprintf(w, "  Total cases passed: %d/%d\n", pass, len(results))
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "  By role and case type:")
-	for _, line := range formatBucketLines(buckets) {
+	fmt.Fprintln(w, "  By replay and hero:")
+	for _, line := range formatGroupLines(groupBuckets) {
+		fmt.Fprintf(w, "    %s\n", line)
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "  By role and tag:")
+	for _, line := range formatTagBucketLines(tagBuckets) {
 		fmt.Fprintf(w, "    %s\n", line)
 	}
 	fmt.Fprintln(w, strings.Repeat("=", width))
 }
 
-func summarize(results []caseResult) (int, map[bucketKey]bucketStat) {
+func summarize(results []caseResult) (int, map[groupKey]bucketStat, map[bucketKey]bucketStat) {
 	pass := 0
-	buckets := make(map[bucketKey]bucketStat)
+	groupBuckets := make(map[groupKey]bucketStat)
+	tagBuckets := make(map[bucketKey]bucketStat)
 	for _, r := range results {
 		if r.Pass {
 			pass++
 		}
-		key := bucketKey{Role: r.Case.HeroRole, Type: r.Case.CaseType}
-		stat := buckets[key]
-		stat.Total++
+		gkey := groupKey{Replay: r.Case.Replay, Hero: r.Case.Hero}
+		gstat := groupBuckets[gkey]
+		gstat.Total++
 		if r.Pass {
-			stat.Passed++
+			gstat.Passed++
 		}
-		buckets[key] = stat
+		groupBuckets[gkey] = gstat
+
+		for _, tag := range r.Case.Tags {
+			key := bucketKey{Role: r.Case.HeroRole, Tag: tag}
+			stat := tagBuckets[key]
+			stat.Total++
+			if r.Pass {
+				stat.Passed++
+			}
+			tagBuckets[key] = stat
+		}
 	}
-	return pass, buckets
+	return pass, groupBuckets, tagBuckets
 }
 
-func formatBucketLines(buckets map[bucketKey]bucketStat) []string {
+func formatGroupLines(buckets map[groupKey]bucketStat) []string {
+	keys := make([]groupKey, 0, len(buckets))
+	for k := range buckets {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].Replay != keys[j].Replay {
+			return keys[i].Replay < keys[j].Replay
+		}
+		return keys[i].Hero < keys[j].Hero
+	})
+
+	lines := make([]string, len(keys))
+	for i, k := range keys {
+		stat := buckets[k]
+		lines[i] = fmt.Sprintf("%s / %s: %d/%d passed",
+			k.Replay, k.Hero, stat.Passed, stat.Total)
+	}
+	return lines
+}
+
+func formatTagBucketLines(buckets map[bucketKey]bucketStat) []string {
 	keys := make([]bucketKey, 0, len(buckets))
 	for k := range buckets {
 		keys = append(keys, k)
@@ -130,14 +178,14 @@ func formatBucketLines(buckets map[bucketKey]bucketStat) []string {
 		if keys[i].Role != keys[j].Role {
 			return keys[i].Role < keys[j].Role
 		}
-		return keys[i].Type < keys[j].Type
+		return keys[i].Tag < keys[j].Tag
 	})
 
 	lines := make([]string, len(keys))
 	for i, k := range keys {
 		stat := buckets[k]
 		lines[i] = fmt.Sprintf("%s / %s: %d/%d passed",
-			k.Role.Label(), k.Type.Label(), stat.Passed, stat.Total)
+			k.Role.Label(), k.Tag, stat.Passed, stat.Total)
 	}
 	return lines
 }

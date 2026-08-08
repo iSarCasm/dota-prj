@@ -15,6 +15,8 @@ require "open3"
 BASE_URL = "https://api.opendota.com/api"
 ROOT = ENV.fetch("DOTA_REPLAYS_DIR", File.expand_path(__dir__))
 CATALOG = File.join(__dir__, "REPLAYS.md")
+PBDEMS2_MAGIC = "PBDEMS2\x00".b
+DECOMPRESSOR = File.expand_path("../parser/cmd/replay-decompress", __dir__)
 
 def usage
   warn <<~MSG
@@ -68,9 +70,25 @@ def download_replay(replay_url, file_name)
   end
 end
 
-def decompress_bz2(bz2_path, dem_path)
-  stdout, stderr, status = Open3.capture3("bunzip2", "-f", "-c", bz2_path)
-  raise "bunzip2 failed: #{stderr}" unless status.success?
+def valid_dem?(dem_path)
+  return false unless File.exist?(dem_path)
+
+  File.binread(dem_path, PBDEMS2_MAGIC.bytesize) == PBDEMS2_MAGIC
+end
+
+def decompress_replay(compressed_path, dem_path)
+  parser_dir = File.expand_path("../parser", __dir__)
+  stdout, stderr, status = Open3.capture3(
+    "go", "run", DECOMPRESSOR,
+    chdir: parser_dir,
+    binmode: true,
+    stdin_data: File.binread(compressed_path)
+  )
+  raise "decompress failed: #{stderr}" unless status.success?
+
+  unless stdout.start_with?(PBDEMS2_MAGIC)
+    raise "decompressed replay missing PBDEMS2 header"
+  end
 
   File.binwrite(dem_path, stdout)
 end
@@ -79,9 +97,14 @@ def fetch_match(match_id)
   dem_path = File.join(ROOT, "#{match_id}.dem")
   bz2_path = "#{dem_path}.bz2"
 
-  if File.exist?(dem_path)
+  if File.exist?(dem_path) && valid_dem?(dem_path)
     puts "skip #{match_id}: #{dem_path} exists"
     return
+  end
+
+  if File.exist?(dem_path)
+    warn "[fetch] #{match_id}: replacing invalid #{dem_path}"
+    FileUtils.rm_f(dem_path)
   end
 
   puts "[fetch] #{match_id}: requesting parse..."
@@ -100,7 +123,7 @@ def fetch_match(match_id)
   download_replay(replay_url, bz2_path)
 
   puts "[fetch] #{match_id}: decompressing -> #{dem_path}"
-  decompress_bz2(bz2_path, dem_path)
+  decompress_replay(bz2_path, dem_path)
   FileUtils.rm_f(bz2_path)
 
   puts "[fetch] #{match_id}: done"

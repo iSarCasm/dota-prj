@@ -8,41 +8,22 @@ const (
 	RoleCore    HeroRole = "core"
 )
 
-// CaseType categorizes what heuristic scenario is being checked.
-type CaseType string
-
-const (
-	CaseMissedDeny            CaseType = "missed_deny"
-	CaseMissedLastHit         CaseType = "missed_last_hit"
-	CaseHitCreepTooEarly      CaseType = "hit_creep_too_early"
-	CaseHitCreepTooLate       CaseType = "hit_creep_too_late"
-	CaseUsedSpellTooEarly     CaseType = "used_spell_too_early"
-	CaseUsedSpellTooLate      CaseType = "used_spell_too_late"
-	CaseCreepDiedToAOESpell   CaseType = "creep_died_to_aoe_spell"
-	CaseCreepDiedToRandomProc CaseType = "creep_died_to_random_proc"
-)
-
-var caseTypeLabels = map[CaseType]string{
-	CaseMissedDeny:            "missed deny",
-	CaseMissedLastHit:         "missed last hit",
-	CaseHitCreepTooEarly:      "hit creep too early",
-	CaseHitCreepTooLate:       "hit creep too late",
-	CaseUsedSpellTooEarly:     "used spell too early",
-	CaseUsedSpellTooLate:      "used spell too late",
-	CaseCreepDiedToAOESpell:   "creep died to AOE spell",
-	CaseCreepDiedToRandomProc: "creep died to random proc effect",
-}
-
-func (t CaseType) Label() string {
-	if s, ok := caseTypeLabels[t]; ok {
-		return s
-	}
-	return string(t)
-}
-
 func (r HeroRole) Label() string {
 	return string(r)
 }
+
+// CaseTag labels a quality case for filtering and grouping.
+type CaseTag string
+
+const (
+	TagAutoAttack CaseTag = "auto-attack"
+	TagSpell      CaseTag = "spell"
+	TagAOE        CaseTag = "aoe"
+	TagDeny        CaseTag = "deny"
+	TagUncontested CaseTag = "uncontested"
+	TagTooEarly    CaseTag = "too-early"
+	TagTooLate    CaseTag = "too-late"
+)
 
 type qualityCase struct {
 	Label         string
@@ -50,11 +31,11 @@ type qualityCase struct {
 	Replay        string // match ID
 	Hero          string
 	HeroRole      HeroRole
-	CaseType      CaseType
 	From          float32
 	To            float32
 	CreepContains string
 	ExpectMiss    bool
+	Tags          []CaseTag
 }
 
 type caseResult struct {
@@ -70,7 +51,7 @@ type groupKey struct {
 
 type bucketKey struct {
 	Role HeroRole
-	Type CaseType
+	Tag  CaseTag
 }
 
 type bucketStat struct {

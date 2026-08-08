@@ -7,6 +7,5 @@ use (
 	./manta-labs/lasthits-debug
 	./manta-labs/pt
 	./manta-labs/stringtables
-	./manta-master
 	./parser
 )

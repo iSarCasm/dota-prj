@@ -5,18 +5,21 @@ func gameClock(min, sec int) float32 {
 }
 
 // qualityCases — edit freely; not part of the build gate.
+
 var qualityCases = []qualityCase{
+	// Replay 8915936762
+	// =============================================
 	{
 		Label:         "2:46 missed deny on flagbearer",
 		Description:   "Warlock right-clicks ally flagbearer low; Huskar kills it",
 		Replay:        "8915936762",
 		Hero:          "Warlock",
 		HeroRole:      RoleSupport,
-		CaseType:      CaseMissedDeny,
 		From:          gameClock(2, 44),
 		To:            gameClock(2, 47),
 		CreepContains: "badguys_flagbearer",
 		ExpectMiss:    true,
+		Tags:          []CaseTag{TagAutoAttack, TagDeny},
 	},
 	{
 		Label:         "2:52 creep dies to Fatal Bonds",
@@ -24,11 +27,11 @@ var qualityCases = []qualityCase{
 		Replay:        "8915936762",
 		Hero:          "Warlock",
 		HeroRole:      RoleSupport,
-		CaseType:      CaseCreepDiedToRandomProc,
 		From:          gameClock(2, 51),
 		To:            gameClock(2, 53),
 		CreepContains: "goodguys_melee",
 		ExpectMiss:    false,
+		Tags:          []CaseTag{TagSpell, TagAOE},
 	},
 	{
 		Label:         "2:55 creep dies to Fatal Bonds",
@@ -36,11 +39,11 @@ var qualityCases = []qualityCase{
 		Replay:        "8915936762",
 		Hero:          "Warlock",
 		HeroRole:      RoleSupport,
-		CaseType:      CaseCreepDiedToRandomProc,
 		From:          gameClock(2, 54),
 		To:            gameClock(2, 56),
 		CreepContains: "goodguys_melee",
 		ExpectMiss:    false,
+		Tags:          []CaseTag{TagSpell, TagAOE},
 	},
 	{
 		Label:         "2:58 creep dies to Fatal Bonds",
@@ -48,10 +51,36 @@ var qualityCases = []qualityCase{
 		Replay:        "8915936762",
 		Hero:          "Warlock",
 		HeroRole:      RoleSupport,
-		CaseType:      CaseCreepDiedToRandomProc,
 		From:          gameClock(2, 57),
 		To:            gameClock(2, 59),
 		CreepContains: "goodguys_ranged",
 		ExpectMiss:    false,
+		Tags:          []CaseTag{TagSpell, TagAOE},
+	},
+	// Replay 8934466456
+	// =============================================
+	{
+		Label:         "1:08-1:10 missed last hit on melee creep",
+		Description:   "Phantom Assassin missed last hit on melee creep with a dagger",
+		Replay:        "8934466456",
+		Hero:          "Phantom Assassin",
+		HeroRole:      RoleCore,
+		From:          gameClock(1, 8),
+		To:            gameClock(1, 10),
+		CreepContains: "goodguys_melee",
+		ExpectMiss:    true,
+		Tags:          []CaseTag{TagSpell, TagTooEarly},
+	},
+	{
+		Label:         "1:17-1:19 AFK",
+		Description:   "AFK",
+		Replay:        "8934466456",
+		Hero:          "Phantom Assassin",
+		HeroRole:      RoleCore,
+		From:          gameClock(1, 17),
+		To:            gameClock(1, 19),
+		CreepContains: "goodguys_melee",
+		ExpectMiss:    true,
+		Tags:          []CaseTag{TagUncontested},
 	},
 }
