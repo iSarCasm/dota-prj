@@ -2,9 +2,11 @@ Parser functions:
 
 - [ ] Creep farming / CS stats
   - [x] Total CS calculator
-  - [ ] Correlate Creeps Correctly for missed CS
+  - [x] Correlate Creeps Correctly for missed CS
   - [ ] Per-Creep-Wave info for each CS (attach creep wave number and lane to each CS)
   - [ ] Display Missed CS
+  - [ ] Add more quality tests 
+    - [ ] Replay 8934466456 (Divine)
 - [ ] End Game Breakdown Matching Dotabuff / Dotaplus
   - [ ] Total Hero Damage
   - [ ] Total Heal

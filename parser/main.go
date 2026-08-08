@@ -98,6 +98,7 @@ func main() {
 		if err := h.Init(ctx); err != nil {
 			log.Fatalf("handler init: %v", err)
 		}
+		log.Printf("registering callbacks for handler %T", h)
 		h.RegisterCallbacks(p, ctx)
 	}
 
