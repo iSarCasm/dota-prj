@@ -551,6 +551,16 @@ func (h *Handler) consumeMatchingOtherDeath(creepName string, heroDamagedAt floa
 	return false
 }
 
+func (h *Handler) resolveConflictGroup(groupID uint64) {
+	for i := range h.creepTracks {
+		creepTrack := h.creepTracks[i]
+		if creepTrack.conflictGroupID == groupID {
+			creepTrack.conflictGroupID = 0
+			creepTrack.heroDamagedAt = 0
+		}
+	}
+}
+
 // Creep tracks with single candidate: immediate miss on enemy steal;
 // Creep tracks with multiple candidates: defer until resolved.
 func (h *Handler) handleCreepDeath(idx int32, track *creepTrack, gameTime float32) {
@@ -613,7 +623,12 @@ func (h *Handler) handleCreepDeathWithConflict(entityIdx int32, heroKill bool, e
 
 	if heroKill {
 		h.matchPendingHeroKill(track.creepName, gameTime)
-		// h.resolveConflictGroupHeroLastHit(groupID, entityIdx)
+		group.remainingCombatLogsCount--
+		log.Printf("	Remaining combat logs count: %d", group.remainingCombatLogsCount)
+		if group.remainingCombatLogsCount == 0 {
+			log.Printf("	Resolving conflict group %d", groupID)
+			h.resolveConflictGroup(groupID)
+		}
 	} else if enemyKill {
 		if h.aliveConflictGroupMembers(groupID, entityIdx) > 0 {
 			log.Printf("	No missed event for enemy kill because there are still alive creeps in the group")

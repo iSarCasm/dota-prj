@@ -359,7 +359,7 @@ func TestLasthits(t *testing.T) {
 				}
 			})
 
-			t.Run("counts as 1 miss when 2 hero kills and 2 enemy kills on same tick", func(t *testing.T) {
+			t.Run("does not count as a miss when 2 hero kills and 2 enemy kills on same tick", func(t *testing.T) {
 				h, creepA, creepB, creepC, creepD := setupTwoDamageThreeMatchingCreepsAndD(t)
 				correlateTwoDamageThreeMatchingCreeps(h, creepA, creepB, creepC)
 
@@ -375,8 +375,8 @@ func TestLasthits(t *testing.T) {
 				creepDiedEntityUpdate(h, creepB, deathTick)
 				creepDiedEntityUpdate(h, creepC, deathTick)
 
-				if len(h.missedEvents) != 1 {
-					t.Fatalf("missedEvents = %+v, want 1 (one unfulfilled damage slot)", h.missedEvents)
+				if len(h.missedEvents) != 0 {
+					t.Fatalf("missedEvents = %+v, want none (both damage slots fulfilled by hero kills)", h.missedEvents)
 				}
 			})
 		})
