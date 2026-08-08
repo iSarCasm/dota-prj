@@ -569,12 +569,9 @@ func (h *Handler) handleCreepDeath(idx int32, track *creepTrack, gameTime float3
 	enemyKill := h.hasPendingOtherKill(track.creepName, track.heroDamagedAt)
 	heroKill := h.hasPendingHeroKill(track.creepName, gameTime)
 
-	log.Printf("Creep %s died at %f; enemyKill=%v heroKill=%v", track.creepName, gameTime, enemyKill, heroKill)
 	if track.conflictGroupID == 0 {
-		log.Printf("handleCreepDeathWithoutConflict")
 		h.handleCreepDeathWithoutConflict(heroKill, enemyKill, track, gameTime)
 	} else {
-		log.Printf("handleCreepDeathWithConflict")
 		h.handleCreepDeathWithConflict(idx, heroKill, enemyKill, track, gameTime)
 	}
 }
@@ -600,49 +597,23 @@ func (h *Handler) handleCreepDeathWithConflict(entityIdx int32, heroKill bool, e
 	groupID := track.conflictGroupID
 	group := h.conflictGroups[groupID]
 
-	// if enemyKill {
-	// if h.aliveConflictGroupMembers(groupID, entityIdx) > 0 {
-	// 	log.Printf("	No missed event for enemy kill because there are still alive creeps in the group")
-	// 	return
-	// }
-	// if group.remainingCombatLogsCount > 0 {
-	// 	log.Printf("	Adding missed event for enemy kill")
-	// 	h.missedEvents = append(h.missedEvents, Event{
-	// 		Timestamp: gameTime,
-	// 		Type:      "missed_last_hit",
-	// 		CreepName: track.creepName,
-	// 	})
-	// } else {
-	// 	log.Printf("	No missed event for enemy kill because there are no remaining combat logs in the group")
-	// }
-	// 	delete(h.conflictGroups, groupID)
-	// } else if heroKill {
-	// h.matchPendingHeroKill(track.creepName, gameTime)
-	// h.resolveConflictGroupHeroLastHit(groupID, entityIdx)
-	// }
-
 	if heroKill {
 		h.matchPendingHeroKill(track.creepName, gameTime)
 		group.remainingCombatLogsCount--
-		log.Printf("	Remaining combat logs count: %d", group.remainingCombatLogsCount)
 		if group.remainingCombatLogsCount == 0 {
-			log.Printf("	Resolving conflict group %d", groupID)
 			h.resolveConflictGroup(groupID)
 		}
 	} else if enemyKill {
 		if h.aliveConflictGroupMembers(groupID, entityIdx) > 0 {
-			log.Printf("	No missed event for enemy kill because there are still alive creeps in the group")
 			return
 		}
 		if group.remainingCombatLogsCount > 0 {
-			log.Printf("	Adding missed event for enemy kill")
 			h.missedEvents = append(h.missedEvents, Event{
 				Timestamp: gameTime,
 				Type:      "missed_last_hit",
 				CreepName: track.creepName,
 			})
 		} else {
-			log.Printf("	No missed event for enemy kill because there are no remaining combat logs in the group")
 		}
 	}
 }
