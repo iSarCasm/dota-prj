@@ -297,12 +297,25 @@ func (h *Handler) pruneMatchedCombatLogs() {
 		n++
 	}
 	h.pendingOtherKillLogs = h.pendingOtherKillLogs[:n]
+
+	n = 0
+	for _, e := range h.pendingHeroKillLogs {
+		if e.entityMatched {
+			continue
+		}
+		h.pendingHeroKillLogs[n] = e
+		n++
+	}
+	h.pendingHeroKillLogs = h.pendingHeroKillLogs[:n]
 }
 
 func (h *Handler) hasPendingHeroKill(creepName string, deathTime float32) bool {
 	cutoff := deathTime - missedLastHitWindowSec
 	for _, cLog := range h.pendingHeroKillLogs {
-		if cLog.creepName == creepName && cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+deathCombatLogEpsilon {
+		if cLog.entityMatched || cLog.creepName != creepName {
+			continue
+		}
+		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+deathCombatLogEpsilon {
 			return true
 		}
 	}
@@ -323,32 +336,32 @@ func (h *Handler) hasPendingOtherKill(creepName string, heroDamagedAt float32) b
 	return false
 }
 
-// instead of marking as matched, we just remove the log from the list
 func (h *Handler) matchPendingHeroKill(creepName string, deathTime float32) {
 	cutoff := deathTime - missedLastHitWindowSec
-	n := 0
-	for _, cLog := range h.pendingHeroKillLogs {
-		if cLog.creepName == creepName && cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+deathCombatLogEpsilon {
+	for i := range h.pendingHeroKillLogs {
+		cLog := &h.pendingHeroKillLogs[i]
+		if cLog.entityMatched || cLog.creepName != creepName {
 			continue
 		}
-		h.pendingHeroKillLogs[n] = cLog
-		n++
+		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+deathCombatLogEpsilon {
+			cLog.entityMatched = true
+			return
+		}
 	}
-	h.pendingHeroKillLogs = h.pendingHeroKillLogs[:n]
 }
 
-// instead of marking as matched, we just remove the log from the list
 func (h *Handler) matchPendingOtherKill(creepName string, deathTime float32) {
 	cutoff := deathTime - missedLastHitWindowSec
-	n := 0
-	for _, cLog := range h.pendingOtherKillLogs {
-		if cLog.creepName == creepName && cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+deathCombatLogEpsilon {
+	for i := range h.pendingOtherKillLogs {
+		cLog := &h.pendingOtherKillLogs[i]
+		if cLog.entityMatched || cLog.creepName != creepName {
 			continue
 		}
-		h.pendingOtherKillLogs[n] = cLog
-		n++
+		if cLog.gameTime >= cutoff && cLog.gameTime <= deathTime+deathCombatLogEpsilon {
+			cLog.entityMatched = true
+			return
+		}
 	}
-	h.pendingOtherKillLogs = h.pendingOtherKillLogs[:n]
 }
 
 func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, dropGameTime float32) bool {
@@ -577,7 +590,31 @@ func (h *Handler) handleCreepDeathWithConflict(entityIdx int32, heroKill bool, e
 	groupID := track.conflictGroupID
 	group := h.conflictGroups[groupID]
 
-	if enemyKill {
+	// if enemyKill {
+	// if h.aliveConflictGroupMembers(groupID, entityIdx) > 0 {
+	// 	log.Printf("	No missed event for enemy kill because there are still alive creeps in the group")
+	// 	return
+	// }
+	// if group.remainingCombatLogsCount > 0 {
+	// 	log.Printf("	Adding missed event for enemy kill")
+	// 	h.missedEvents = append(h.missedEvents, Event{
+	// 		Timestamp: gameTime,
+	// 		Type:      "missed_last_hit",
+	// 		CreepName: track.creepName,
+	// 	})
+	// } else {
+	// 	log.Printf("	No missed event for enemy kill because there are no remaining combat logs in the group")
+	// }
+	// 	delete(h.conflictGroups, groupID)
+	// } else if heroKill {
+	// h.matchPendingHeroKill(track.creepName, gameTime)
+	// h.resolveConflictGroupHeroLastHit(groupID, entityIdx)
+	// }
+
+	if heroKill {
+		h.matchPendingHeroKill(track.creepName, gameTime)
+		// h.resolveConflictGroupHeroLastHit(groupID, entityIdx)
+	} else if enemyKill {
 		if h.aliveConflictGroupMembers(groupID, entityIdx) > 0 {
 			log.Printf("	No missed event for enemy kill because there are still alive creeps in the group")
 			return
@@ -592,9 +629,5 @@ func (h *Handler) handleCreepDeathWithConflict(entityIdx int32, heroKill bool, e
 		} else {
 			log.Printf("	No missed event for enemy kill because there are no remaining combat logs in the group")
 		}
-		delete(h.conflictGroups, groupID)
-	} else if heroKill {
-		h.matchPendingHeroKill(track.creepName, gameTime)
-		h.resolveConflictGroupHeroLastHit(groupID, entityIdx)
 	}
 }
