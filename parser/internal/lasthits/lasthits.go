@@ -41,6 +41,7 @@ type pendingCLogCreepEvent struct {
 // creepTrack holds per-entity creep state for correlating combat log with entity updates.
 type creepTrack struct {
 	creepName       string // npc name from combat log once correlated
+	entityName      string // EntityNames from m_iUnitNameIndex (debugging; lane creeps use pathcorner strings)
 	prevHealth      int32
 	hasPrevHealth   bool
 	heroDamagedTick uint32 // 0 if our hero has not damaged this creep recently
@@ -152,9 +153,11 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 	switch m.GetType() {
 	case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DAMAGE:
 		attackerClass := common.GetHeroClassName(realAttackerName)
+		// log.Printf("onCombatLogEntry: tick=%d gameTime=%f realTargetName=%s realAttackerName=%s attackerClass=%s", tick, gameTime, realTargetName, realAttackerName, attackerClass)
 		if attackerClass != h.heroClass || m.GetIsAttackerIllusion() {
 			return nil
 		}
+
 		if creeps.TypeFromTargetName(realTargetName) == "" {
 			return nil
 		}
@@ -213,6 +216,18 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 	return nil
 }
 
+func entityName(p *manta.Parser, e *manta.Entity) string {
+	nameIdx, ok := e.GetInt32("m_iUnitNameIndex")
+	if !ok {
+		return ""
+	}
+	name, ok := p.LookupStringByIndex("EntityNames", nameIdx)
+	if !ok {
+		return ""
+	}
+	return name
+}
+
 func (h *Handler) onCreepEntity(p *manta.Parser, e *manta.Entity, op manta.EntityOp) error {
 	if !creeps.IsEntityClass(e.GetClassName()) {
 		return nil
@@ -222,15 +237,19 @@ func (h *Handler) onCreepEntity(p *manta.Parser, e *manta.Entity, op manta.Entit
 		return nil
 	}
 	gameTime := h.timeAndPausesHandler.CurrentGameTime()
-	h.onCreepHealthUpdate(e.GetIndex(), health, op, p.Tick, gameTime)
+	entityName := entityName(p, e)
+	h.onCreepHealthUpdate(e.GetIndex(), health, op, p.Tick, gameTime, entityName)
 	return nil
 }
 
-func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, op manta.EntityOp, tick uint32, gameTime float32) {
+func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, op manta.EntityOp, tick uint32, gameTime float32, entityName string) {
 	track := h.creepTracks[entityId]
 	if track == nil {
 		track = &creepTrack{}
 		h.creepTracks[entityId] = track
+	}
+	if entityName != "" {
+		track.entityName = entityName
 	}
 
 	healthReduced := track.hasPrevHealth && health < track.prevHealth
@@ -451,18 +470,18 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 
 	// Abnormal case: pending was closed before any entity correlated. Reopen and keep collecting.
 	if len(candidates) == 0 {
-		ids := make([]uint64, len(batch))
-		for i, pd := range batch {
-			ids[i] = pd.id
-		}
 		log.Printf(
 			"WARNING lasthits: finalizePendingBatch with ZERO entity candidates (not normal)\n"+
-				"  creep=%q tick=%d postHealth=%d damage=%d pendingLines=%d ids=%v\n"+
+				"  creep=%q tick=%d postHealth=%d damage=%d pendingLogs=%d\n"+
 				"  action=reopening closed pending lines; no entity health drop matched yet",
-			primary.creepName, primary.tick, primary.health, primary.damage, len(batch), ids,
+			primary.creepName, primary.tick, primary.health, primary.damage, len(batch),
 		)
-		for _, pd := range batch {
-			pd.closed = false
+		// Display all creeps with matching name
+		for i := range h.creepTracks {
+			creepTrack := h.creepTracks[i]
+			if creepTrack.creepName == primary.creepName {
+				log.Printf("Creep track: %+v", creepTrack)
+			}
 		}
 		return
 	}
@@ -475,9 +494,9 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 		}
 		log.Printf(
 			"WARNING lasthits: finalizePendingBatch with LESS entity candidates than batch size (not normal)\n"+
-				"  creep=%q tick=%d postHealth=%d damage=%d pendingLines=%d ids=%v\n"+
+				"  creep=%q tick=%d postHealth=%d damage=%d pendingLines=%d\n"+
 				"  action=reopening closed pending lines; no entity health drop matched yet",
-			primary.creepName, primary.tick, primary.health, primary.damage, len(batch), ids,
+			primary.creepName, primary.tick, primary.health, primary.damage, len(batch),
 		)
 	}
 
@@ -521,7 +540,11 @@ func (h *Handler) correlateHeroDamage(entityId int32, track *creepTrack, health 
 			continue
 		}
 
+		// log.Printf("correlateHeroDamage: pd.tick=%d entityTick=%d", pd.tick, entityTick)
 		if heroDamageCorrelates(*pd, track.prevHealth, health, entityTick) {
+			// log.Printf("Pending damage: %+v", pd)
+			// log.Printf("Track: %+v", track)
+			// log.Printf("heroDamageCorrelates: pd.tick=%d entityTick=%d", pd.tick, entityTick)
 			pd.candidates = slicesx.AppendIfMissing(pd.candidates, entityId)
 		}
 	}

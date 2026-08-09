@@ -30,7 +30,7 @@ func seedCreep(h *Handler, idx int32, health int32, tick uint32) {
 }
 
 func updateCreepHealth(h *Handler, idx int32, health int32, op manta.EntityOp, tick uint32) {
-	h.onCreepHealthUpdate(idx, health, op, tick, 0)
+	h.onCreepHealthUpdate(idx, health, op, tick, 0, "")
 }
 
 func closePendingAfterDamageTick(h *Handler, damageTick uint32) {
@@ -630,20 +630,19 @@ func TestFlagbearerMiss_SameTickCombatLogThenEntity(t *testing.T) {
 	}
 }
 
-func TestMissedLastHit_SameTickDeathSkip(t *testing.T) {
+func TestMissedLastHit_TwoDamageLogsOneEntityUpdate(t *testing.T) {
 	const idx int32 = 42
 	const creep = testMeleeName
 	const damageTick uint32 = 11061
 	h := testHandler()
 
-	h.onCreepHealthUpdate(idx, 91, manta.EntityOpUpdated, damageTick-1, 0)
-	h.pendingHeroDamageLogs = append(h.pendingHeroDamageLogs, pendingCLogCreepEvent{
-		id: h.GetNextUniqueId(), creepName: creep, tick: damageTick, health: 24, damage: 67,
-	})
-	h.pendingOtherKillLogs = append(h.pendingOtherKillLogs, pendingCLogCreepEvent{
-		creepName: creep, tick: damageTick,
-	})
-	h.onCreepHealthUpdate(idx, 0, manta.EntityOpUpdated, damageTick, 0)
+	startHealth := int32(100)
+	damage := int32(70)
+	updateCreepHealth(h, idx, startHealth, manta.EntityOpUpdated, damageTick-1)
+	heroDamageCreepCombatLog(h, creep, damageTick, startHealth-damage, damage)
+	// there is also a damage log for enemy hitting same creep
+	enemyKillCreepCombatLog(h, creep, damageTick)
+	creepDiedEntityUpdate(h, idx, damageTick)
 
 	if len(h.missedEvents) != 1 {
 		t.Fatalf("missedEvents = %+v, want 1 same-tick death skip miss", h.missedEvents)

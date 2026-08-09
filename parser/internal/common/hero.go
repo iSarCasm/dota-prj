@@ -13,6 +13,7 @@ type HeroRef struct {
 }
 
 // converts npc_dota_hero_* string to CDOTA_Unit_Hero_* class name.
+// npc_dota_hero_phantom_assassin -> CDOTA_Unit_Hero_PhantomAssassin
 func GetHeroClassName(npc string) string {
 	const prefix = "npc_dota_hero_"
 	if !strings.HasPrefix(npc, prefix) {
@@ -33,26 +34,15 @@ func GetHeroClassName(npc string) string {
 	return b.String()
 }
 
-// HeroNameToClass maps a hero name (e.g. "Puck", "keeper_of_the_light") to CDOTA_Unit_Hero_* class name.
+// HeroNameToClass maps a display hero name (e.g. "Puck", "Phantom Assassin") to the same
+// CDOTA_Unit_Hero_* class name that GetHeroClassName returns for the combat-log npc name.
 func HeroNameToClass(heroName string) string {
-	heroName = strings.TrimSpace(strings.ReplaceAll(heroName, " ", "_"))
+	heroName = strings.TrimSpace(heroName)
 	if heroName == "" {
 		return ""
 	}
-	// parts := strings.Split(heroName, "_")
-	// titled := make([]string, 0, len(parts))
-	// for _, p := range parts {
-	// 	if p == "" {
-	// 		continue
-	// 	}
-	// 	r := []rune(strings.ToLower(p))
-	// 	if len(r) > 0 {
-	// 		r[0] = unicode.ToUpper(r[0])
-	// 		titled = append(titled, string(r))
-	// 	}
-	// }
-	// return "CDOTA_Unit_Hero_" + strings.Join(titled, "_")
-	return "CDOTA_Unit_Hero_" + heroName
+	npc := "npc_dota_hero_" + strings.ToLower(strings.ReplaceAll(heroName, " ", "_"))
+	return GetHeroClassName(npc)
 }
 
 // entityClassToCombatLogName converts an entity class name to the combat-log style name

@@ -117,7 +117,7 @@ func TestReplay8915936762_WarlockNoFalseMisses_2_51_to_2_59(t *testing.T) {
 // Skipped: needs pathcorner→creep binding (entity idx 1536 is lane_mid_pathcorner_badguys_7).
 // Tick-based correlation is covered by TestMissedLastHit_SameTickDeathSkip; replay case is separate work.
 func TestReplay8934466456_PAMissedMeleeTooEarly_2_10(t *testing.T) {
-	t.Skip("pathcorner entity binding not implemented; see manta-labs/proofs/pathcorner-map/")
+	// t.Skip("pathcorner entity binding not implemented; see manta-labs/proofs/pathcorner-map/")
 	h := parsePhantomAssassin8934466456(t)
 
 	var found bool

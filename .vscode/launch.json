@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug PA lasthits integration test",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${workspaceFolder}/parser/internal/lasthits",
+      "args": [
+        "-test.run",
+        "^TestReplay8934466456_PAMissedMeleeTooEarly_2_10$",
+        "-test.v",
+        "-test.count=1"
+      ],
+      "env": {
+        "DOTA_TEST_VERBOSE": "1"
+      }
+    }
+  ]
+}
