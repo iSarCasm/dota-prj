@@ -9,7 +9,7 @@ fi
 rm -rf output
 go run . -out output -replay "$REPLAY" \
   -max-per-type 15 -max-per-replay-type 15 \
-  -max-per-class 3 -max-per-replay-class 3
+  -max-per-class 300 -max-per-replay-class 300
 cp output/combat_logs_summary.txt examples/combat_logs_summary.txt
 cp output/entities_summary.txt examples/entities_summary.txt
 head -5 output/combat_logs/damage.txt > examples/damage.head.txt

@@ -1,5 +1,5 @@
 # pathcorner → combat-log mapping
-# replay: ../../dota-web/storage/replays/8915936762.dem
+# replay: ../../dota-replays/8915936762.dem
 # mode: build-pathcorner-map (vote_mode=unique, team-filtered)
 # pathcorner | presumed | votes | total | conflict
 lane_bot_pathcorner_badguys_1 | npc_dota_creep_badguys_melee | badguys_flagbearer:1 badguys_melee:43 badguys_ranged:4 | 48 | false

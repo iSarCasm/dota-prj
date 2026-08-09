@@ -51,7 +51,8 @@ go run . -replay <path.dem> [-mode <mode>] [-from SEC] [-to SEC] [filters]
 | `-hero` | | Combat-log attacker/target substring |
 | `-target` | | Combat-log target substring |
 | `-out` | | Write to file instead of stdout |
-| `-format` | `text` | For `build-pathcorner-map`: `text` or `json` |
+| `-format` | `text` | For `build-pathcorner-map`: `text`/`json`; for `build-pathcorner-lane-spawn`: `text`/`table`/`json` |
+| `-replays` | | Comma-separated replays; merges spawns when building lane table |
 | `-map-votes` | `unique` | For `build-pathcorner-map`: `unique` or `spawn` |
 
 ### Modes
@@ -64,6 +65,16 @@ go run . -replay <path.dem> [-mode <mode>] [-from SEC] [-to SEC] [filters]
 | `health-match` | Match one post-damage health from combat log to entity index |
 | `dump-fields` | Dump identity-related entity fields (model, unit type, names) |
 | `build-pathcorner-map` | Build presumed pathcorner → combat-log name mapping from health correlation |
+| `build-pathcorner-lane-spawn` | Table: pathcorner → start position → real lane (top/mid/bot) |
+
+### Pathcorner lane table
+
+```bash
+go run . -replays ../../dota-replays/8915936762.dem,../../dota-replays/8934466456.dem \
+  -mode build-pathcorner-lane-spawn -format table
+```
+
+See `examples/pathcorner-lane-table.txt` and `.json` (`lookup` map).
 
 ### Build pathcorner → combat-log mapping
 

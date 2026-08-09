@@ -1,5 +1,5 @@
 # entity class: CDOTA_BaseNPC
-# examples: 3
+# examples: 300
 === replay=8915936762.dem tick=3687 idx=1171 op=Created+Entered class=CDOTA_BaseNPC ===
 CBodyComponent.m_MeshGroupMask=18446744073709551615
 CBodyComponent.m_angRotation=[0,0,0]

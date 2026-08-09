@@ -18,4 +18,13 @@ go run . -replay "$REPLAY" -mode build-pathcorner-map \
   > examples/pathcorner-map.txt
 go run . -replay "$REPLAY" -mode build-pathcorner-map -format json \
   > examples/pathcorner-map.json
+PA_REPLAY="${PA_REPLAY:-../../dota-replays/8934466456.dem}"
+WARLOCK_REPLAY="${REPLAY:-../../dota-replays/8915936762.dem}"
+MERGED_REPLAYS="${MERGED_REPLAYS:-$WARLOCK_REPLAY,$PA_REPLAY}"
+go run . -replays "$MERGED_REPLAYS" -mode build-pathcorner-lane-spawn -format table \
+  > examples/pathcorner-lane-table.txt
+go run . -replays "$MERGED_REPLAYS" -mode build-pathcorner-lane-spawn -format json \
+  > examples/pathcorner-lane-table.json
+bash ../proofs/pathcorner-lane-spawn/compare-replays.sh \
+  > examples/pathcorner-lane-consistency.txt 2>&1 || true
 echo "Done. Review examples/*.{txt,json}"

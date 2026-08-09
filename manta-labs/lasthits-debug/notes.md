@@ -27,6 +27,18 @@ Using entity name for `creepTypeFromTargetName()` always failed → **0 missed l
 
 See `-mode entity-names` and `examples/entity-names-flagbearer.txt`. Formal mapping proof: `manta-labs/proofs/pathcorner-map/`.
 
+## Pathcorner → real lane
+
+Entity `m_iUnitNameIndex` is a **pathcorner** string. The lane prefix in the name is team-asymmetric and often wrong for `lane_mid_*` (overflow bucket). Do not infer lane from the string alone.
+
+Build lookup table from spawn positions:
+
+```bash
+./manta-labs/proofs/pathcorner-lane-spawn/run.sh
+```
+
+Key finding: `lane_mid_pathcorner_badguys_7` → **top** (Dire base area), not mid. `real_lane` is stable across replays; exact spawn coords are not. See `manta-labs/proofs/pathcorner-lane-spawn/README.md` and `examples/pathcorner-lane-table.txt`.
+
 ## Working approach (production)
 
 1. **DAMAGE (our hero)** → queue `{creepName, postDamageHealth, gameTime}` from combat log.

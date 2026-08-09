@@ -23,15 +23,17 @@ const (
 	modeEntityNames     = "entity-names"
 	modeHealthMatch     = "health-match"
 	modeDumpFields         = "dump-fields"
-	modeBuildPathcornerMap = "build-pathcorner-map"
+	modeBuildPathcornerMap      = "build-pathcorner-map"
+	modeBuildPathcornerLaneSpawn = "build-pathcorner-lane-spawn"
 )
 
 func main() {
 	log.SetOutput(os.Stderr)
 
-	replay := flag.String("replay", "", "path to .dem replay (required)")
-	mode := flag.String("mode", modeTrace, "trace | warlock-badguys | entity-names | health-match | dump-fields | build-pathcorner-map")
-	format := flag.String("format", "text", "for build-pathcorner-map: text | json")
+	replay := flag.String("replay", "", "path to .dem replay")
+	replays := flag.String("replays", "", "comma-separated .dem paths (merges spawns for lane table)")
+	mode := flag.String("mode", modeTrace, "trace | warlock-badguys | entity-names | health-match | dump-fields | build-pathcorner-map | build-pathcorner-lane-spawn")
+	format := flag.String("format", "text", "for build-pathcorner-map: text|json; for build-pathcorner-lane-spawn: text|table|json")
 	mapVotes := flag.String("map-votes", "unique", "for build-pathcorner-map: unique | spawn")
 	from := flag.Float64("from", 160, "window start (game seconds, creep spawn = 0)")
 	to := flag.Float64("to", 170, "window end (game seconds)")
@@ -41,16 +43,11 @@ func main() {
 	outPath := flag.String("out", "", "write trace to file instead of stdout")
 	flag.Parse()
 
-	if *replay == "" {
+	replayPaths := parseReplayPaths(*replay, *replays)
+	if len(replayPaths) == 0 {
 		flag.Usage()
 		os.Exit(2)
 	}
-
-	f, err := os.Open(*replay)
-	if err != nil {
-		log.Fatalf("open replay: %v", err)
-	}
-	defer f.Close()
 
 	out := io.Writer(os.Stdout)
 	if *outPath != "" {
@@ -61,6 +58,19 @@ func main() {
 		defer file.Close()
 		out = file
 	}
+
+	if *mode == modeBuildPathcornerLaneSpawn {
+		if err := runPathcornerLaneSpawn(replayPaths, out, *format); err != nil {
+			log.Fatalf("pathcorner lane spawn: %v", err)
+		}
+		return
+	}
+
+	f, err := os.Open(replayPaths[0])
+	if err != nil {
+		log.Fatalf("open replay: %v", err)
+	}
+	defer f.Close()
 
 	p, err := manta.NewStreamParser(f)
 	if err != nil {
@@ -87,7 +97,7 @@ func main() {
 	case modeBuildPathcornerMap:
 		registerBuildPathcornerMapCallbacks(p, tp, *mapVotes)
 	default:
-		log.Fatalf("unknown mode %q (use trace, warlock-badguys, entity-names, health-match, dump-fields, build-pathcorner-map)", *mode)
+		log.Fatalf("unknown mode %q (use trace, warlock-badguys, entity-names, health-match, dump-fields, build-pathcorner-map, build-pathcorner-lane-spawn)", *mode)
 	}
 
 	if err := p.Start(); err != nil && err != io.EOF {
@@ -96,11 +106,28 @@ func main() {
 
 	if printPathcornerMapSummary != nil {
 		if *format == "json" {
-			writePathcornerMapJSON(out, pathcornerMapBuiltState, *replay)
+			writePathcornerMapJSON(out, pathcornerMapBuiltState, replayPaths[0])
 		} else {
-			printPathcornerMapSummary(out, *replay)
+			printPathcornerMapSummary(out, replayPaths[0])
 		}
 	}
+}
+
+func parseReplayPaths(replay, replays string) []string {
+	if replays != "" {
+		var paths []string
+		for _, p := range strings.Split(replays, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				paths = append(paths, p)
+			}
+		}
+		return paths
+	}
+	if replay != "" {
+		return []string{replay}
+	}
+	return nil
 }
 
 func inWindow(gt, start, end float32) bool {
