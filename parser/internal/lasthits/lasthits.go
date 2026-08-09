@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	missedLastHitWindowSec   = 2
-	missedLastHitWindowTicks = uint32(float32(missedLastHitWindowSec) * timeandpauses.TickRate)
+	missedLastHitWindowSec   = float32(2.0)
+	missedLastHitWindowTicks = uint32(missedLastHitWindowSec * timeandpauses.TickRate)
 )
 
 // Event is a single last-hit, deny, or missed last-hit.
@@ -42,6 +42,8 @@ type pendingCLogCreepEvent struct {
 type creepTrack struct {
 	creepName       string // npc name from combat log once correlated
 	entityName      string // EntityNames from m_iUnitNameIndex (debugging; lane creeps use pathcorner strings)
+	className       string // class name from entity
+	lane            string // lane from entity name
 	prevHealth      int32
 	hasPrevHealth   bool
 	heroDamagedTick uint32 // 0 if our hero has not damaged this creep recently
@@ -153,7 +155,6 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 	switch m.GetType() {
 	case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DAMAGE:
 		attackerClass := common.GetHeroClassName(realAttackerName)
-		// log.Printf("onCombatLogEntry: tick=%d gameTime=%f realTargetName=%s realAttackerName=%s attackerClass=%s", tick, gameTime, realTargetName, realAttackerName, attackerClass)
 		if attackerClass != h.heroClass || m.GetIsAttackerIllusion() {
 			return nil
 		}
@@ -229,7 +230,9 @@ func entityName(p *manta.Parser, e *manta.Entity) string {
 }
 
 func (h *Handler) onCreepEntity(p *manta.Parser, e *manta.Entity, op manta.EntityOp) error {
-	if !creeps.IsEntityClass(e.GetClassName()) {
+	entityName := entityName(p, e)
+	className := e.GetClassName()
+	if !creeps.IsLaneCreep(className) {
 		return nil
 	}
 	health, ok := e.GetInt32("m_iHealth")
@@ -237,20 +240,19 @@ func (h *Handler) onCreepEntity(p *manta.Parser, e *manta.Entity, op manta.Entit
 		return nil
 	}
 	gameTime := h.timeAndPausesHandler.CurrentGameTime()
-	entityName := entityName(p, e)
-	h.onCreepHealthUpdate(e.GetIndex(), health, op, p.Tick, gameTime, entityName)
+	h.onCreepHealthUpdate(e.GetIndex(), health, op, p.Tick, gameTime, entityName, className)
 	return nil
 }
 
-func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, op manta.EntityOp, tick uint32, gameTime float32, entityName string) {
+func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, op manta.EntityOp, tick uint32, gameTime float32, entityName string, className string) {
 	track := h.creepTracks[entityId]
 	if track == nil {
 		track = &creepTrack{}
 		h.creepTracks[entityId] = track
 	}
-	if entityName != "" {
-		track.entityName = entityName
-	}
+	track.entityName = entityName
+	track.className = className
+	track.lane = creeps.GetCreepLane(entityName)
 
 	healthReduced := track.hasPrevHealth && health < track.prevHealth
 	justDied := (track.hasPrevHealth && health <= 0 && track.prevHealth > 0) ||
@@ -486,7 +488,7 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 		return
 	}
 
-	// Abnormal case: less entity candidates than batch size.
+	// Abnormal case: less entity candidates than batch size. This can happen when both logs hit same entity on same tick.
 	if len(candidates) < len(batch) {
 		ids := make([]uint64, len(batch))
 		for i, pd := range batch {
@@ -540,11 +542,7 @@ func (h *Handler) correlateHeroDamage(entityId int32, track *creepTrack, health 
 			continue
 		}
 
-		// log.Printf("correlateHeroDamage: pd.tick=%d entityTick=%d", pd.tick, entityTick)
 		if heroDamageCorrelates(*pd, track.prevHealth, health, entityTick) {
-			// log.Printf("Pending damage: %+v", pd)
-			// log.Printf("Track: %+v", track)
-			// log.Printf("heroDamageCorrelates: pd.tick=%d entityTick=%d", pd.tick, entityTick)
 			pd.candidates = slicesx.AppendIfMissing(pd.candidates, entityId)
 		}
 	}

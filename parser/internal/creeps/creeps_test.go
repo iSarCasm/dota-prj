@@ -25,10 +25,10 @@ func TestTypeFromTargetName(t *testing.T) {
 }
 
 func TestIsEntityClass(t *testing.T) {
-	if !IsEntityClass("CDOTA_BaseNPC_Creep_Lane") {
+	if !IsLaneCreep("CDOTA_BaseNPC_Creep_Lane") {
 		t.Fatal("expected lane creep class")
 	}
-	if IsEntityClass("CDOTA_Unit_Hero_Warlock") {
+	if IsLaneCreep("CDOTA_Unit_Hero_Warlock") {
 		t.Fatal("hero should not be creep class")
 	}
 }
