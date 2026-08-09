@@ -25,6 +25,7 @@ type Interval struct {
 
 // Handler implements common.ReplayHandler for pause tracking and time derivations.
 type Handler struct {
+	stopReplayAtTime float32
 	intervals        []Interval
 	totalPauseTime   float32
 	isPaused         bool
@@ -41,9 +42,14 @@ type Handler struct {
 
 // NewHandler creates a TimeAndPauses handler.
 func NewHandler() *Handler {
+	return NewHandlerWithStopTime(0)
+}
+
+func NewHandlerWithStopTime(stopReplayAtTime float32) *Handler {
 	return &Handler{
-		intervals:    make([]Interval, 0, 64),
-		tickInterval: TickDuration,
+		stopReplayAtTime: stopReplayAtTime,
+		intervals:        make([]Interval, 0, 64),
+		tickInterval:     TickDuration,
 	}
 }
 
@@ -126,6 +132,11 @@ func (h *Handler) pauseDurationAtTime(t float32) float32 {
 func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 	p.OnEntity(func(e *manta.Entity, op manta.EntityOp) error {
 		if e == nil || e.GetClassName() != "CDOTAGamerulesProxy" {
+			return nil
+		}
+
+		if h.stopReplayAtTime != 0 && h.CurrentGameTime() > h.stopReplayAtTime {
+			p.Stop()
 			return nil
 		}
 

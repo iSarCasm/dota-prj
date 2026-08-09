@@ -50,7 +50,7 @@ func replayPath(t *testing.T, matchID string) string {
 	return path
 }
 
-func parseReplayHero(t *testing.T, matchID, heroName string) *Handler {
+func parseReplayHero(t *testing.T, matchID, heroName string, untilTimestamp float32) *Handler {
 	t.Helper()
 
 	f, err := os.Open(replayPath(t, matchID))
@@ -65,7 +65,7 @@ func parseReplayHero(t *testing.T, matchID, heroName string) *Handler {
 	}
 
 	ctx := &common.ParseContext{HeroName: heroName, TickInterval: 0.033333335}
-	tp := timeandpauses.NewHandler()
+	tp := timeandpauses.NewHandlerWithStopTime(untilTimestamp)
 	if err := tp.Init(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -80,16 +80,16 @@ func parseReplayHero(t *testing.T, matchID, heroName string) *Handler {
 	return h
 }
 
-func parseWarlock8915936762(t *testing.T) *Handler {
-	return parseReplayHero(t, "8915936762", "Warlock")
+func parseWarlock8915936762(t *testing.T, untilTimestamp float32) *Handler {
+	return parseReplayHero(t, "8915936762", "Warlock", untilTimestamp)
 }
 
-func parsePhantomAssassin8934466456(t *testing.T) *Handler {
-	return parseReplayHero(t, "8934466456", "Phantom Assassin")
+func parsePhantomAssassin8934466456(t *testing.T, untilTimestamp float32) *Handler {
+	return parseReplayHero(t, "8934466456", "Phantom Assassin", untilTimestamp)
 }
 
 func TestReplay8915936762_WarlockMissedFlagbearerAround_2_45(t *testing.T) {
-	h := parseWarlock8915936762(t)
+	h := parseWarlock8915936762(t, toTimestamp(2, 46))
 
 	var foundFlagbearer bool
 	for _, e := range h.missedEvents {
@@ -104,7 +104,7 @@ func TestReplay8915936762_WarlockMissedFlagbearerAround_2_45(t *testing.T) {
 
 // Spell/ambient damage on allied creeps around 2:51–2:59 must not register as missed CS.
 func TestReplay8915936762_WarlockNoFalseMisses_2_51_to_2_59(t *testing.T) {
-	h := parseWarlock8915936762(t)
+	h := parseWarlock8915936762(t, toTimestamp(2, 59))
 
 	for _, e := range h.missedEvents {
 		if e.Timestamp >= toTimestamp(2, 51) && e.Timestamp <= toTimestamp(2, 59) {
@@ -114,11 +114,8 @@ func TestReplay8915936762_WarlockNoFalseMisses_2_51_to_2_59(t *testing.T) {
 }
 
 // PA right-clicks goodguys melee too early at ~2:10; badguys ranged gets the last hit.
-// Skipped: needs pathcorner→creep binding (entity idx 1536 is lane_mid_pathcorner_badguys_7).
-// Tick-based correlation is covered by TestMissedLastHit_SameTickDeathSkip; replay case is separate work.
 func TestReplay8934466456_PAMissedMeleeTooEarly_2_10(t *testing.T) {
-	// t.Skip("pathcorner entity binding not implemented; see manta-labs/proofs/pathcorner-map/")
-	h := parsePhantomAssassin8934466456(t)
+	h := parsePhantomAssassin8934466456(t, toTimestamp(2, 11))
 
 	var found bool
 	for _, e := range h.missedEvents {
@@ -129,6 +126,22 @@ func TestReplay8934466456_PAMissedMeleeTooEarly_2_10(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("expected goodguys_melee miss around 2:10, got %d total misses", len(h.missedEvents))
+	}
+}
+
+// PA right-clicks badguys ranged too early at ~4:00 (deny attempt); enemy gets the last hit.
+func TestReplay8934466456_PAMissedRangedDenyTooEarly_4_00(t *testing.T) {
+	h := parsePhantomAssassin8934466456(t, toTimestamp(4, 2))
+
+	var found bool
+	for _, e := range h.missedEvents {
+		if e.CreepName == "npc_dota_creep_badguys_ranged" &&
+			e.Timestamp >= toTimestamp(4, 0) && e.Timestamp <= toTimestamp(4, 2) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected badguys_ranged miss around 4:00, got %d total misses", len(h.missedEvents))
 	}
 }
 
