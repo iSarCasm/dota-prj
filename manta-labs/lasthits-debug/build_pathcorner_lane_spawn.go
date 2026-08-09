@@ -22,14 +22,23 @@ type spawnPoint struct {
 	maxHealth  int32
 }
 
-type pathcornerLaneTableRow struct {
+type pathcornerSpawnStats struct {
 	Pathcorner string  `json:"pathcorner"`
 	Team       string  `json:"team"`
-	NameLane   string  `json:"name_lane"` // lane prefix in EntityNames
-	StartX     float32 `json:"start_x"`
-	StartY     float32 `json:"start_y"`
-	RealLane   string  `json:"real_lane"`
+	NameLane   string  `json:"name_lane"`
 	Spawns     int     `json:"spawns"`
+	MeanX      float32 `json:"mean_x"`
+	MeanY      float32 `json:"mean_y"`
+	StdX       float32 `json:"std_x"`
+	StdY       float32 `json:"std_y"`
+	Spread     float32 `json:"spread"` // max distance from mean across spawns
+	RangeX     float32 `json:"range_x"`
+	RangeY     float32 `json:"range_y"`
+	MinX       float32 `json:"min_x"`
+	MaxX       float32 `json:"max_x"`
+	MinY       float32 `json:"min_y"`
+	MaxY       float32 `json:"max_y"`
+	RealLane   string  `json:"real_lane"`
 }
 
 func entityWorldXY(e interface {
@@ -137,14 +146,18 @@ func runPathcornerLaneSpawn(replayPaths []string, out io.Writer, format string) 
 		all = append(all, spawns...)
 	}
 
-	rows := buildPathcornerLaneTable(all)
+	rows := buildPathcornerSpawnStats(all)
 	switch format {
 	case "json":
-		writePathcornerLaneTableJSON(out, rows, replayPaths)
+		writePathcornerSpawnStatsJSON(out, rows, replayPaths)
+	case "tsv":
+		writePathcornerSpawnStatsTSV(out, rows, replayPaths)
+	case "markdown", "md":
+		writePathcornerSpawnStatsMarkdown(out, rows, replayPaths)
 	case "table":
-		writePathcornerLaneTable(out, rows, replayPaths)
+		writePathcornerSpawnStatsAlignedTable(out, rows, replayPaths)
 	default:
-		writePathcornerLaneSpawnSummary(out, rows, replayPaths, all)
+		writePathcornerSpawnStatsSummary(out, rows, replayPaths)
 	}
 	return nil
 }
@@ -173,38 +186,84 @@ func dist(x1, y1, x2, y2 float32) float32 {
 	return float32(math.Hypot(float64(dx), float64(dy)))
 }
 
-type pathcornerAgg struct {
+type pathcornerBucket struct {
 	pathcorner string
 	team       string
 	lanePrefix string
-	n          int
-	meanX      float32
-	meanY      float32
+	points     []spawnPoint
 }
 
-func aggregateSpawns(spawns []spawnPoint) map[string]*pathcornerAgg {
-	agg := make(map[string]*pathcornerAgg)
+func bucketSpawns(spawns []spawnPoint) map[string]*pathcornerBucket {
+	buckets := make(map[string]*pathcornerBucket)
 	for _, s := range spawns {
-		a := agg[s.pathcorner]
-		if a == nil {
-			a = &pathcornerAgg{
+		b := buckets[s.pathcorner]
+		if b == nil {
+			b = &pathcornerBucket{
 				pathcorner: s.pathcorner,
 				team:       s.team,
 				lanePrefix: s.lanePrefix,
 			}
-			agg[s.pathcorner] = a
+			buckets[s.pathcorner] = b
 		}
-		a.n++
-		a.meanX += s.x
-		a.meanY += s.y
+		b.points = append(b.points, s)
 	}
-	for _, a := range agg {
-		if a.n > 0 {
-			a.meanX /= float32(a.n)
-			a.meanY /= float32(a.n)
+	return buckets
+}
+
+func spawnPositionStats(b *pathcornerBucket) pathcornerSpawnStats {
+	n := len(b.points)
+	st := pathcornerSpawnStats{
+		Pathcorner: b.pathcorner,
+		Team:       b.team,
+		NameLane:   b.lanePrefix,
+		Spawns:     n,
+	}
+	if n == 0 {
+		return st
+	}
+
+	var sumX, sumY float64
+	st.MinX, st.MaxX = b.points[0].x, b.points[0].x
+	st.MinY, st.MaxY = b.points[0].y, b.points[0].y
+	for _, p := range b.points {
+		sumX += float64(p.x)
+		sumY += float64(p.y)
+		if p.x < st.MinX {
+			st.MinX = p.x
+		}
+		if p.x > st.MaxX {
+			st.MaxX = p.x
+		}
+		if p.y < st.MinY {
+			st.MinY = p.y
+		}
+		if p.y > st.MaxY {
+			st.MaxY = p.y
 		}
 	}
-	return agg
+
+	st.MeanX = float32(sumX / float64(n))
+	st.MeanY = float32(sumY / float64(n))
+	st.RangeX = st.MaxX - st.MinX
+	st.RangeY = st.MaxY - st.MinY
+
+	if n > 1 {
+		var varX, varY float64
+		for _, p := range b.points {
+			dx := float64(p.x - st.MeanX)
+			dy := float64(p.y - st.MeanY)
+			varX += dx * dx
+			varY += dy * dy
+			d := dist(p.x, p.y, st.MeanX, st.MeanY)
+			if d > st.Spread {
+				st.Spread = d
+			}
+		}
+		st.StdX = float32(math.Sqrt(varX / float64(n)))
+		st.StdY = float32(math.Sqrt(varY / float64(n)))
+	}
+
+	return st
 }
 
 func teamReferenceCentroids(spawns []spawnPoint, team string) (bot, top xyCentroid) {
@@ -222,21 +281,21 @@ func teamReferenceCentroids(spawns []spawnPoint, team string) (bot, top xyCentro
 	return bot, top
 }
 
-func inferMidRealLane(a *pathcornerAgg, spawns []spawnPoint) string {
-	tBot, tTop := teamReferenceCentroids(spawns, a.team)
+func inferMidRealLane(st pathcornerSpawnStats, spawns []spawnPoint) string {
+	tBot, tTop := teamReferenceCentroids(spawns, st.Team)
 	tbx, tby := tBot.avg()
 	ttx, tty := tTop.avg()
 	hasTeamBot := tBot.n > 0
 	hasTeamTop := tTop.n > 0
 
-	if a.meanX > 0 && a.meanY > 0 {
+	if st.MeanX > 0 && st.MeanY > 0 {
 		return "mid"
 	}
 
-	switch a.team {
+	switch st.Team {
 	case "goodguys":
 		if hasTeamBot {
-			if dist(a.meanX, a.meanY, tbx, tby) < dist(a.meanX, a.meanY, ttx, tty)+500 || !hasTeamTop {
+			if dist(st.MeanX, st.MeanY, tbx, tby) < dist(st.MeanX, st.MeanY, ttx, tty)+500 || !hasTeamTop {
 				return "bot"
 			}
 			return "top"
@@ -246,7 +305,7 @@ func inferMidRealLane(a *pathcornerAgg, spawns []spawnPoint) string {
 		}
 	case "badguys":
 		if hasTeamTop {
-			if dist(a.meanX, a.meanY, ttx, tty) < dist(a.meanX, a.meanY, tbx, tby)+500 || !hasTeamBot {
+			if dist(st.MeanX, st.MeanY, ttx, tty) < dist(st.MeanX, st.MeanY, tbx, tby)+500 || !hasTeamBot {
 				return "top"
 			}
 			return "bot"
@@ -258,48 +317,106 @@ func inferMidRealLane(a *pathcornerAgg, spawns []spawnPoint) string {
 	return "unknown"
 }
 
-func buildPathcornerLaneTable(spawns []spawnPoint) []pathcornerLaneTableRow {
-	agg := aggregateSpawns(spawns)
-	keys := make([]string, 0, len(agg))
-	for k := range agg {
+func buildPathcornerSpawnStats(spawns []spawnPoint) []pathcornerSpawnStats {
+	buckets := bucketSpawns(spawns)
+	keys := make([]string, 0, len(buckets))
+	for k := range buckets {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
-	var rows []pathcornerLaneTableRow
+	var rows []pathcornerSpawnStats
 	for _, k := range keys {
-		a := agg[k]
-		realLane := a.lanePrefix
-		if a.lanePrefix == "mid" {
-			realLane = inferMidRealLane(a, spawns)
+		st := spawnPositionStats(buckets[k])
+		if st.NameLane == "mid" {
+			st.RealLane = inferMidRealLane(st, spawns)
+		} else {
+			st.RealLane = st.NameLane
 		}
-		rows = append(rows, pathcornerLaneTableRow{
-			Pathcorner: a.pathcorner,
-			Team:       a.team,
-			NameLane:   a.lanePrefix,
-			StartX:     a.meanX,
-			StartY:     a.meanY,
-			RealLane:   realLane,
-			Spawns:     a.n,
-		})
+		rows = append(rows, st)
 	}
 	return rows
 }
 
-func writePathcornerLaneTable(out io.Writer, rows []pathcornerLaneTableRow, replayPaths []string) {
-	fmt.Fprintf(out, "# pathcorner (EntityNames) → start position → real lane\n")
+func writePathcornerSpawnStatsTSV(out io.Writer, rows []pathcornerSpawnStats, replayPaths []string) {
+	fmt.Fprintf(out, "# pathcorner (EntityNames) → spawn position stats (TSV)\n")
 	fmt.Fprintf(out, "# replays: %s\n", strings.Join(replayPaths, ", "))
-	fmt.Fprintf(out, "# start_x/start_y: mean world position at first full-HP Created spawn\n")
-	fmt.Fprintf(out, "# name_lane: prefix in pathcorner string; real_lane: geographic lane (mid bucket reclassified)\n")
-	fmt.Fprintf(out, "pathcorner\tteam\tname_lane\tstart_x\tstart_y\treal_lane\tspawns\n")
+	fmt.Fprintf(out, "entity_name\tteam\tname_lane\tspawns\tmean_x\tmean_y\tstd_x\tstd_y\tspread\trange_x\trange_y\tmin_x\tmax_x\tmin_y\tmax_y\treal_lane\n")
 	for _, r := range rows {
-		fmt.Fprintf(out, "%s\t%s\t%s\t%.0f\t%.0f\t%s\t%d\n",
-			r.Pathcorner, r.Team, r.NameLane, r.StartX, r.StartY, r.RealLane, r.Spawns)
+		fmt.Fprintf(out, "%s\t%s\t%s\t%d\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%s\n",
+			r.Pathcorner, r.Team, r.NameLane, r.Spawns,
+			r.MeanX, r.MeanY, r.StdX, r.StdY, r.Spread,
+			r.RangeX, r.RangeY, r.MinX, r.MaxX, r.MinY, r.MaxY, r.RealLane)
 	}
 }
 
-func writePathcornerLaneTableJSON(out io.Writer, rows []pathcornerLaneTableRow, replayPaths []string) {
-	lookup := make(map[string]pathcornerLaneTableRow, len(rows))
+func writePathcornerSpawnStatsAlignedTable(out io.Writer, rows []pathcornerSpawnStats, replayPaths []string) {
+	fmt.Fprintf(out, "# pathcorner (EntityNames) → spawn position stats\n")
+	fmt.Fprintf(out, "# replays: %s\n", strings.Join(replayPaths, ", "))
+	fmt.Fprintf(out, "# mean_x/y: average world position at first full-HP Created spawn\n")
+	fmt.Fprintf(out, "# std_x/y: population std dev; spread: max distance from mean; range_x/y: max-min\n")
+	fmt.Fprintf(out, "#\n")
+
+	const (
+		cName  = 36
+		cTeam  = 9
+		cLane  = 5
+		cNum   = 7
+		cRLane = 5
+	)
+
+	header := fmt.Sprintf("%-*s %-*s %-*s %*s %*s %*s %*s %*s %*s %*s %*s %-*s\n",
+		cName, "entity_name",
+		cTeam, "team",
+		cLane, "lane",
+		cNum, "spawns",
+		cNum, "mean_x",
+		cNum, "mean_y",
+		cNum, "std_x",
+		cNum, "std_y",
+		cNum, "spread",
+		cNum, "rng_x",
+		cNum, "rng_y",
+		cRLane, "real",
+	)
+	sep := strings.Repeat("-", len(header)-1) + "\n"
+	fmt.Fprint(out, header, sep)
+
+	for _, r := range rows {
+		name := r.Pathcorner
+		if len(name) > cName {
+			name = name[:cName-1] + "…"
+		}
+		fmt.Fprintf(out, "%-*s %-*s %-*s %*d %7.0f %7.0f %7.0f %7.0f %7.0f %7.0f %7.0f %-*s\n",
+			cName, name,
+			cTeam, r.Team,
+			cLane, r.NameLane,
+			cNum, r.Spawns,
+			r.MeanX, r.MeanY, r.StdX, r.StdY, r.Spread, r.RangeX, r.RangeY,
+			cRLane, r.RealLane,
+		)
+	}
+	fmt.Fprintf(out, "# entries: %d\n", len(rows))
+}
+
+func writePathcornerSpawnStatsMarkdown(out io.Writer, rows []pathcornerSpawnStats, replayPaths []string) {
+	fmt.Fprintf(out, "# Pathcorner spawn position stats\n\n")
+	fmt.Fprintf(out, "Replays: %s\n\n", strings.Join(replayPaths, ", "))
+	fmt.Fprintf(out, "| entity_name | team | lane | spawns | mean_x | mean_y | std_x | std_y | spread | range_x | range_y | real_lane |\n")
+	fmt.Fprintf(out, "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|\n")
+	for _, r := range rows {
+		fmt.Fprintf(out, "| %s | %s | %s | %d | %.0f | %.0f | %.0f | %.0f | %.0f | %.0f | %.0f | %s |\n",
+			r.Pathcorner, r.Team, r.NameLane, r.Spawns,
+			r.MeanX, r.MeanY, r.StdX, r.StdY, r.Spread, r.RangeX, r.RangeY, r.RealLane)
+	}
+}
+
+func writePathcornerSpawnStatsTable(out io.Writer, rows []pathcornerSpawnStats, replayPaths []string) {
+	writePathcornerSpawnStatsAlignedTable(out, rows, replayPaths)
+}
+
+func writePathcornerSpawnStatsJSON(out io.Writer, rows []pathcornerSpawnStats, replayPaths []string) {
+	lookup := make(map[string]pathcornerSpawnStats, len(rows))
 	for _, r := range rows {
 		lookup[r.Pathcorner] = r
 	}
@@ -313,15 +430,15 @@ func writePathcornerLaneTableJSON(out io.Writer, rows []pathcornerLaneTableRow, 
 	_ = enc.Encode(payload)
 }
 
-func writePathcornerLaneSpawnSummary(out io.Writer, rows []pathcornerLaneTableRow, replayPaths []string, spawns []spawnPoint) {
-	fmt.Fprintf(out, "# pathcorner spawn lane classification\n")
+func writePathcornerSpawnStatsSummary(out io.Writer, rows []pathcornerSpawnStats, replayPaths []string) {
+	fmt.Fprintf(out, "# pathcorner spawn position stats\n")
 	fmt.Fprintf(out, "# replays: %s\n", strings.Join(replayPaths, ", "))
 	fmt.Fprintf(out, "#\n")
-	fmt.Fprintf(out, "# LANE TABLE (pathcorner → start position → real lane)\n")
-	fmt.Fprintf(out, "pathcorner | team | name_lane | start_x | start_y | real_lane | spawns\n")
+	fmt.Fprintf(out, "entity_name | team | spawns | mean_x | mean_y | std_x | std_y | spread | range_x | range_y | real_lane\n")
 	for _, r := range rows {
-		fmt.Fprintf(out, "%s | %s | %s | %.0f | %.0f | %s | %d\n",
-			r.Pathcorner, r.Team, r.NameLane, r.StartX, r.StartY, r.RealLane, r.Spawns)
+		fmt.Fprintf(out, "%s | %s | %d | %.0f | %.0f | %.0f | %.0f | %.0f | %.0f | %.0f | %s\n",
+			r.Pathcorner, r.Team, r.Spawns,
+			r.MeanX, r.MeanY, r.StdX, r.StdY, r.Spread, r.RangeX, r.RangeY, r.RealLane)
 	}
 	fmt.Fprintf(out, "# entries: %d\n", len(rows))
 }

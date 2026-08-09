@@ -1,8 +1,10 @@
 # pathcorner lane table cross-replay consistency
-# replay_a: ../../dota-replays/8915936762.dem
-# replay_b: ../../dota-replays/8934466456.dem
+# replay_a: /home/ihort/projects/dota-prj/manta-labs/../dota-replays/8915936762.dem
+# replay_b: /home/ihort/projects/dota-prj/manta-labs/../dota-replays/8934466456.dem
 # columns: pathcorner | real_lane_a | real_lane_b | lane_match | pos_delta | spawns_a | spawns_b
 pathcorner	real_lane_a	real_lane_b	lane_match	pos_delta	spawns_a	spawns_b
+# overlapping pathcorners: 9
+# real_lane mismatches: 0
 lane_bot_pathcorner_badguys_1	bot	bot	True	619	8	7
 lane_bot_pathcorner_badguys_4	bot	bot	True	1023	8	19
 lane_bot_pathcorner_goodguys_2	bot	bot	True	54	83	112

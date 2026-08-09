@@ -4,7 +4,12 @@
 
 Lane creep `m_iUnitNameIndex` → `EntityNames` returns pathcorner strings (e.g. `lane_mid_pathcorner_badguys_7`), **not** combat-log creep names. This proof builds:
 
-**pathcorner → mean spawn position (x, y) → real lane (top / mid / bot)**
+**pathcorner → mean spawn position (x, y) + dispersion (std, spread, range) → real lane**
+
+Dispersion columns:
+- **std_x / std_y** — population standard deviation per axis
+- **spread** — max distance from mean across spawns (worst-case outlier)
+- **range_x / range_y** — min–max span on each axis
 
 ## Findings
 
@@ -62,6 +67,12 @@ Merged table = union of pathcorners seen across replays. Some corners appear in 
 
 On tested replays, `lane_mid_pathcorner_goodguys_1` and `_3` both spawn at center diagonal → **mid**, not top-via-mid. Radiant top-lane overflow into mid bucket was **not observed** in these games (Radiant top sometimes uses rare `lane_top_pathcorner_goodguys_2b`).
 
+### 7. `goodguys` / `badguys` suffix is not geography or reliable team
+
+Pathcorner EntityNames suffix does **not** separate map regions — Radiant bot and Dire top spawns overlap (~SW corner); both teams' mid spawns share the center diagonal. Suffix usually matches combat-log creep team in health-vote mapping, but can disagree on individual binds (PA @ 4:00: combat `badguys_ranged`, entity `lane_mid_pathcorner_goodguys_1`).
+
+Do not use pathcorner suffix for lane geography or enemy/friendly filter. See `parser/engine_notes.md` item 6; `visualize.sh` → `pathcorner-lane-map.svg`.
+
 ## Reproduce lane table
 
 Tab-separated table (merged from two replays):
@@ -93,11 +104,23 @@ go run . -replays ../../dota-replays/8915936762.dem,../../dota-replays/893446645
 Example table rows:
 
 ```text
-pathcorner	team	name_lane	start_x	start_y	real_lane	spawns
-lane_bot_pathcorner_goodguys_2	goodguys	bot	-5209	-4934	bot	195
-lane_mid_pathcorner_badguys_7	badguys	mid	-5224	-4987	top	592
-lane_mid_pathcorner_badguys_4	badguys	mid	4329	4180	mid	91
+entity_name	team	name_lane	spawns	mean_x	mean_y	std_x	std_y	spread	range_x	range_y	...	real_lane
+lane_bot_pathcorner_goodguys_2	goodguys	bot	195	-5209	-4934	1129	859	2006	2816	2304	...	bot
+lane_mid_pathcorner_badguys_7	badguys	mid	592	-5224	-4987	1195	918	2164	3328	2304	...	top
+lane_mid_pathcorner_badguys_4	badguys	mid	91	4329	4180	1239	1004	2121	3072	2560	...	mid
 ```
+
+## Visualize (SVG, no pip)
+
+Circle **center** = mean spawn; **radius** = spread. Stdlib only.
+
+```bash
+./manta-labs/proofs/pathcorner-lane-spawn/visualize.sh
+```
+
+Output: `manta-labs/lasthits-debug/examples/pathcorner-lane-map.svg` (open in browser)
+
+Optional PNG if you have matplotlib: `python3 -m pip install matplotlib` then change `-o` to `.png` and use an older script — not required.
 
 ## Regenerate examples
 

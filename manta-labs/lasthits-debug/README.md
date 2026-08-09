@@ -74,7 +74,7 @@ go run . -replays ../../dota-replays/8915936762.dem,../../dota-replays/893446645
   -mode build-pathcorner-lane-spawn -format table
 ```
 
-See `examples/pathcorner-lane-table.txt` and `.json` (`lookup` map).
+See `examples/pathcorner-lane-table.txt` and `.json` (`lookup` map). Table includes mean spawn position plus **std_x/y**, **spread** (max dist from mean), and **range_x/y**.
 
 ### Build pathcorner → combat-log mapping
 

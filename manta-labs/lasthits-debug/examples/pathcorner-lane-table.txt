@@ -1,17 +1,20 @@
-# pathcorner (EntityNames) → start position → real lane
+# pathcorner (EntityNames) → spawn position stats
 # replays: ../../dota-replays/8915936762.dem, ../../dota-replays/8934466456.dem
-# start_x/start_y: mean world position at first full-HP Created spawn
-# name_lane: prefix in pathcorner string; real_lane: geographic lane (mid bucket reclassified)
-pathcorner	team	name_lane	start_x	start_y	real_lane	spawns
-lane_bot_pathcorner_badguys_1	badguys	bot	-4369	-5564	bot	15
-lane_bot_pathcorner_badguys_4	badguys	bot	-5385	-4636	bot	27
-lane_bot_pathcorner_badguys_5	badguys	bot	-5291	-5035	bot	3
-lane_bot_pathcorner_goodguys_2	goodguys	bot	-5209	-4934	bot	195
-lane_bot_pathcorner_goodguys_3	goodguys	bot	-4915	-5120	bot	5
-lane_mid_pathcorner_badguys_4	badguys	mid	4329	4180	mid	91
-lane_mid_pathcorner_badguys_7	badguys	mid	-5224	-4987	top	592
-lane_mid_pathcorner_goodguys_1	goodguys	mid	4413	4255	mid	234
-lane_mid_pathcorner_goodguys_3	goodguys	mid	4369	4233	mid	630
-lane_top_pathcorner_badguys_2b	badguys	top	-4480	-5419	top	6
-lane_top_pathcorner_badguys_4	badguys	top	-5274	-5039	top	73
-lane_top_pathcorner_goodguys_2b	goodguys	top	-5213	-4911	top	11
+# mean_x/y: average world position at first full-HP Created spawn
+# std_x/y: population std dev; spread: max distance from mean; range_x/y: max-min
+#
+entity_name                          team      lane   spawns  mean_x  mean_y   std_x   std_y  spread   rng_x   rng_y real 
+--------------------------------------------------------------------------------------------------------------------------
+lane_bot_pathcorner_badguys_1        badguys   bot        15   -4369   -5564     651     751    1226    1536    1792 bot  
+lane_bot_pathcorner_badguys_4        badguys   bot        27   -5385   -4636     799     537    2345    3072    2304 bot  
+lane_bot_pathcorner_badguys_5        badguys   bot         3   -5291   -5035    1260     988    1992    3072    2304 bot  
+lane_bot_pathcorner_goodguys_2       goodguys  bot       195   -5209   -4934    1129     859    2006    2816    2304 bot  
+lane_bot_pathcorner_goodguys_3       goodguys  bot         5   -4915   -5120    1042     857    2020    2816    2048 bot  
+lane_mid_pathcorner_badguys_4        badguys   mid        91    4329    4180    1239    1004    2121    3072    2560 mid  
+lane_mid_pathcorner_badguys_7        badguys   mid       592   -5224   -4987    1195     918    2164    3328    2304 top  
+lane_mid_pathcorner_goodguys_1       goodguys  mid       234    4413    4255    1261     965    1923    3072    2304 mid  
+lane_mid_pathcorner_goodguys_3       goodguys  mid       630    4369    4233    1279    1005    2102    3072    2560 mid  
+lane_top_pathcorner_badguys_2b       badguys   top         6   -4480   -5419     640     815    1172    1280    1792 top  
+lane_top_pathcorner_badguys_4        badguys   top        73   -5274   -5039    1302     979    2170    3328    2304 top  
+lane_top_pathcorner_goodguys_2b      goodguys  top        11   -5213   -4911    1077     837    2026    3072    2304 top  
+# entries: 12

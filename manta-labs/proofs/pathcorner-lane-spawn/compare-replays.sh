@@ -9,8 +9,8 @@ R2="${R2:-$ROOT/../dota-replays/8934466456.dem}"
 
 table() {
   local replay="$1"
-  env GOWORK=off go run . -replay "$replay" -mode build-pathcorner-lane-spawn -format table 2>/dev/null \
-    | awk -F'\t' 'NF >= 7 && $1 !~ /^#/ && $1 != "pathcorner" { print }'
+  env GOWORK=off go run . -replay "$replay" -mode build-pathcorner-lane-spawn -format tsv 2>/dev/null \
+    | awk -F'\t' 'NF >= 16 && $1 !~ /^#/ && $1 != "entity_name" { print }'
 }
 
 cd "$LAB"
@@ -38,14 +38,14 @@ def load(path):
             if not line or line.startswith("#"):
                 continue
             parts = line.split("\t")
-            if len(parts) < 7:
+            if len(parts) < 16:
                 continue
             name = parts[0]
             rows[name] = {
-                "real_lane": parts[5],
-                "x": float(parts[3]),
-                "y": float(parts[4]),
-                "spawns": int(parts[6]),
+                "real_lane": parts[15],
+                "x": float(parts[4]),
+                "y": float(parts[5]),
+                "spawns": int(parts[3]),
             }
     return rows
 

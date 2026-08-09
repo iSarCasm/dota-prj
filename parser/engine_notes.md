@@ -19,3 +19,9 @@
    - **`lane_mid_*` ≠ mid lane** — classify by spawn position or lookup table
    - **Lane table:** `manta-labs/proofs/pathcorner-lane-spawn/run.sh` → `pathcorner-lane-table.txt` / `.json` (`lookup[pathcorner].real_lane`)
    - **Consistency (2 replays):** `real_lane` stable for all 9 overlapping pathcorners; spawn x/y varies (±50 for high-traffic, ±1000+ for rare). Proof: `compare-replays.sh` → `pathcorner-lane-consistency.txt`. Full findings: `manta-labs/proofs/pathcorner-lane-spawn/README.md`
+
+6. **`goodguys` / `badguys` in pathcorner EntityNames is not map position or reliable creep team** — suffix is Valve pathcorner routing metadata, not a spatial label.
+   - **Not geography:** Radiant bot and Dire top spawns overlap in world coords (e.g. `lane_bot_pathcorner_goodguys_2` and `lane_mid_pathcorner_badguys_7` both ~(-5200, -4900)). Mid spawns for both teams share the center diagonal (~4400, 4200). See `pathcorner-lane-map.svg` (`visualize.sh`).
+   - **Not a tight team ID:** Health-vote mapping usually pairs `*_goodguys_*` → `npc_dota_creep_goodguys_*` and `*_badguys_*` → `npc_dota_creep_badguys_*` (`pathcorner-map`), but entity stream can disagree at bind time (PA @ 4:00: combat `badguys_ranged`, entity `lane_mid_pathcorner_goodguys_1` idx=2554 — trace `8934466456` tick 14377).
+   - **Do not use** `GetCreepSide(entityName)` or pathcorner suffix for lane geography, enemy/friendly filter, or deny targeting. Use combat-log NPC names + health correlation; use spawn `real_lane` table for geographic lane only.
+   - **Proof:** `manta-labs/proofs/pathcorner-lane-spawn/run.sh`, `visualize.sh`; `lasthits-debug -mode trace -from 240.9 -to 241.5` on replay `8934466456`.

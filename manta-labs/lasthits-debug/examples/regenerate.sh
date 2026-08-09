@@ -23,8 +23,13 @@ WARLOCK_REPLAY="${REPLAY:-../../dota-replays/8915936762.dem}"
 MERGED_REPLAYS="${MERGED_REPLAYS:-$WARLOCK_REPLAY,$PA_REPLAY}"
 go run . -replays "$MERGED_REPLAYS" -mode build-pathcorner-lane-spawn -format table \
   > examples/pathcorner-lane-table.txt
+go run . -replays "$MERGED_REPLAYS" -mode build-pathcorner-lane-spawn -format markdown \
+  > examples/pathcorner-lane-table.md
+go run . -replays "$MERGED_REPLAYS" -mode build-pathcorner-lane-spawn -format tsv \
+  > examples/pathcorner-lane-table.tsv
 go run . -replays "$MERGED_REPLAYS" -mode build-pathcorner-lane-spawn -format json \
   > examples/pathcorner-lane-table.json
 bash ../proofs/pathcorner-lane-spawn/compare-replays.sh \
   > examples/pathcorner-lane-consistency.txt 2>&1 || true
-echo "Done. Review examples/*.{txt,json}"
+bash ../proofs/pathcorner-lane-spawn/visualize.sh
+echo "Done. Review examples/*.{txt,json,svg}"

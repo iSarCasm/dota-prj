@@ -269,7 +269,7 @@ func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, op manta.Ent
 	if (tick >= 14377 && tick <= 14380) && track.prevHealth != 550 && track.prevHealth != 300 && track.side == "bad" {
 		log.Printf("game time %f (m = %f, s = %f)", gameTime, math.Floor(float64(gameTime/60)), gameTime-float32(60*math.Floor(float64(gameTime/60))))
 		// {id:33 creepName:npc_dota_creep_badguys_ranged tick:14377 gameTime:240.93335 health:16 damage:73 candidates:[] closed:false entityMatched:false}
-		log.Printf("tick %d justDied %v creepTrack: %+v", tick, justDied, track)
+		log.Printf("tick %d entityId %d creepTrack: %+v", tick, entityId, track)
 		log.Printf("health=%d prevHealth=%d", health, track.prevHealth)
 	}
 
