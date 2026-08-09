@@ -3,6 +3,7 @@ package lasthits
 import (
 	"errors"
 	"log"
+	"math"
 
 	"github.com/dotabuff/manta"
 	"github.com/dotabuff/manta/dota"
@@ -44,6 +45,7 @@ type creepTrack struct {
 	entityName      string // EntityNames from m_iUnitNameIndex (debugging; lane creeps use pathcorner strings)
 	className       string // class name from entity
 	lane            string // lane from entity name
+	side            string // side from entity name
 	prevHealth      int32
 	hasPrevHealth   bool
 	heroDamagedTick uint32 // 0 if our hero has not damaged this creep recently
@@ -176,6 +178,11 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 			health:    m.GetHealth(),
 			damage:    int32(m.GetValue()),
 		})
+
+		if tick == 14377 {
+			log.Printf("tick %d pendingHeroDamageLogs: %+v", tick, h.pendingHeroDamageLogs)
+		}
+
 		return nil
 
 	case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DEATH:
@@ -232,7 +239,7 @@ func entityName(p *manta.Parser, e *manta.Entity) string {
 func (h *Handler) onCreepEntity(p *manta.Parser, e *manta.Entity, op manta.EntityOp) error {
 	entityName := entityName(p, e)
 	className := e.GetClassName()
-	if !creeps.IsCreep(className) {
+	if !creeps.IsLaneCreep(className) {
 		return nil
 	}
 	health, ok := e.GetInt32("m_iHealth")
@@ -253,10 +260,18 @@ func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, op manta.Ent
 	track.entityName = entityName
 	track.className = className
 	track.lane = creeps.GetCreepLane(entityName)
+	track.side = creeps.GetCreepSide(entityName)
 
 	healthReduced := track.hasPrevHealth && health < track.prevHealth
 	justDied := (track.hasPrevHealth && health <= 0 && track.prevHealth > 0) ||
 		op.Flag(manta.EntityOpDeleted) || op.Flag(manta.EntityOpDeletedLeft)
+
+	if (tick >= 14377 && tick <= 14380) && track.prevHealth != 550 && track.prevHealth != 300 && track.side == "bad" {
+		log.Printf("game time %f (m = %f, s = %f)", gameTime, math.Floor(float64(gameTime/60)), gameTime-float32(60*math.Floor(float64(gameTime/60))))
+		// {id:33 creepName:npc_dota_creep_badguys_ranged tick:14377 gameTime:240.93335 health:16 damage:73 candidates:[] closed:false entityMatched:false}
+		log.Printf("tick %d justDied %v creepTrack: %+v", tick, justDied, track)
+		log.Printf("health=%d prevHealth=%d", health, track.prevHealth)
+	}
 
 	if healthReduced {
 		h.correlateHeroDamage(entityId, track, health, tick)
@@ -472,19 +487,19 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 
 	// Abnormal case: pending was closed before any entity correlated. Reopen and keep collecting.
 	if len(candidates) == 0 {
-		log.Printf(
-			"WARNING lasthits: finalizePendingBatch with ZERO entity candidates (not normal)\n"+
-				"  creep=%q tick=%d postHealth=%d damage=%d pendingLogs=%d\n"+
-				"  action=reopening closed pending lines; no entity health drop matched yet",
-			primary.creepName, primary.tick, primary.health, primary.damage, len(batch),
-		)
+		// log.Printf(
+		// 	"WARNING lasthits: finalizePendingBatch with ZERO entity candidates (not normal)\n"+
+		// 		"  creep=%q tick=%d postHealth=%d damage=%d pendingLogs=%d\n"+
+		// 		"  action=reopening closed pending lines; no entity health drop matched yet",
+		// 	primary.creepName, primary.tick, primary.health, primary.damage, len(batch),
+		// )
 		// Display all creeps with matching name
-		for i := range h.creepTracks {
-			creepTrack := h.creepTracks[i]
-			if creepTrack.creepName == primary.creepName {
-				log.Printf("Creep track: %+v", creepTrack)
-			}
-		}
+		// for i := range h.creepTracks {
+		// 	creepTrack := h.creepTracks[i]
+		// 	if creepTrack.creepName == primary.creepName {
+		// 		log.Printf("Creep track: %+v", creepTrack)
+		// 	}
+		// }
 		// for i := range batch {
 		// 	pd := batch[i]
 		// 	pd.closed = false
@@ -498,12 +513,12 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 		for i, pd := range batch {
 			ids[i] = pd.id
 		}
-		log.Printf(
-			"WARNING lasthits: finalizePendingBatch with LESS entity candidates than batch size (not normal)\n"+
-				"  creep=%q tick=%d postHealth=%d damage=%d pendingLines=%d\n"+
-				"  action=reopening closed pending lines; no entity health drop matched yet",
-			primary.creepName, primary.tick, primary.health, primary.damage, len(batch),
-		)
+		// log.Printf(
+		// 	"WARNING lasthits: finalizePendingBatch with LESS entity candidates than batch size (not normal)\n"+
+		// 		"  creep=%q tick=%d postHealth=%d damage=%d pendingLines=%d\n"+
+		// 		"  action=reopening closed pending lines; no entity health drop matched yet",
+		// 	primary.creepName, primary.tick, primary.health, primary.damage, len(batch),
+		// )
 	}
 
 	for _, pd := range batch {

@@ -22,7 +22,7 @@ func TypeFromTargetName(targetName string) string {
 
 // IsLaneCreep reports whether className is a creep entity class.
 func IsLaneCreep(className string) bool {
-	return className == "CDOTA_BaseNPC_Creep_Lane"
+	return className == "CDOTA_BaseNPC_Creep_Lane" || className == "CDOTA_BaseNPC_Creep_Siege"
 }
 
 func IsCreep(className string) bool {
@@ -38,6 +38,16 @@ func GetCreepLane(entityName string) string {
 	}
 	if strings.Contains(entityName, "_top_") {
 		return "top"
+	}
+	return ""
+}
+
+func GetCreepSide(entityName string) string {
+	if strings.Contains(entityName, "_goodguys_") {
+		return "good"
+	}
+	if strings.Contains(entityName, "_badguys_") {
+		return "bad"
 	}
 	return ""
 }
