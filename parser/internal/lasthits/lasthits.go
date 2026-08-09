@@ -232,7 +232,7 @@ func entityName(p *manta.Parser, e *manta.Entity) string {
 func (h *Handler) onCreepEntity(p *manta.Parser, e *manta.Entity, op manta.EntityOp) error {
 	entityName := entityName(p, e)
 	className := e.GetClassName()
-	if !creeps.IsLaneCreep(className) {
+	if !creeps.IsCreep(className) {
 		return nil
 	}
 	health, ok := e.GetInt32("m_iHealth")
@@ -485,6 +485,10 @@ func (h *Handler) finalizePendingBatch(batch []*pendingCLogCreepEvent) {
 				log.Printf("Creep track: %+v", creepTrack)
 			}
 		}
+		// for i := range batch {
+		// 	pd := batch[i]
+		// 	pd.closed = false
+		// }
 		return
 	}
 
