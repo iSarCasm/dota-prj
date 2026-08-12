@@ -11,6 +11,8 @@
 
    So combat log → entity updates on a tick is correct. Trace output can look backwards because entity lines often carry a **later game timestamp** than the combat line they pair with; that is wall-clock on the event, not callback order.
 
+   **Cross-tick:** outer demo messages are non-decreasing in `p.Tick`. After the first combat-log callback at tick `T`, no entity callback with `tick < T` appears later — i.e. all entity updates for tick `N` finish before the first combat log for tick `N+1`. **Proof:** `manta-labs/proofs/tick-ordering/run.sh`.
+
    **Lasthits implication:** queue hero DAMAGE on combat log with `p.Tick`; bind on the **following entity updates** using replay tick (not game time — entity and combat timestamps can differ on the same tick). See `internal/lasthits/correlation.md`. Do **not** finalize pending from the combat-log callback — busy ticks have many combat lines before entities run. Safe closes: `closePendingHeroDamageBeforeTick` on the next tick's combat log, and `finalizePendingHeroDamageForTick` on same-tick creep death. Never finalize a batch with 0 candidates (reopen — entities for that tick have not run yet).
 
 5. **Pathcorner lane naming is asymmetric by team** — lane creep `EntityNames` use pathcorner strings, not `npc_dota_creep_*`. Prefix usage on spawns:

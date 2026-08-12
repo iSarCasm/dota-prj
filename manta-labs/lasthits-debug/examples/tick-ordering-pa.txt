@@ -1,0 +1,11 @@
+# tick ordering proof
+# replay: /home/ihort/projects/dota-prj/dota-replays/8934466456.dem
+combat_callbacks	63178
+entity_callbacks	4222927
+ticks_with_both_combat_and_entity	18402
+same_tick_combat_before_first_entity	18402
+same_tick_entity_before_first_combat	0
+violations_tick_decreased	0
+violations_entity_after_later_combat	0
+RESULT	PASS
+# implication: all entity updates for tick N finish before first combat log for tick N+1

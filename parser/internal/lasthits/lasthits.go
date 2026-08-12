@@ -3,7 +3,6 @@ package lasthits
 import (
 	"errors"
 	"log"
-	"math"
 
 	"github.com/dotabuff/manta"
 	"github.com/dotabuff/manta/dota"
@@ -49,6 +48,7 @@ type creepTrack struct {
 	prevHealth      int32
 	hasPrevHealth   bool
 	heroDamagedTick uint32 // 0 if our hero has not damaged this creep recently
+	lastUpdatedTick uint32 // last tick we updated this creep track
 	conflictGroupID uint64 // pending damage id when ambiguous; 0 = unique match
 }
 
@@ -280,17 +280,19 @@ func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, isMaxHealth 
 	}
 	track.entityName = entityName
 	track.className = className
+	track.lastUpdatedTick = tick
 
 	healthReduced := track.hasPrevHealth && health < track.prevHealth
 	justDied := (track.hasPrevHealth && health <= 0 && track.prevHealth > 0) ||
 		op.Flag(manta.EntityOpDeleted) || op.Flag(manta.EntityOpDeletedLeft)
 
-	if (tick >= 14377 && tick <= 14380) && track.prevHealth != 550 && track.prevHealth != 300 && track.side == "bad" && track.lane == "top" {
-		log.Printf("game time %f (m = %f, s = %f)", gameTime, math.Floor(float64(gameTime/60)), gameTime-float32(60*math.Floor(float64(gameTime/60))))
-		// {id:33 creepName:npc_dota_creep_badguys_ranged tick:14377 gameTime:240.93335 health:16 damage:73 candidates:[] closed:false entityMatched:false}
-		log.Printf("tick %d entityId %d creepTrack: %+v", tick, entityId, track)
-		log.Printf("health=%d prevHealth=%d", health, track.prevHealth)
-	}
+	// Debug for PA 4:10
+	// if (tick >= 14377 && tick <= 14380) && track.prevHealth != 550 && track.prevHealth != 300 && track.side == "bad" && track.lane == "top" {
+	// 	log.Printf("game time %f (m = %f, s = %f)", gameTime, math.Floor(float64(gameTime/60)), gameTime-float32(60*math.Floor(float64(gameTime/60))))
+	// 	// {id:33 creepName:npc_dota_creep_badguys_ranged tick:14377 gameTime:240.93335 health:16 damage:73 candidates:[] closed:false entityMatched:false}
+	// 	log.Printf("tick %d entityId %d creepTrack: %+v", tick, entityId, track)
+	// 	log.Printf("health=%d prevHealth=%d", health, track.prevHealth)
+	// }
 
 	if healthReduced {
 		h.correlateHeroDamage(entityId, track, health, tick)
@@ -584,15 +586,6 @@ func (h *Handler) correlateHeroDamage(entityId int32, track *creepTrack, health 
 			pd.candidates = slicesx.AppendIfMissing(pd.candidates, entityId)
 		}
 	}
-}
-
-func (h *Handler) resolveConflictGroupHeroLastHit(groupID uint64, entityIdx int32) {
-	// One hero LH slot consumed; only unmark the killed creep so siblings stay correlated.
-	group := h.conflictGroups[groupID]
-	if group == nil {
-		return
-	}
-	group.remainingCombatLogsCount--
 }
 
 // Count alive creeps still in the group (defer enemy-kill miss while ambiguous).
