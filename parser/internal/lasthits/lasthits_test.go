@@ -30,7 +30,7 @@ func seedCreep(h *Handler, idx int32, health int32, tick uint32) {
 }
 
 func updateCreepHealth(h *Handler, idx int32, health int32, op manta.EntityOp, tick uint32) {
-	h.onCreepHealthUpdate(idx, health, op, tick, 0, "", "")
+	h.onCreepHealthUpdate(idx, health, true, 0, 0, op, tick, 0, "", "")
 }
 
 func closePendingAfterDamageTick(h *Handler, damageTick uint32) {

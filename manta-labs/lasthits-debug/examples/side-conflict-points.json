@@ -1,0 +1,478 @@
+[
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -1280.0,
+    "y": -1280.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": 5632.0,
+    "y": -5632.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -6144.0,
+    "y": 5120.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 512.0,
+    "y": 256.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -1280.0,
+    "y": -1280.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 512.0,
+    "y": 256.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 5888.0,
+    "y": -5632.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_1",
+    "x": 5888.0,
+    "y": -5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -6144.0,
+    "y": 4352.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": 5888.0,
+    "y": -5632.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 6144.0,
+    "y": -4864.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -6400.0,
+    "y": 3072.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_bot_pathcorner_goodguys_2",
+    "x": -768.0,
+    "y": -512.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_1",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -6400.0,
+    "y": 3328.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 0.0,
+    "y": 0.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_bot_pathcorner_goodguys_2",
+    "x": 5888.0,
+    "y": -5120.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -1280.0,
+    "y": -1024.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 1280.0,
+    "y": 1024.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -6400.0,
+    "y": 3584.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -6400.0,
+    "y": 3328.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_bot_pathcorner_goodguys_2",
+    "x": 5632.0,
+    "y": -5632.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -1280.0,
+    "y": -1280.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_1",
+    "x": 5888.0,
+    "y": -4864.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_1",
+    "x": -6400.0,
+    "y": 3584.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 1280.0,
+    "y": 1024.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": 5632.0,
+    "y": -5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -1280.0,
+    "y": -1024.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -6400.0,
+    "y": 3584.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -6400.0,
+    "y": 3584.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -6400.0,
+    "y": 3840.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 5632.0,
+    "y": -5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_1",
+    "x": -6400.0,
+    "y": 3840.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 5632.0,
+    "y": -5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": 5632.0,
+    "y": -5888.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -5888.0,
+    "y": 5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": 5632.0,
+    "y": -5888.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -256.0,
+    "y": 0.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 5888.0,
+    "y": -4864.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -1024.0,
+    "y": -768.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_bot_pathcorner_goodguys_2",
+    "x": -768.0,
+    "y": -768.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_bot_pathcorner_goodguys_2",
+    "x": -6400.0,
+    "y": 4864.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -1280.0,
+    "y": -1280.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -5888.0,
+    "y": 5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -1280.0,
+    "y": -1280.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -6144.0,
+    "y": 4864.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -6144.0,
+    "y": 4864.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": 5632.0,
+    "y": -5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": 5632.0,
+    "y": -5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 5888.0,
+    "y": -5120.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_1",
+    "x": -768.0,
+    "y": -768.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -6144.0,
+    "y": 4608.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -5632.0,
+    "y": 5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 5632.0,
+    "y": -5120.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": 5632.0,
+    "y": -5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_bot_pathcorner_goodguys_2",
+    "x": -6144.0,
+    "y": 5120.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -512.0,
+    "y": -512.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -512.0,
+    "y": -512.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_1",
+    "x": -5888.0,
+    "y": 5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -5888.0,
+    "y": 5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -512.0,
+    "y": -512.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": 5888.0,
+    "y": -5120.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_1",
+    "x": 5888.0,
+    "y": -5120.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": 5888.0,
+    "y": -5376.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -512.0,
+    "y": -512.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_3",
+    "x": -768.0,
+    "y": -768.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "good",
+    "name": "lane_mid_pathcorner_badguys_7",
+    "x": -256.0,
+    "y": -256.0
+  },
+  {
+    "side1": "sideCandidate1 != sideCandidate2:",
+    "side2": "bad",
+    "name": "lane_mid_pathcorner_goodguys_1",
+    "x": -256.0,
+    "y": -256.0
+  }
+]

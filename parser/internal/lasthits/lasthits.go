@@ -45,7 +45,7 @@ type creepTrack struct {
 	entityName      string // EntityNames from m_iUnitNameIndex (debugging; lane creeps use pathcorner strings)
 	className       string // class name from entity
 	lane            string // lane from entity name
-	side            string // side from entity name
+	side            string // map side from pathcorner spawn geography (good=SW, bad=NE)
 	prevHealth      int32
 	hasPrevHealth   bool
 	heroDamagedTick uint32 // 0 if our hero has not damaged this creep recently
@@ -242,31 +242,47 @@ func (h *Handler) onCreepEntity(p *manta.Parser, e *manta.Entity, op manta.Entit
 	if !creeps.IsLaneCreep(className) {
 		return nil
 	}
+	x, y := creeps.GetEntityLocation(e)
+	isMaxHealth := creeps.IsMaxHealth(e)
 	health, ok := e.GetInt32("m_iHealth")
 	if !ok {
 		return nil
 	}
 	gameTime := h.timeAndPausesHandler.CurrentGameTime()
-	h.onCreepHealthUpdate(e.GetIndex(), health, op, p.Tick, gameTime, entityName, className)
+	h.onCreepHealthUpdate(e.GetIndex(), health, isMaxHealth, x, y, op, p.Tick, gameTime, entityName, className)
 	return nil
 }
 
-func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, op manta.EntityOp, tick uint32, gameTime float32, entityName string, className string) {
+func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, isMaxHealth bool, x float32, y float32, op manta.EntityOp, tick uint32, gameTime float32, entityName string, className string) {
 	track := h.creepTracks[entityId]
 	if track == nil {
 		track = &creepTrack{}
 		h.creepTracks[entityId] = track
+		// Sometimes we see entity for the first time in some random positions along the lanes
+		if isMaxHealth {
+			track.lane = creeps.GetCreepLaneFromSpawnLocation(x, y)
+			sideCandidate1 := creeps.GetCreepSideFromSpawnLocation(x, y)
+			sideCandidate2 := creeps.GetCreepSide(entityName)
+			if sideCandidate1 != sideCandidate2 {
+				log.Printf("ERROR: sideCandidate1 != sideCandidate2: %s != %s", sideCandidate1, sideCandidate2)
+				// log.Printf("entityName: %s", entityName)
+				// log.Printf("x: %f y: %f", x, y)
+				// log.Printf("lane: %s", track.lane)
+				// log.Printf("sideCandidate1: %s", sideCandidate1)
+				// log.Printf("sideCandidate2: %s", sideCandidate2)
+			} else {
+				track.side = sideCandidate1
+			}
+		}
 	}
 	track.entityName = entityName
 	track.className = className
-	track.lane = creeps.GetCreepLane(entityName)
-	track.side = creeps.GetCreepSide(entityName)
 
 	healthReduced := track.hasPrevHealth && health < track.prevHealth
 	justDied := (track.hasPrevHealth && health <= 0 && track.prevHealth > 0) ||
 		op.Flag(manta.EntityOpDeleted) || op.Flag(manta.EntityOpDeletedLeft)
 
-	if (tick >= 14377 && tick <= 14380) && track.prevHealth != 550 && track.prevHealth != 300 && track.side == "bad" {
+	if (tick >= 14377 && tick <= 14380) && track.prevHealth != 550 && track.prevHealth != 300 && track.side == "bad" && track.lane == "top" {
 		log.Printf("game time %f (m = %f, s = %f)", gameTime, math.Floor(float64(gameTime/60)), gameTime-float32(60*math.Floor(float64(gameTime/60))))
 		// {id:33 creepName:npc_dota_creep_badguys_ranged tick:14377 gameTime:240.93335 health:16 damage:73 candidates:[] closed:false entityMatched:false}
 		log.Printf("tick %d entityId %d creepTrack: %+v", tick, entityId, track)

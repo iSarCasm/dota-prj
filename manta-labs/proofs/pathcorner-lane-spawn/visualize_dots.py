@@ -21,6 +21,9 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "spawn-lane-clusters"))
+from centroids import draw_centroids  # noqa: E402
+
 REAL_LANE_COLORS = {
     "bot": "#4C78A8",
     "mid": "#59A14F",
@@ -175,10 +178,12 @@ def plot_pathcorner(
         "stroke": "#111", "stroke-width": "1.2",
     })
 
+    draw_centroids(root, tx, ty, size=4, labels=False)
+
     ET.SubElement(root, "text", {
         "x": str(margin), "y": str(height - 18),
         "font-family": "sans-serif", "font-size": "10", "fill": "#666",
-    }).text = "dot = spawn; crosshair = mean; same scale as pathcorner-lane-map.svg"
+    }).text = "dot = spawn; crosshair = mean; diamond = lane centroid (creeps.go)"
 
     out.parent.mkdir(parents=True, exist_ok=True)
     tree = ET.ElementTree(root)

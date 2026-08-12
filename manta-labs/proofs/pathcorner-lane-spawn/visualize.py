@@ -18,6 +18,9 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "spawn-lane-clusters"))
+from centroids import draw_centroids  # noqa: E402
+
 REAL_LANE_COLORS = {
     "bot": "#4C78A8",
     "mid": "#59A14F",
@@ -173,6 +176,9 @@ def plot_svg(rows: list[dict], out: Path, title: str, width: int, height: int) -
             "font-family": "monospace", "font-size": "9", "fill": "#111",
         }).text = short_name(row["pathcorner"])
 
+    # GetCreepLaneFromSpawnLocation centroids (creeps.go)
+    draw_centroids(root, tx, ty, size=4)
+
     # legend
     lx, ly = margin, height - margin + 8
     for i, (lane, color) in enumerate(
@@ -187,6 +193,15 @@ def plot_svg(rows: list[dict], out: Path, title: str, width: int, height: int) -
             "x": str(lx + 14), "y": str(yy),
             "font-family": "sans-serif", "font-size": "10",
         }).text = f"real_lane={lane}"
+    yy = ly + 3 * 16
+    ET.SubElement(root, "polygon", {
+        "points": f"{lx},{yy - 10} {lx + 7},{yy - 4} {lx},{yy + 2} {lx - 7},{yy - 4}",
+        "fill": "#E15759", "stroke": "#111", "stroke-width": "1.5",
+    })
+    ET.SubElement(root, "text", {
+        "x": str(lx + 14), "y": str(yy),
+        "font-family": "sans-serif", "font-size": "10",
+    }).text = "diamond = spawn lane centroid"
 
     out.parent.mkdir(parents=True, exist_ok=True)
     tree = ET.ElementTree(root)

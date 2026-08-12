@@ -54,10 +54,24 @@
   <text x="204.07" y="640.51" font-family="monospace" font-size="9" fill="#111">badguys_4</text>
   <circle cx="211.18" cy="649.47" r="3" fill="#111111" />
   <text x="217.18" y="645.47" font-family="monospace" font-size="9" fill="#111">goodguys_2b</text>
+  <polygon points="122.24434962491398,596.444676512908 126.24434962491398,600.444676512908 122.24434962491398,604.444676512908 118.24434962491398,600.444676512908" fill="#E15759" fill-opacity="1" stroke="#111111" stroke-width="1" />
+  <text x="129.24" y="597.44" font-family="monospace" font-size="9" fill="#333">good/top</text>
+  <polygon points="206.03781347330198,621.672448844195 210.03781347330198,625.672448844195 206.03781347330198,629.672448844195 202.03781347330198,625.672448844195" fill="#59A14F" fill-opacity="1" stroke="#111111" stroke-width="1" />
+  <text x="213.04" y="622.67" font-family="monospace" font-size="9" fill="#333">good/mid</text>
+  <polygon points="273.4739213450335,701.4843076515156 277.4739213450335,705.4843076515156 273.4739213450335,709.4843076515156 269.4739213450335,705.4843076515156" fill="#4C78A8" fill-opacity="1" stroke="#111111" stroke-width="1" />
+  <text x="280.47" y="702.48" font-family="monospace" font-size="9" fill="#333">good/bot</text>
+  <polygon points="635.2638460407685,113.38543557936873 639.2638460407685,117.38543557936873 635.2638460407685,121.38543557936873 631.2638460407685,117.38543557936873" fill="#E15759" fill-opacity="1" stroke="#555555" stroke-width="1" />
+  <text x="642.26" y="114.39" font-family="monospace" font-size="9" fill="#333">bad/top</text>
+  <polygon points="684.0163115637629,219.52667282685616 688.0163115637629,223.52667282685616 684.0163115637629,227.52667282685616 680.0163115637629,223.52667282685616" fill="#59A14F" fill-opacity="1" stroke="#555555" stroke-width="1" />
+  <text x="691.02" y="220.53" font-family="monospace" font-size="9" fill="#333">bad/mid</text>
+  <polygon points="796.2648684003705,215.93900968847686 800.2648684003705,219.93900968847686 796.2648684003705,223.93900968847686 792.2648684003705,219.93900968847686" fill="#4C78A8" fill-opacity="1" stroke="#555555" stroke-width="1" />
+  <text x="803.26" y="216.94" font-family="monospace" font-size="9" fill="#333">bad/bot</text>
   <circle cx="60" cy="844" r="7" fill="#4C78A8" fill-opacity="0.5" stroke="#333" />
   <text x="74" y="848" font-family="sans-serif" font-size="10">real_lane=bot</text>
   <circle cx="60" cy="860" r="7" fill="#59A14F" fill-opacity="0.5" stroke="#333" />
   <text x="74" y="864" font-family="sans-serif" font-size="10">real_lane=mid</text>
   <circle cx="60" cy="876" r="7" fill="#E15759" fill-opacity="0.5" stroke="#333" />
   <text x="74" y="880" font-family="sans-serif" font-size="10">real_lane=top</text>
+  <polygon points="60,886 67,892 60,898 53,892" fill="#E15759" stroke="#111" stroke-width="1.5" />
+  <text x="74" y="896" font-family="sans-serif" font-size="10">diamond = spawn lane centroid</text>
 </svg>
