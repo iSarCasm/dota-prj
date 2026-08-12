@@ -63,6 +63,7 @@ type Handler struct {
 	lastHitsLane          int
 	lastHitsJungle        int
 	denies                int
+	lastCombatLogTick     uint32
 	events                []Event
 	missedEvents          []Event
 	pendingHeroDamageLogs []pendingCLogCreepEvent
@@ -142,6 +143,8 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 	gameTime := h.timeAndPausesHandler.CurrentGameTime()
 	h.closePendingHeroDamageBeforeTick(tick)
 	h.prunePendingEvents(tick)
+
+	h.lastCombatLogTick = tick
 
 	attackerNameIdx := m.GetAttackerName()
 	targetNameIdx := m.GetTargetName()
