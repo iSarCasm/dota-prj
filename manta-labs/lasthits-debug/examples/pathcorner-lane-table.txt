@@ -1,20 +1,23 @@
 # pathcorner (EntityNames) → spawn position stats
-# replays: ../../dota-replays/8915936762.dem, ../../dota-replays/8934466456.dem
+# replays: ../../dota-replays/8915936762.dem, ../../dota-replays/8930839335.dem, ../../dota-replays/8934086594.dem, ../../dota-replays/8934466456.dem, ../../dota-replays/8937330228.dem, ../../dota-replays/8937758789.dem, ../../dota-replays/8937936492.dem
 # mean_x/y: average world position at first full-HP Created spawn
 # std_x/y: population std dev; spread: max distance from mean; range_x/y: max-min
 #
 entity_name                          team      lane   spawns  mean_x  mean_y   std_x   std_y  spread   rng_x   rng_y real 
 --------------------------------------------------------------------------------------------------------------------------
-lane_bot_pathcorner_badguys_1        badguys   bot        15   -4369   -5564     651     751    1226    1536    1792 bot  
-lane_bot_pathcorner_badguys_4        badguys   bot        27   -5385   -4636     799     537    2345    3072    2304 bot  
-lane_bot_pathcorner_badguys_5        badguys   bot         3   -5291   -5035    1260     988    1992    3072    2304 bot  
-lane_bot_pathcorner_goodguys_2       goodguys  bot       195   -5209   -4934    1129     859    2006    2816    2304 bot  
-lane_bot_pathcorner_goodguys_3       goodguys  bot         5   -4915   -5120    1042     857    2020    2816    2048 bot  
-lane_mid_pathcorner_badguys_4        badguys   mid        91    4329    4180    1239    1004    2121    3072    2560 mid  
-lane_mid_pathcorner_badguys_7        badguys   mid       592   -5224   -4987    1195     918    2164    3328    2304 top  
-lane_mid_pathcorner_goodguys_1       goodguys  mid       234    4413    4255    1261     965    1923    3072    2304 mid  
-lane_mid_pathcorner_goodguys_3       goodguys  mid       630    4369    4233    1279    1005    2102    3072    2560 mid  
-lane_top_pathcorner_badguys_2b       badguys   top         6   -4480   -5419     640     815    1172    1280    1792 top  
-lane_top_pathcorner_badguys_4        badguys   top        73   -5274   -5039    1302     979    2170    3328    2304 top  
-lane_top_pathcorner_goodguys_2b      goodguys  top        11   -5213   -4911    1077     837    2026    3072    2304 top  
-# entries: 12
+lane_bot_pathcorner_badguys_1        badguys   bot        55   -4599   -5371     836     795    2528    3328    2304 bot  
+lane_bot_pathcorner_badguys_3        badguys   bot        14    3840    4005     375     852    1800    1024    2304 bot  
+lane_bot_pathcorner_badguys_4        badguys   bot       116   -4890   -5016     755     755    2221    3072    2304 bot  
+lane_bot_pathcorner_badguys_5        badguys   bot        11   -5167   -5236    1354     985    2085    3072    2304 bot  
+lane_bot_pathcorner_goodguys_2       goodguys  bot       894   -5224   -4938    1149     871    2036    3328    2304 bot  
+lane_bot_pathcorner_goodguys_3       goodguys  bot        32   -4968   -5160    1051     905    1995    2816    2304 bot  
+lane_mid_pathcorner_badguys_4        badguys   mid       405    4401    4205    1294    1007    2144    3328    2560 mid  
+lane_mid_pathcorner_badguys_5        badguys   mid        32    3528    4576     465    1093    1389    1024    2560 mid  
+lane_mid_pathcorner_badguys_7        badguys   mid      2740   -5230   -4988    1202     921    2168    3328    2304 top  
+lane_mid_pathcorner_goodguys_1       goodguys  mid       990    4453    4261    1288     968    1946    3072    2304 mid  
+lane_mid_pathcorner_goodguys_3       goodguys  mid      2898    4407    4220    1294    1000    2136    3328    2560 mid  
+lane_mid_pathcorner_goodguys_4       goodguys  mid         5    3379    4813     376    1003    1312     768    2048 mid  
+lane_top_pathcorner_badguys_2b       badguys   top        17   -4442   -5602     882     904    2893    3328    2304 top  
+lane_top_pathcorner_badguys_4        badguys   top       392   -5273   -4989    1237     928    2201    3328    2304 top  
+lane_top_pathcorner_goodguys_2b      goodguys  top        98   -5023   -5089    1091     899    2134    3072    2304 top  
+# entries: 15

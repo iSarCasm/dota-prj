@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+  <rect x="0" y="0" width="900" height="900" fill="#fafafa" />
+  <text x="60" y="22" font-family="monospace" font-size="12" font-weight="bold">lane_bot_pathcorner_goodguys_3</text>
+  <text x="60" y="40" font-family="sans-serif" font-size="11" fill="#444">real_lane=bot  team=goodguys  spawns=32  mean=(-4968,-5160)  scale=global</text>
+  <line x1="474.37" y1="60" x2="474.37" y2="840" stroke="#ddd" stroke-width="1" />
+  <line x1="60" y1="396.96" x2="840" y2="396.96" stroke="#ddd" stroke-width="1" />
+  <circle cx="125.63" cy="600.21" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="273.18" cy="701.84" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="206.11" cy="625.62" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="273.18" cy="701.84" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="206.11" cy="625.62" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="259.76" cy="714.54" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="192.70" cy="638.32" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="273.18" cy="714.54" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="125.63" cy="600.21" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="206.11" cy="625.62" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="206.11" cy="625.62" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="125.63" cy="600.21" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="206.11" cy="625.62" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="273.18" cy="701.84" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="273.18" cy="701.84" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="206.11" cy="625.62" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="206.11" cy="625.62" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="273.18" cy="701.84" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="273.18" cy="701.84" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="125.63" cy="600.21" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="273.18" cy="701.84" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="206.11" cy="625.62" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="273.18" cy="701.84" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="206.11" cy="625.62" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="273.18" cy="701.84" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="125.63" cy="600.21" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="206.11" cy="625.62" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="125.63" cy="600.21" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="125.63" cy="600.21" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="259.76" cy="714.54" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="259.76" cy="714.54" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="206.11" cy="625.62" r="2.20" fill="#4C78A8" fill-opacity="0.55" stroke="none" />
+  <circle cx="214.08" cy="653.01" r="5" fill="none" stroke="#111" stroke-width="1.5" />
+  <line x1="206.08" y1="653.01" x2="222.08" y2="653.01" stroke="#111" stroke-width="1.2" />
+  <line x1="214.08" y1="645.01" x2="214.08" y2="661.01" stroke="#111" stroke-width="1.2" />
+  <text x="60" y="882" font-family="sans-serif" font-size="10" fill="#666">dot = spawn; crosshair = mean; same scale as pathcorner-lane-map.svg</text>
+</svg>

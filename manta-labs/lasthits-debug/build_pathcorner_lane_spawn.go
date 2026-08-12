@@ -150,6 +150,8 @@ func runPathcornerLaneSpawn(replayPaths []string, out io.Writer, format string) 
 	switch format {
 	case "json":
 		writePathcornerSpawnStatsJSON(out, rows, replayPaths)
+	case "points", "points-json":
+		writePathcornerSpawnPointsJSON(out, all, rows, replayPaths)
 	case "tsv":
 		writePathcornerSpawnStatsTSV(out, rows, replayPaths)
 	case "markdown", "md":
@@ -160,6 +162,66 @@ func runPathcornerLaneSpawn(replayPaths []string, out io.Writer, format string) 
 		writePathcornerSpawnStatsSummary(out, rows, replayPaths)
 	}
 	return nil
+}
+
+type spawnPointJSON struct {
+	X float32 `json:"x"`
+	Y float32 `json:"y"`
+}
+
+type pathcornerPointsJSON struct {
+	Pathcorner string           `json:"pathcorner"`
+	Team       string           `json:"team"`
+	NameLane   string           `json:"name_lane"`
+	RealLane   string           `json:"real_lane"`
+	Spawns     int              `json:"spawns"`
+	MeanX      float32          `json:"mean_x"`
+	MeanY      float32          `json:"mean_y"`
+	Points     []spawnPointJSON `json:"points"`
+}
+
+func writePathcornerSpawnPointsJSON(out io.Writer, spawns []spawnPoint, rows []pathcornerSpawnStats, replayPaths []string) {
+	meta := make(map[string]pathcornerSpawnStats, len(rows))
+	for _, r := range rows {
+		meta[r.Pathcorner] = r
+	}
+	buckets := bucketSpawns(spawns)
+	keys := make([]string, 0, len(buckets))
+	for k := range buckets {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	byName := make(map[string]pathcornerPointsJSON, len(keys))
+	table := make([]pathcornerPointsJSON, 0, len(keys))
+	for _, k := range keys {
+		st := meta[k]
+		pts := make([]spawnPointJSON, 0, len(buckets[k].points))
+		for _, p := range buckets[k].points {
+			pts = append(pts, spawnPointJSON{X: p.x, Y: p.y})
+		}
+		entry := pathcornerPointsJSON{
+			Pathcorner: k,
+			Team:       st.Team,
+			NameLane:   st.NameLane,
+			RealLane:   st.RealLane,
+			Spawns:     st.Spawns,
+			MeanX:      st.MeanX,
+			MeanY:      st.MeanY,
+			Points:     pts,
+		}
+		byName[k] = entry
+		table = append(table, entry)
+	}
+
+	payload := map[string]interface{}{
+		"replays": replayPaths,
+		"table":   table,
+		"lookup":  byName,
+	}
+	enc := json.NewEncoder(out)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(payload)
 }
 
 type xyCentroid struct {

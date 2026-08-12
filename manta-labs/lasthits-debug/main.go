@@ -33,7 +33,7 @@ func main() {
 	replay := flag.String("replay", "", "path to .dem replay")
 	replays := flag.String("replays", "", "comma-separated .dem paths (merges spawns for lane table)")
 	mode := flag.String("mode", modeTrace, "trace | warlock-badguys | entity-names | health-match | dump-fields | build-pathcorner-map | build-pathcorner-lane-spawn")
-	format := flag.String("format", "text", "for build-pathcorner-map: text|json; for build-pathcorner-lane-spawn: text|table|tsv|markdown|json")
+	format := flag.String("format", "text", "for build-pathcorner-map: text|json; for build-pathcorner-lane-spawn: text|table|tsv|markdown|json|points")
 	mapVotes := flag.String("map-votes", "unique", "for build-pathcorner-map: unique | spawn")
 	from := flag.Float64("from", 160, "window start (game seconds, creep spawn = 0)")
 	to := flag.Float64("to", 170, "window end (game seconds)")

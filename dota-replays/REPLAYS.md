@@ -9,5 +9,9 @@ Local `.dem` files are gitignored. Fetch all catalog replays with `ruby fetch.rb
 | ---------- | ----- | ------ | --------------- | ----------------------------------------------------------------------- | -------------------------------------------- |
 | 8915936762 | 7.41d | Divine | Warlock         | `parser/internal/lasthits` integration test, manta-labs lasthits proofs | Used for Last Hits tests and quality reports |
 | 8934466456 | 7.41d | Divine | Phantom Assasin | lasthits                                                                |                                              |
-
+| 8937936492 | 7.41d | Legend |  |  | |
+| 8937758789 | 7.41d | Legend |  |  | |
+| 8937330228 | 7.41d | Legend |  |  | |
+| 8934086594 | 7.41d | Legend |  |  | |
+| 8930839335 | 7.41d | Legend |  |  | |
 
