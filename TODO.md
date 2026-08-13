@@ -5,6 +5,7 @@ Parser functions:
   - [x] Correlate Creeps Correctly for missed CS
   - [ ] Per-Creep-Wave info for each CS (attach creep wave number and lane to each CS)
   - [ ] Display Missed CS
+  - [ ] Capture missed neutral LH
   - [ ] Add more quality tests 
     - [ ] Replay 8934466456 (Divine)
 - [ ] End Game Breakdown Matching Dotabuff / Dotaplus
@@ -30,3 +31,11 @@ Parser functions:
 - [ ] Replay Pool System (from opendota)
 - [ ] Update Game Icons
 - [ ] Courier Moves Analysis
+- [ ] Illusion AFK tracker (as mistake, e.g. terroblade)
+- [ ] Hero AFK meter (not doing anything at all)
+- [ ] Missed Spells (0 targets)
+- [ ] Zeus
+  - [ ] Dewarding (also slark)
+- [ ] Sven
+  - [ ] Last hit with aoe
+  - [ ] stack before farm

@@ -29,6 +29,12 @@ func IsMaxHealth(e *manta.Entity) bool {
 	return health >= maxHealth
 }
 
+func GetWaveNumber(gameTime float32) int {
+	// 1st wave starts at 0:00
+	// 2nd wave is 0:30
+	return int(gameTime/30) + 1
+}
+
 // TypeFromTargetName returns "lane", "jungle", or "" for combat-log NPC names.
 func TypeFromTargetName(targetName string) string {
 	targetName = strings.ToLower(strings.TrimSpace(targetName))

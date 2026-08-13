@@ -16,13 +16,19 @@ func (r HeroRole) Label() string {
 type CaseTag string
 
 const (
-	TagAutoAttack CaseTag = "auto-attack"
-	TagSpell      CaseTag = "spell"
-	TagAOE        CaseTag = "aoe"
-	TagDeny        CaseTag = "deny"
-	TagUncontested CaseTag = "uncontested"
-	TagTooEarly    CaseTag = "too-early"
-	TagTooLate    CaseTag = "too-late"
+	TagAutoAttack  CaseTag = "auto-attack"  // Indicates that we tried to last hit with auto attack
+	TagSpell       CaseTag = "spell"        // We tried to last hist with a spell
+	TagAOE         CaseTag = "aoe"          // We could not last hit due to AOE calculation
+	TagDeny        CaseTag = "deny"         // Tried to LH an ally creep
+	TagUncontested CaseTag = "uncontested"  // We didnt even try
+	TagTooEarly    CaseTag = "too-early"    // Damaged too early
+	TagTooLate     CaseTag = "too-late"     // Started attack/spell too late so it didnt reach the target
+	TagTower       CaseTag = "tower"        // Creep was being damaged by a tower
+	TagFreeFarming CaseTag = "free-farming" // There are no enemies nearby
+	TagIllusion    CaseTag = "illusion"     // Attempted LH with an Illusion
+	TagGlyph       CaseTag = "glyph"        // Enemy team used glyph of fortification before creep was about to die
+	TagOutplayed   CaseTag = "outplayed"    // Equal chances that we lost despite having higher damage
+	TagImpossible  CaseTag = "impossilbe"   // Impossible last hit
 )
 
 type qualityCase struct {

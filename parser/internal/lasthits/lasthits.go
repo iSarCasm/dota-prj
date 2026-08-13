@@ -40,11 +40,13 @@ type pendingCLogCreepEvent struct {
 
 // creepTrack holds per-entity creep state for correlating combat log with entity updates.
 type creepTrack struct {
-	creepName       string // npc name from combat log once correlated
-	entityName      string // EntityNames from m_iUnitNameIndex (debugging; lane creeps use pathcorner strings)
-	className       string // class name from entity
-	lane            string // lane from entity name
-	side            string // map side from pathcorner spawn geography (good=SW, bad=NE)
+	creepName       string  // npc name from combat log once correlated
+	entityName      string  // EntityNames from m_iUnitNameIndex (debugging; lane creeps use pathcorner strings)
+	className       string  // class name from entity
+	lane            string  // lane from entity name
+	side            string  // map side from pathcorner spawn geography (good=SW, bad=NE)
+	spawnTimestamp  float32 // game time when the creep spawned
+	spawnWave       int     // wave number when the creep spawned
 	prevHealth      int32
 	hasPrevHealth   bool
 	heroDamagedTick uint32 // 0 if our hero has not damaged this creep recently
@@ -276,6 +278,8 @@ func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, isMaxHealth 
 			} else {
 				track.side = sideCandidate1
 			}
+			track.spawnTimestamp = gameTime
+			track.spawnWave = creeps.GetWaveNumber(gameTime)
 		}
 	}
 	track.entityName = entityName
