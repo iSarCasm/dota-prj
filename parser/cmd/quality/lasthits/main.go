@@ -33,22 +33,22 @@ func main() {
 }
 
 func runQualityCases(cases []qualityCase) ([]caseResult, error) {
-	cache := make(map[groupKey][]lasthits.Event)
+	cache := make(map[*ReplayHero][]lasthits.Event)
 
 	results := make([]caseResult, len(cases))
 	for i, c := range cases {
-		key := groupKey{Replay: c.Replay, Hero: c.Hero}
-		misses, ok := cache[key]
+		rh := c.ReplayHero
+		misses, ok := cache[rh]
 		if !ok {
-			replayPath, err := resolveReplayPath(c.Replay)
+			replayPath, err := resolveReplayPath(rh.Replay.ID)
 			if err != nil {
 				return nil, fmt.Errorf("case %q: %w", c.Label, err)
 			}
-			misses, err = parseMissedEvents(c.Hero, replayPath)
+			misses, err = parseMissedEvents(rh.Hero, replayPath)
 			if err != nil {
 				return nil, fmt.Errorf("case %q: %w", c.Label, err)
 			}
-			cache[key] = misses
+			cache[rh] = misses
 		}
 		results[i] = evaluateCase(c, misses)
 	}
@@ -64,7 +64,7 @@ func resolveReplayPath(matchID string) (string, error) {
 	}
 	name := matchID + ".dem"
 	for _, base := range []string{
-		filepath.Join("..", "dota-replays", name),                     // cwd: parser/
+		filepath.Join("..", "dota-replays", name),                   // cwd: parser/
 		filepath.Join("..", "..", "..", "..", "dota-replays", name), // cwd: parser/cmd/quality/lasthits/
 	} {
 		if _, err := os.Stat(base); err == nil {

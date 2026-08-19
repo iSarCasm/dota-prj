@@ -98,14 +98,15 @@ func writeReport(w io.Writer, results []caseResult, elapsed time.Duration) {
 			}
 		}
 		fmt.Fprintf(w, "  %s  %s\n", mark, c.Label)
-		fmt.Fprintf(w, "       replay: %s   hero: %s   role: %s   tags: %s\n",
-			c.Replay, c.Hero, c.HeroRole.Label(), formatTags(c.Tags))
+		fmt.Fprintf(w, "       replay: %s   skill: %s   hero: %s   role: %s   tags: %s\n",
+			c.ReplayHero.Replay.ID, c.ReplayHero.Replay.SkillLevel.Label(),
+			c.ReplayHero.Hero, c.ReplayHero.Role.Label(), formatTags(c.Tags))
 		fmt.Fprintf(w, "       %s\n", c.Description)
 		fmt.Fprintf(w, "       expect: %-16s  actual: %s\n", expectedLabel(c.ExpectMiss), r.Detail)
 		fmt.Fprintln(w)
 	}
 
-	totals, groupBuckets, tagBuckets := summarize(results)
+	totals, groupBuckets, tagBuckets, skillBuckets := summarize(results)
 
 	fmt.Fprintln(w, strings.Repeat("=", width))
 	fmt.Fprintln(w, "  Summary")
@@ -117,6 +118,11 @@ func writeReport(w io.Writer, results []caseResult, elapsed time.Duration) {
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "  By replay and hero:")
 	for _, line := range formatGroupLines(groupBuckets) {
+		fmt.Fprintf(w, "    %s\n", line)
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "  By skill:")
+	for _, line := range formatSkillLines(skillBuckets) {
 		fmt.Fprintf(w, "    %s\n", line)
 	}
 	fmt.Fprintln(w)
@@ -141,32 +147,34 @@ func addResult(stat bucketStat, r caseResult) bucketStat {
 	return stat
 }
 
-func summarize(results []caseResult) (bucketStat, map[groupKey]bucketStat, map[bucketKey]bucketStat) {
+func summarize(results []caseResult) (bucketStat, map[*ReplayHero]bucketStat, map[bucketKey]bucketStat, map[SkillLevel]bucketStat) {
 	var totals bucketStat
-	groupBuckets := make(map[groupKey]bucketStat)
+	groupBuckets := make(map[*ReplayHero]bucketStat)
 	tagBuckets := make(map[bucketKey]bucketStat)
+	skillBuckets := make(map[SkillLevel]bucketStat)
 	for _, r := range results {
 		totals = addResult(totals, r)
 
-		gkey := groupKey{Replay: r.Case.Replay, Hero: r.Case.Hero}
-		groupBuckets[gkey] = addResult(groupBuckets[gkey], r)
+		rh := r.Case.ReplayHero
+		groupBuckets[rh] = addResult(groupBuckets[rh], r)
+		skillBuckets[rh.Replay.SkillLevel] = addResult(skillBuckets[rh.Replay.SkillLevel], r)
 
 		for _, tag := range r.Case.Tags {
-			key := bucketKey{Role: r.Case.HeroRole, Tag: tag}
+			key := bucketKey{Role: rh.Role, Tag: tag}
 			tagBuckets[key] = addResult(tagBuckets[key], r)
 		}
 	}
-	return totals, groupBuckets, tagBuckets
+	return totals, groupBuckets, tagBuckets, skillBuckets
 }
 
-func formatGroupLines(buckets map[groupKey]bucketStat) []string {
-	keys := make([]groupKey, 0, len(buckets))
+func formatGroupLines(buckets map[*ReplayHero]bucketStat) []string {
+	keys := make([]*ReplayHero, 0, len(buckets))
 	for k := range buckets {
 		keys = append(keys, k)
 	}
 	sort.Slice(keys, func(i, j int) bool {
-		if keys[i].Replay != keys[j].Replay {
-			return keys[i].Replay < keys[j].Replay
+		if keys[i].Replay.ID != keys[j].Replay.ID {
+			return keys[i].Replay.ID < keys[j].Replay.ID
 		}
 		return keys[i].Hero < keys[j].Hero
 	})
@@ -175,7 +183,24 @@ func formatGroupLines(buckets map[groupKey]bucketStat) []string {
 	for i, k := range keys {
 		stat := buckets[k]
 		lines[i] = fmt.Sprintf("%s / %s: %d/%d passed",
-			k.Replay, k.Hero, stat.Passed, stat.Total)
+			k.Replay.ID, k.Hero, stat.Passed, stat.Total)
+	}
+	return lines
+}
+
+func formatSkillLines(buckets map[SkillLevel]bucketStat) []string {
+	keys := make([]SkillLevel, 0, len(buckets))
+	for k := range buckets {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].order() < keys[j].order()
+	})
+
+	lines := make([]string, len(keys))
+	for i, k := range keys {
+		stat := buckets[k]
+		lines[i] = fmt.Sprintf("%s: %d/%d passed", k.Label(), stat.Passed, stat.Total)
 	}
 	return lines
 }
