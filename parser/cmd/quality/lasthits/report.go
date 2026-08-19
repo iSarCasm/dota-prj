@@ -5,6 +5,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"time"
 
 	"dota2/internal/lasthits"
 )
@@ -78,7 +79,7 @@ func expectedLabel(expectMiss bool) string {
 	return "should not miss"
 }
 
-func writeReport(w io.Writer, results []caseResult) {
+func writeReport(w io.Writer, results []caseResult, elapsed time.Duration) {
 	const width = 78
 
 	fmt.Fprintln(w, strings.Repeat("=", width))
@@ -112,6 +113,7 @@ func writeReport(w io.Writer, results []caseResult) {
 	fmt.Fprintf(w, "  Total cases passed: %d/%d\n", totals.Passed, totals.Total)
 	fmt.Fprintf(w, "  False positives:    %d  (unexpected miss)\n", totals.FP)
 	fmt.Fprintf(w, "  False negatives:    %d  (expected miss not found)\n", totals.FN)
+	fmt.Fprintf(w, "  Elapsed:            %s\n", elapsed.Round(time.Millisecond))
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "  By replay and hero:")
 	for _, line := range formatGroupLines(groupBuckets) {

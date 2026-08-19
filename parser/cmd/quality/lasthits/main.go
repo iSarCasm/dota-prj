@@ -12,6 +12,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/dotabuff/manta"
 
@@ -23,11 +24,12 @@ import (
 func main() {
 	log.SetOutput(os.Stderr)
 
+	start := time.Now()
 	results, err := runQualityCases(qualityCases)
 	if err != nil {
 		log.Fatal(err)
 	}
-	writeReport(os.Stdout, results)
+	writeReport(os.Stdout, results, time.Since(start))
 }
 
 func runQualityCases(cases []qualityCase) ([]caseResult, error) {
