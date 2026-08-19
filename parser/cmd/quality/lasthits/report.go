@@ -90,7 +90,11 @@ func writeReport(w io.Writer, results []caseResult) {
 		c := r.Case
 		mark := "✓"
 		if !r.Pass {
-			mark = "✗"
+			if c.ExpectMiss {
+				mark = "✗ FN"
+			} else {
+				mark = "✗ FP"
+			}
 		}
 		fmt.Fprintf(w, "  %s  %s\n", mark, c.Label)
 		fmt.Fprintf(w, "       replay: %s   hero: %s   role: %s   tags: %s\n",
@@ -100,12 +104,14 @@ func writeReport(w io.Writer, results []caseResult) {
 		fmt.Fprintln(w)
 	}
 
-	pass, groupBuckets, tagBuckets := summarize(results)
+	totals, groupBuckets, tagBuckets := summarize(results)
 
 	fmt.Fprintln(w, strings.Repeat("=", width))
 	fmt.Fprintln(w, "  Summary")
 	fmt.Fprintln(w, strings.Repeat("-", width))
-	fmt.Fprintf(w, "  Total cases passed: %d/%d\n", pass, len(results))
+	fmt.Fprintf(w, "  Total cases passed: %d/%d\n", totals.Passed, totals.Total)
+	fmt.Fprintf(w, "  False positives:    %d  (unexpected miss)\n", totals.FP)
+	fmt.Fprintf(w, "  False negatives:    %d  (expected miss not found)\n", totals.FN)
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "  By replay and hero:")
 	for _, line := range formatGroupLines(groupBuckets) {
@@ -119,33 +125,36 @@ func writeReport(w io.Writer, results []caseResult) {
 	fmt.Fprintln(w, strings.Repeat("=", width))
 }
 
-func summarize(results []caseResult) (int, map[groupKey]bucketStat, map[bucketKey]bucketStat) {
-	pass := 0
+func addResult(stat bucketStat, r caseResult) bucketStat {
+	stat.Total++
+	if r.Pass {
+		stat.Passed++
+		return stat
+	}
+	if r.Case.ExpectMiss {
+		stat.FN++
+	} else {
+		stat.FP++
+	}
+	return stat
+}
+
+func summarize(results []caseResult) (bucketStat, map[groupKey]bucketStat, map[bucketKey]bucketStat) {
+	var totals bucketStat
 	groupBuckets := make(map[groupKey]bucketStat)
 	tagBuckets := make(map[bucketKey]bucketStat)
 	for _, r := range results {
-		if r.Pass {
-			pass++
-		}
+		totals = addResult(totals, r)
+
 		gkey := groupKey{Replay: r.Case.Replay, Hero: r.Case.Hero}
-		gstat := groupBuckets[gkey]
-		gstat.Total++
-		if r.Pass {
-			gstat.Passed++
-		}
-		groupBuckets[gkey] = gstat
+		groupBuckets[gkey] = addResult(groupBuckets[gkey], r)
 
 		for _, tag := range r.Case.Tags {
 			key := bucketKey{Role: r.Case.HeroRole, Tag: tag}
-			stat := tagBuckets[key]
-			stat.Total++
-			if r.Pass {
-				stat.Passed++
-			}
-			tagBuckets[key] = stat
+			tagBuckets[key] = addResult(tagBuckets[key], r)
 		}
 	}
-	return pass, groupBuckets, tagBuckets
+	return totals, groupBuckets, tagBuckets
 }
 
 func formatGroupLines(buckets map[groupKey]bucketStat) []string {

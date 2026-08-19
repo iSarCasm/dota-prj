@@ -18,3 +18,4 @@ Local `.dem` files are gitignored. Fetch all catalog replays with `ruby fetch.rb
 | 8943058440 | 7.41d | Guardian | Zeus |  |  |
 | 8941817475 | 7.41d | Pro | Slark |  |  |
 | 8941733752 | 7.41d | Pro | Sven |  |  |
+| 8951306658 | 7.41d | Archon | Jakiro |  |  |

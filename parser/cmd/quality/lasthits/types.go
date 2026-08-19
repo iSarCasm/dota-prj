@@ -63,4 +63,6 @@ type bucketKey struct {
 type bucketStat struct {
 	Passed int
 	Total  int
+	FP     int // unexpected miss (ExpectMiss=false)
+	FN     int // expected miss not found (ExpectMiss=true)
 }
