@@ -1,0 +1,5 @@
+# combat-catalog summary
+replays	1
+heroes	10
+items	124
+spells	194

@@ -1,0 +1,11 @@
+# count=10
+npc_dota_hero_alchemist	45879	1
+npc_dota_hero_ember_spirit	15041	1
+npc_dota_hero_huskar	40530	1
+npc_dota_hero_night_stalker	6674	1
+npc_dota_hero_pudge	6997	1
+npc_dota_hero_skeleton_king	9031	1
+npc_dota_hero_skywrath_mage	7809	1
+npc_dota_hero_snapfire	4735	1
+npc_dota_hero_warlock	8825	1
+npc_dota_hero_windrunner	6257	1
