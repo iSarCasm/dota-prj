@@ -33,6 +33,7 @@ func main() {
 }
 
 func runQualityCases(cases []qualityCase) ([]caseResult, error) {
+	untilByHero := lastCaseTimeByHero(cases)
 	cache := make(map[*ReplayHero][]lasthits.Event)
 
 	results := make([]caseResult, len(cases))
@@ -44,7 +45,7 @@ func runQualityCases(cases []qualityCase) ([]caseResult, error) {
 			if err != nil {
 				return nil, fmt.Errorf("case %q: %w", c.Label, err)
 			}
-			misses, err = parseMissedEvents(rh.Hero, replayPath)
+			misses, err = parseMissedEvents(rh.Hero, replayPath, untilByHero[rh])
 			if err != nil {
 				return nil, fmt.Errorf("case %q: %w", c.Label, err)
 			}
@@ -53,6 +54,16 @@ func runQualityCases(cases []qualityCase) ([]caseResult, error) {
 		results[i] = evaluateCase(c, misses)
 	}
 	return results, nil
+}
+
+func lastCaseTimeByHero(cases []qualityCase) map[*ReplayHero]float32 {
+	until := make(map[*ReplayHero]float32)
+	for _, c := range cases {
+		if c.To > until[c.ReplayHero] {
+			until[c.ReplayHero] = c.To
+		}
+	}
+	return until
 }
 
 func resolveReplayPath(matchID string) (string, error) {
@@ -74,7 +85,7 @@ func resolveReplayPath(matchID string) (string, error) {
 	return "", fmt.Errorf("replay %s not found (fetch: ruby dota-replays/fetch.rb)", name)
 }
 
-func parseMissedEvents(heroName, replayPath string) ([]lasthits.Event, error) {
+func parseMissedEvents(heroName, replayPath string, until float32) ([]lasthits.Event, error) {
 	f, err := os.Open(replayPath)
 	if err != nil {
 		return nil, err
@@ -87,7 +98,7 @@ func parseMissedEvents(heroName, replayPath string) ([]lasthits.Event, error) {
 	}
 
 	ctx := &common.ParseContext{HeroName: heroName, TickInterval: 0.033333335}
-	tp := timeandpauses.NewHandler()
+	tp := timeandpauses.NewHandlerWithStopTime(until)
 	if err := tp.Init(ctx); err != nil {
 		return nil, err
 	}
