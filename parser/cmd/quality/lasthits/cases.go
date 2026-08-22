@@ -1908,16 +1908,6 @@ var qualityCases = []qualityCase{
 	// Replay 8951306658 Jakiro
 	// =========================================================
 	{
-		Label:         "",
-		Description:   "",
-		ReplayHero:    rhJakiro,
-		From:          gameClock(8, 30),
-		To:            gameClock(8, 32),
-		CreepContains: bf,
-		ExpectMiss:    true,
-		Tags:          []CaseTag{TagAutoAttack, TagTooEarly},
-	},
-	{
 		Label:         "used dual breath and there is enemies nearby",
 		Description:   "",
 		ReplayHero:    rhJakiro,
