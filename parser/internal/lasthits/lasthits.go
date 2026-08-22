@@ -107,9 +107,25 @@ func loadLasthitInflictors(raw string) []string {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		out = append(out, line)
+		name, _, _ := strings.Cut(line, "\t")
+		out = append(out, name)
 	}
 	return out
+}
+
+func isLasthitInflictorDamage(inflictorName uint32, list []string, lookup func(uint32) (string, bool)) bool {
+	if inflictorName == 0 {
+		return true
+	}
+	name, ok := lookup(inflictorName)
+	if !ok {
+		return false
+	}
+	// dota_unknown = right click attack
+	if name == "dota_unknown" {
+		return true
+	}
+	return slices.Contains(list, name)
 }
 
 // Init validates config.
@@ -192,11 +208,10 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 		}
 
 		inflictorName := m.GetInflictorName()
-		if inflictorName != 0 {
-			name, nameOk := p.LookupStringByIndex("CombatLogNames", int32(inflictorName))
-			if nameOk && !slices.Contains(h.lasthitInflictorList, name) {
-				return nil
-			}
+		if !isLasthitInflictorDamage(inflictorName, h.lasthitInflictorList, func(idx uint32) (string, bool) {
+			return p.LookupStringByIndex("CombatLogNames", int32(idx))
+		}) {
+			return nil
 		}
 
 		h.pendingHeroDamageLogs = append(h.pendingHeroDamageLogs, pendingCLogCreepEvent{

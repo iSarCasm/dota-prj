@@ -1,5 +1,5 @@
-# Ability/item names whose combat-log damage should not count toward missed CS.
-# One name per line; blank lines and # comments are ignored.
+# Spell/ability names whose combat-log damage counts toward missed CS (whitelist).
+# Auto-attacks (no inflictor, or dota_unknown) always count. Other inflictors are ignored.
 abaddon_death_coil	178	4
 arc_warden_spark_wraith	483	4
 bane_brain_sap	646	13
