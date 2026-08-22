@@ -34,10 +34,11 @@ type Handler struct {
 	preGameStart     float32
 	preGameStartTick uint32
 	gameStartTime    float32
-	gameEndTime      float32
-	isGameEnded      bool
-	tickInterval     float32
-	seenState        bool
+	gameEndTime        float32
+	isGameEnded        bool
+	isGameplayStarted  bool
+	tickInterval       float32
+	seenState          bool
 }
 
 // NewHandler creates a TimeAndPauses handler.
@@ -90,6 +91,12 @@ func (h *Handler) IsGameEnded() bool {
 	return h.isGameEnded
 }
 
+// IsGameplayStarted reports whether pre-game timing is calibrated (creeps-spawn clock is valid).
+// Captain's Mode and similar lobbies can have a long draft before m_flPreGameStartTime becomes non-zero.
+func (h *Handler) IsGameplayStarted() bool {
+	return h.isGameplayStarted
+}
+
 func (h *Handler) PauseTimeSoFar() float32 {
 	return h.totalPauseTime
 }
@@ -135,11 +142,6 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 			return nil
 		}
 
-		if h.stopReplayAtTime != 0 && h.CurrentGameTime() > h.stopReplayAtTime {
-			p.Stop()
-			return nil
-		}
-
 		if ctx.TickInterval > 0 && ctx.TickInterval != h.tickInterval {
 			log.Printf("timeandpauses: tickInterval set to %.3f", ctx.TickInterval)
 			h.tickInterval = ctx.TickInterval
@@ -149,20 +151,23 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 		entityTime := h.tickInterval * float32(entityTick)
 		h.currentTickTime = entityTime
 
-		if h.preGameStart == 0 {
-			if v, ok := e.GetFloat32("m_flPreGameStartTime"); ok {
-				if v != 0 {
-					h.preGameStart = v
-					h.preGameStartTick = entityTick
-					log.Printf("timeandpauses: preGameStartTime set to %.3f (current tick time: %.3f)", h.preGameStart, h.CurrentTickTime())
-				}
-			} else if v, ok := e.GetFloat32("m_pGameRules.m_flPreGameStartTime"); ok {
-				if v != 0 {
-					h.preGameStart = v
-					h.preGameStartTick = entityTick
-					log.Printf("timeandpauses: preGameStartTime set to %.3f (current tick time: %.3f)", h.preGameStart, h.CurrentTickTime())
-				}
+		if !h.isGameplayStarted {
+			if v, ok := e.GetFloat32("m_flPreGameStartTime"); ok && v != 0 {
+				h.preGameStart = v
+				h.preGameStartTick = entityTick
+				h.isGameplayStarted = true
+				log.Printf("timeandpauses: preGameStartTime set to %.3f (current tick time: %.3f)", h.preGameStart, h.CurrentGameTime())
+			} else if v, ok := e.GetFloat32("m_pGameRules.m_flPreGameStartTime"); ok && v != 0 {
+				h.preGameStart = v
+				h.preGameStartTick = entityTick
+				h.isGameplayStarted = true
+				log.Printf("timeandpauses: preGameStartTime set to %.3f (current tick time: %.3f)", h.preGameStart, h.CurrentGameTime())
 			}
+		}
+
+		if h.isGameplayStarted && h.stopReplayAtTime != 0 && h.CurrentGameTime() > h.stopReplayAtTime {
+			p.Stop()
+			return nil
 		}
 		if h.gameStartTime == 0 {
 			if v, ok := e.GetFloat32("m_flGameStartTime"); ok {
@@ -264,8 +269,9 @@ func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
 			"preGameStartTime": h.PreGameStartTime(),
 			"gameStartTime":    h.GameStartTime(),
 			"gameEndTime":      h.GameEndTime(),
-			"isGameEnded":      h.IsGameEnded(),
-			"pauseTimeSoFar":   pauseTimeSoFar,
+			"isGameEnded":        h.IsGameEnded(),
+			"isGameplayStarted":  h.IsGameplayStarted(),
+			"pauseTimeSoFar":     pauseTimeSoFar,
 			"currentGameTime":  h.CurrentGameTime(),
 			"pauses": map[string]interface{}{
 				"intervals":      intervals,

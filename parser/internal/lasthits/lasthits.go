@@ -190,14 +190,15 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 		if creeps.TypeFromTargetName(realTargetName) == "" {
 			return nil
 		}
-		// Only right-click (auto-attack) damage counts toward missed CS; spells/items set inflictor_name.
-		// Names in lasthit_inflictors.txt are skipped (e.g. warlock_fatal_bonds).
-		if idx := m.GetInflictorName(); idx != 0 {
-			if name, ok := p.LookupStringByIndex("CombatLogNames", int32(idx)); ok &&
-				slices.Contains(h.lasthitInflictorList, name) {
+
+		inflictorName := m.GetInflictorName()
+		if inflictorName != 0 {
+			name, nameOk := p.LookupStringByIndex("CombatLogNames", int32(inflictorName))
+			if nameOk && !slices.Contains(h.lasthitInflictorList, name) {
 				return nil
 			}
 		}
+
 		h.pendingHeroDamageLogs = append(h.pendingHeroDamageLogs, pendingCLogCreepEvent{
 			id:        h.GetNextUniqueId(),
 			creepName: realTargetName,
