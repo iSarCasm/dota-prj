@@ -106,7 +106,7 @@ func writeReport(w io.Writer, results []caseResult, elapsed time.Duration) {
 		fmt.Fprintln(w)
 	}
 
-	totals, groupBuckets, tagBuckets, skillBuckets := summarize(results)
+	totals, groupBuckets, tagBuckets, tagPairBuckets, skillBuckets := summarize(results)
 
 	fmt.Fprintln(w, strings.Repeat("=", width))
 	fmt.Fprintln(w, "  Summary")
@@ -130,6 +130,11 @@ func writeReport(w io.Writer, results []caseResult, elapsed time.Duration) {
 	for _, line := range formatTagBucketLines(tagBuckets) {
 		fmt.Fprintf(w, "    %s\n", line)
 	}
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "  By role and tag pair:")
+	for _, line := range formatTagPairBucketLines(tagPairBuckets) {
+		fmt.Fprintf(w, "    %s\n", line)
+	}
 	fmt.Fprintln(w, strings.Repeat("=", width))
 }
 
@@ -147,10 +152,35 @@ func addResult(stat bucketStat, r caseResult) bucketStat {
 	return stat
 }
 
-func summarize(results []caseResult) (bucketStat, map[*ReplayHero]bucketStat, map[bucketKey]bucketStat, map[SkillLevel]bucketStat) {
+var reportTagPairs = []struct {
+	Label string
+	Tags  []CaseTag
+}{
+	{Label: "auto-attack / too-early", Tags: []CaseTag{TagAutoAttack, TagTooEarly}},
+	{Label: "spell / too-early", Tags: []CaseTag{TagSpell, TagTooEarly}},
+}
+
+func hasAllTags(tags []CaseTag, required ...CaseTag) bool {
+	for _, req := range required {
+		found := false
+		for _, tag := range tags {
+			if tag == req {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+func summarize(results []caseResult) (bucketStat, map[*ReplayHero]bucketStat, map[bucketKey]bucketStat, map[tagPairKey]bucketStat, map[SkillLevel]bucketStat) {
 	var totals bucketStat
 	groupBuckets := make(map[*ReplayHero]bucketStat)
 	tagBuckets := make(map[bucketKey]bucketStat)
+	tagPairBuckets := make(map[tagPairKey]bucketStat)
 	skillBuckets := make(map[SkillLevel]bucketStat)
 	for _, r := range results {
 		totals = addResult(totals, r)
@@ -163,8 +193,16 @@ func summarize(results []caseResult) (bucketStat, map[*ReplayHero]bucketStat, ma
 			key := bucketKey{Role: rh.Role, Tag: tag}
 			tagBuckets[key] = addResult(tagBuckets[key], r)
 		}
+
+		for _, pair := range reportTagPairs {
+			if !hasAllTags(r.Case.Tags, pair.Tags...) {
+				continue
+			}
+			key := tagPairKey{Role: rh.Role, Label: pair.Label}
+			tagPairBuckets[key] = addResult(tagPairBuckets[key], r)
+		}
 	}
-	return totals, groupBuckets, tagBuckets, skillBuckets
+	return totals, groupBuckets, tagBuckets, tagPairBuckets, skillBuckets
 }
 
 func formatGroupLines(buckets map[*ReplayHero]bucketStat) []string {
@@ -201,6 +239,27 @@ func formatSkillLines(buckets map[SkillLevel]bucketStat) []string {
 	for i, k := range keys {
 		stat := buckets[k]
 		lines[i] = fmt.Sprintf("%s: %d/%d passed", k.Label(), stat.Passed, stat.Total)
+	}
+	return lines
+}
+
+func formatTagPairBucketLines(buckets map[tagPairKey]bucketStat) []string {
+	keys := make([]tagPairKey, 0, len(buckets))
+	for k := range buckets {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].Role != keys[j].Role {
+			return keys[i].Role < keys[j].Role
+		}
+		return keys[i].Label < keys[j].Label
+	})
+
+	lines := make([]string, len(keys))
+	for i, k := range keys {
+		stat := buckets[k]
+		lines[i] = fmt.Sprintf("%s / %s: %d/%d passed",
+			k.Role.Label(), k.Label, stat.Passed, stat.Total)
 	}
 	return lines
 }

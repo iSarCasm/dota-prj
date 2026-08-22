@@ -108,6 +108,11 @@ type bucketKey struct {
 	Tag  CaseTag
 }
 
+type tagPairKey struct {
+	Role  HeroRole
+	Label string
+}
+
 type bucketStat struct {
 	Passed int
 	Total  int
