@@ -1,8 +1,11 @@
 package lasthits
 
 import (
+	_ "embed"
 	"errors"
 	"log"
+	"slices"
+	"strings"
 
 	"github.com/dotabuff/manta"
 	"github.com/dotabuff/manta/dota"
@@ -12,6 +15,9 @@ import (
 	"dota2/internal/slicesx"
 	"dota2/internal/timeandpauses"
 )
+
+//go:embed lasthit_inflictors.txt
+var lasthitInflictorsFile string
 
 const (
 	missedLastHitWindowSec   = float32(2.0)
@@ -75,6 +81,7 @@ type Handler struct {
 	conflictGroups        map[uint64]*conflictGroup // keyed by pending damage id
 	nextUniqueId          uint64
 	timeAndPausesHandler  *timeandpauses.Handler
+	lasthitInflictorList  []string
 }
 
 // NewHandler creates a lasthits handler.
@@ -88,7 +95,21 @@ func NewHandler(timeAndPausesHandler *timeandpauses.Handler) *Handler {
 		creepTracks:           make(map[int32]*creepTrack, 256),
 		conflictGroups:        make(map[uint64]*conflictGroup, 32),
 		timeAndPausesHandler:  timeAndPausesHandler,
+		lasthitInflictorList:  loadLasthitInflictors(lasthitInflictorsFile),
 	}
+}
+
+func loadLasthitInflictors(raw string) []string {
+	lines := strings.Split(raw, "\n")
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		out = append(out, line)
+	}
+	return out
 }
 
 // Init validates config.
@@ -170,10 +191,12 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 			return nil
 		}
 		// Only right-click (auto-attack) damage counts toward missed CS; spells/items set inflictor_name.
-		// TODO: handle other inflictors, right now its problematic because fatal bonds, etc. would
-		// be counted as missed CS
-		if m.GetInflictorName() != 0 {
-			return nil
+		// Names in lasthit_inflictors.txt are skipped (e.g. warlock_fatal_bonds).
+		if idx := m.GetInflictorName(); idx != 0 {
+			if name, ok := p.LookupStringByIndex("CombatLogNames", int32(idx)); ok &&
+				slices.Contains(h.lasthitInflictorList, name) {
+				return nil
+			}
 		}
 		h.pendingHeroDamageLogs = append(h.pendingHeroDamageLogs, pendingCLogCreepEvent{
 			id:        h.GetNextUniqueId(),

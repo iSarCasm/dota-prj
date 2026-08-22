@@ -1,0 +1,14 @@
+# count=13
+item_armlet	7888	1
+item_blood_grenade	70	1
+item_chipped_vest	705	1
+item_lotus_orb	1	1
+item_maelstrom	100	1
+item_meteor_hammer	130	1
+item_orb_of_venom	46	1
+item_radiance	1303	1
+item_searing_signet	610	1
+item_soul_ring	22	1
+item_spirit_vessel	17	1
+item_tpscroll	6	1
+item_urn_of_shadows	8	1

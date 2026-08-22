@@ -13,4 +13,6 @@ cp output/summary.txt examples/summary.txt
 head -n 40 output/heroes.txt > examples/heroes.head.txt
 head -n 40 output/items.txt > examples/items.head.txt
 head -n 40 output/spells.txt > examples/spells.head.txt
+head -n 40 output/damage_spells.txt > examples/damage_spells.head.txt
+head -n 40 output/damage_items.txt > examples/damage_items.head.txt
 echo "Done. Review output/ and examples/"

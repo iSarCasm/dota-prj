@@ -11,6 +11,8 @@ From each `CMsgDOTACombatLogEntry`, resolve `CombatLogNames` for attacker / targ
 | `heroes.txt` | `npc_dota_hero_*` |
 | `items.txt` | `item_*` (incl. `DOTA_COMBATLOG_PURCHASE` / `ITEM`) |
 | `spells.txt` | ability inflictors (`ABILITY` / `ABILITY_TRIGGER`) plus non-item damage inflictors |
+| `damage_spells.txt` | spell inflictors on `DOTA_COMBATLOG_DAMAGE` |
+| `damage_items.txt` | item inflictors on `DOTA_COMBATLOG_DAMAGE` |
 
 Each line: `name<TAB>event_count<TAB>replay_count`
 

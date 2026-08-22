@@ -7,6 +7,7 @@ Parsing explored (or catalog) replays with manta yields stable unique sets of:
 - hero unit names (`npc_dota_hero_*`)
 - item names (`item_*`, including purchases)
 - spell / ability inflictors from combat log
+- damage spell/item inflictors (`DOTA_COMBATLOG_DAMAGE` inflictor field)
 
 from `CombatLogNames` indices on combat-log entries.
 
@@ -39,9 +40,11 @@ replays	1
 heroes	10
 items	124
 spells	194
+damage_spells	41
+damage_items	13
 ```
 
-Snippets: `examples/heroes.head.txt`, `items.head.txt`, `spells.head.txt`.
+Snippets: `examples/heroes.head.txt`, `items.head.txt`, `spells.head.txt`, `damage_spells.head.txt`, `damage_items.head.txt`.
 
 ## Regenerate examples
 
