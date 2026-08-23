@@ -25,20 +25,20 @@ type Interval struct {
 
 // Handler implements common.ReplayHandler for pause tracking and time derivations.
 type Handler struct {
-	stopReplayAtTime float32
-	intervals        []Interval
-	totalPauseTime   float32
-	isPaused         bool
-	currentPauseAt   float32
-	currentTickTime  float32
-	preGameStart     float32
-	preGameStartTick uint32
-	gameStartTime    float32
-	gameEndTime        float32
-	isGameEnded        bool
-	isGameplayStarted  bool
-	tickInterval       float32
-	seenState          bool
+	stopReplayAtTime  float32
+	intervals         []Interval
+	totalPauseTime    float32
+	isPaused          bool
+	currentPauseAt    float32
+	currentTickTime   float32
+	preGameStart      float32
+	preGameStartTick  uint32
+	gameStartTime     float32
+	gameEndTime       float32
+	isGameEnded       bool
+	isGameplayStarted bool
+	tickInterval      float32
+	seenState         bool
 }
 
 // NewHandler creates a TimeAndPauses handler.
@@ -106,6 +106,10 @@ func (h *Handler) CurrentGameTime() float32 {
 	// CurrentTickTime is tickTime when we set the preGameStartTick. The preGameStartTime can be 165 but the tickTime will be 121 at that time
 	// this is why we cant use the preGameStartTime directly, we use the preGameStartTick to calculate the game time
 	return h.CurrentTickTime() - h.tickInterval*float32(h.preGameStartTick) - preGameOffsetSeconds - h.PauseTimeSoFar()
+}
+
+func (h *Handler) LastTickGameTime() float32 {
+	return h.CurrentGameTime() - TickDuration
 }
 
 func (h *Handler) PauseDurationAtTick(tick uint32) float32 {
@@ -265,14 +269,14 @@ func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
 
 	return map[string]interface{}{
 		"timeAndPauses": map[string]interface{}{
-			"currentTickTime":  h.CurrentTickTime(),
-			"preGameStartTime": h.PreGameStartTime(),
-			"gameStartTime":    h.GameStartTime(),
-			"gameEndTime":      h.GameEndTime(),
-			"isGameEnded":        h.IsGameEnded(),
-			"isGameplayStarted":  h.IsGameplayStarted(),
-			"pauseTimeSoFar":     pauseTimeSoFar,
-			"currentGameTime":  h.CurrentGameTime(),
+			"currentTickTime":   h.CurrentTickTime(),
+			"preGameStartTime":  h.PreGameStartTime(),
+			"gameStartTime":     h.GameStartTime(),
+			"gameEndTime":       h.GameEndTime(),
+			"isGameEnded":       h.IsGameEnded(),
+			"isGameplayStarted": h.IsGameplayStarted(),
+			"pauseTimeSoFar":    pauseTimeSoFar,
+			"currentGameTime":   h.CurrentGameTime(),
 			"pauses": map[string]interface{}{
 				"intervals":      intervals,
 				"totalPauseTime": totalPauseTime,

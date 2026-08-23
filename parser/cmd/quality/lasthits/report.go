@@ -79,6 +79,10 @@ func expectedLabel(expectMiss bool) string {
 	return "should not miss"
 }
 
+func formatWindow(from, to float32) string {
+	return formatGameClock(from) + "-" + formatGameClock(to)
+}
+
 func writeReport(w io.Writer, results []caseResult, elapsed time.Duration) {
 	const width = 78
 
@@ -89,19 +93,24 @@ func writeReport(w io.Writer, results []caseResult, elapsed time.Duration) {
 
 	for _, r := range results {
 		c := r.Case
-		mark := "✓"
-		if !r.Pass {
-			if c.ExpectMiss {
-				mark = "✗ FN"
-			} else {
-				mark = "✗ FP"
-			}
+		if r.Pass {
+			fmt.Fprintf(w, "  ✓  %s  %s  %s\n",
+				c.ReplayHero.Replay.ID, c.ReplayHero.Hero, formatWindow(c.From, c.To))
+			continue
+		}
+
+		mark := "✗ FN"
+		if !c.ExpectMiss {
+			mark = "✗ FP"
 		}
 		fmt.Fprintf(w, "  %s  %s\n", mark, c.Label)
 		fmt.Fprintf(w, "       replay: %s   skill: %s   hero: %s   role: %s   tags: %s\n",
 			c.ReplayHero.Replay.ID, c.ReplayHero.Replay.SkillLevel.Label(),
 			c.ReplayHero.Hero, c.ReplayHero.Role.Label(), formatTags(c.Tags))
-		fmt.Fprintf(w, "       %s\n", c.Description)
+		if c.Description != "" {
+			fmt.Fprintf(w, "       %s\n", c.Description)
+		}
+		fmt.Fprintf(w, "       window: %s   target: %s\n", formatWindow(c.From, c.To), c.CreepContains)
 		fmt.Fprintf(w, "       expect: %-16s  actual: %s\n", expectedLabel(c.ExpectMiss), r.Detail)
 		fmt.Fprintln(w)
 	}
@@ -111,11 +120,6 @@ func writeReport(w io.Writer, results []caseResult, elapsed time.Duration) {
 	fmt.Fprintln(w, strings.Repeat("=", width))
 	fmt.Fprintln(w, "  Summary")
 	fmt.Fprintln(w, strings.Repeat("-", width))
-	fmt.Fprintf(w, "  Total cases passed: %d/%d\n", totals.Passed, totals.Total)
-	fmt.Fprintf(w, "  False positives:    %d  (unexpected miss)\n", totals.FP)
-	fmt.Fprintf(w, "  False negatives:    %d  (expected miss not found)\n", totals.FN)
-	fmt.Fprintf(w, "  Elapsed:            %s\n", elapsed.Round(time.Millisecond))
-	fmt.Fprintln(w)
 	fmt.Fprintln(w, "  By replay and hero:")
 	for _, line := range formatGroupLines(groupBuckets) {
 		fmt.Fprintf(w, "    %s\n", line)
@@ -135,6 +139,11 @@ func writeReport(w io.Writer, results []caseResult, elapsed time.Duration) {
 	for _, line := range formatTagPairBucketLines(tagPairBuckets) {
 		fmt.Fprintf(w, "    %s\n", line)
 	}
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "  Total cases passed: %d/%d\n", totals.Passed, totals.Total)
+	fmt.Fprintf(w, "  False positives:    %d  (unexpected miss)\n", totals.FP)
+	fmt.Fprintf(w, "  False negatives:    %d  (expected miss not found)\n", totals.FN)
+	fmt.Fprintf(w, "  Elapsed:            %s\n", elapsed.Round(time.Millisecond))
 	fmt.Fprintln(w, strings.Repeat("=", width))
 }
 
