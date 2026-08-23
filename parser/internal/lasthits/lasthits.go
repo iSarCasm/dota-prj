@@ -203,26 +203,19 @@ func (h *Handler) correlateLastTickDamages(tick uint32, gameTime float32) {
 	// Clean up temp tick arrays
 	h.pendingHealthReducedCreepIds = make([]int32, 0, 64)
 	h.pendingDeadCreeps = make([]int32, 0, 64)
+	h.prunePendingEvents(tick)
 	// Rollover health into prevHealth
 	for k := range h.creepTracks {
 		creep := h.creepTracks[k]
 		creep.prevHealth = creep.currentHealth
 		creep.hasPrevHealth = true
 	}
+
 }
 
 func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEntry) error {
 	tick := p.Tick
 	gameTime := h.timeAndPausesHandler.CurrentGameTime()
-
-	// if tick != h.lastCombatLogTick {
-	// 	h.correlateLastTickDamages(h.lastCombatLogTick, h.timeAndPausesHandler.LastTickGameTime())
-	// 	h.lastCombatLogTick = tick
-	// 	// fmt.Printf("Tick is now %d\n", tick)
-	// }
-
-	// h.closePendingHeroDamageBeforeTick(tick)
-	h.prunePendingEvents(tick)
 
 	attackerNameIdx := m.GetAttackerName()
 	targetNameIdx := m.GetTargetName()
@@ -340,7 +333,6 @@ func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, isMaxHealth 
 	if tick != h.lastCombatLogTick {
 		h.correlateLastTickDamages(h.lastCombatLogTick, h.timeAndPausesHandler.LastTickGameTime())
 		h.lastCombatLogTick = tick
-		// fmt.Printf("Tick is now %d\n", tick)
 	}
 
 	track := h.creepTracks[entityId]
@@ -354,11 +346,6 @@ func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, isMaxHealth 
 			sideCandidate2 := creeps.GetCreepSide(entityName)
 			if sideCandidate1 != sideCandidate2 {
 				log.Printf("ERROR: sideCandidate1 != sideCandidate2: %s != %s", sideCandidate1, sideCandidate2)
-				// log.Printf("entityName: %s", entityName)
-				// log.Printf("x: %f y: %f", x, y)
-				// log.Printf("lane: %s", track.lane)
-				// log.Printf("sideCandidate1: %s", sideCandidate1)
-				// log.Printf("sideCandidate2: %s", sideCandidate2)
 			} else {
 				track.side = sideCandidate1
 			}
@@ -384,21 +371,12 @@ func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, isMaxHealth 
 	// }
 
 	if healthReduced {
-		// h.correlateHeroDamage(entityId, track, health, tick)
 		h.pendingHealthReducedCreepIds = slicesx.AppendIfMissing(h.pendingHealthReducedCreepIds, entityId)
 	}
 
-	// track.prevHealth = health
-	// track.hasPrevHealth = true
-
 	if justDied || op.Flag(manta.EntityOpDeleted) || op.Flag(manta.EntityOpDeletedLeft) {
-		// h.finalizePendingHeroDamageForTick(tick)
-		// h.handleCreepDeath(entityId, track, tick, gameTime)
-		// delete(h.creepTracks, entityId)
 		h.pendingDeadCreeps = slicesx.AppendIfMissing(h.pendingDeadCreeps, entityId)
 	}
-
-	h.pruneMatchedCombatLogs()
 }
 
 // MissedEvents returns detected missed last-hit events (for tooling / quality reports).
@@ -507,12 +485,6 @@ func (h *Handler) matchPendingHeroKill(creepName string, deathTick uint32) {
 }
 
 func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, entityTick uint32) bool {
-	if entityTick < pd.tick {
-		return false
-	}
-	if !replayTicksWithinWindow(pd.tick, entityTick) {
-		return false
-	}
 	if prevHealth != pd.health+pd.damage {
 		return false
 	}
@@ -521,6 +493,10 @@ func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, en
 	}
 	// Same replay tick: entity may jump to 0/death without reporting post-damage HP.
 	return health <= 0 && entityTick == pd.tick
+}
+
+func heroDamageCorrelatesExactly(pd pendingCLogCreepEvent, prevHealth, health int32) bool {
+	return prevHealth == pd.health+pd.damage && health == pd.health
 }
 
 // closePendingHeroDamageBeforeTick closes pending damage from earlier replay ticks (entity phase done).
@@ -533,18 +509,6 @@ func (h *Handler) closePendingHeroDamageBeforeTick(currentTick uint32) {
 		if currentTick > pd.tick {
 			pd.closed = true
 		}
-	}
-	h.finalizeClosedPendingHeroDamage()
-}
-
-// finalizePendingHeroDamageForTick binds pending damage queued on this replay tick before creep death.
-func (h *Handler) finalizePendingHeroDamageForTick(tick uint32) {
-	for i := range h.pendingHeroDamageLogs {
-		pd := &h.pendingHeroDamageLogs[i]
-		if pd.closed || pd.tick != tick {
-			continue
-		}
-		pd.closed = true
 	}
 	h.finalizeClosedPendingHeroDamage()
 }
