@@ -184,9 +184,37 @@ func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
 
 func (h *Handler) correlateLastTickDamages(tick uint32, gameTime float32) {
 	// Mark creeps damaged by us
-	for _, id := range h.pendingHealthReducedCreepIds {
-		track := h.creepTracks[id]
-		h.correlateHeroDamage(id, track, track.currentHealth, tick)
+	// Correlate by prevHealth and currentHealth
+	for i := range h.pendingHeroDamageLogs {
+		pd := &h.pendingHeroDamageLogs[i]
+		if pd.closed {
+			continue
+		}
+
+		for _, v := range h.pendingHealthReducedCreepIds {
+			creep := h.creepTracks[v]
+
+			if heroDamageCorrelatesExactly(*pd, creep.prevHealth, creep.currentHealth) {
+				pd.candidates = slicesx.AppendIfMissing(pd.candidates, v)
+				pd.closed = true
+			}
+		}
+	}
+	// Correlate by currentHealth
+	for i := range h.pendingHeroDamageLogs {
+		pd := &h.pendingHeroDamageLogs[i]
+		if pd.closed {
+			continue
+		}
+
+		for _, v := range h.pendingHealthReducedCreepIds {
+			creep := h.creepTracks[v]
+
+			if heroDamageCorrelatesByAfterHealth(*pd, creep.currentHealth) {
+				pd.candidates = slicesx.AppendIfMissing(pd.candidates, v)
+				pd.closed = true
+			}
+		}
 	}
 
 	// Create conflict groups
@@ -497,6 +525,10 @@ func heroDamageCorrelates(pd pendingCLogCreepEvent, prevHealth, health int32, en
 
 func heroDamageCorrelatesExactly(pd pendingCLogCreepEvent, prevHealth, health int32) bool {
 	return prevHealth == pd.health+pd.damage && health == pd.health
+}
+
+func heroDamageCorrelatesByAfterHealth(pd pendingCLogCreepEvent, health int32) bool {
+	return health == pd.health
 }
 
 // closePendingHeroDamageBeforeTick closes pending damage from earlier replay ticks (entity phase done).
