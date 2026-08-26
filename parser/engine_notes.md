@@ -26,3 +26,5 @@
    - **Map side from spawn corner:** bottom-left / SW → `good` (Radiant), top-right / NE (`x>0,y>0`) → `bad` (Dire). Implemented in `creeps.GetCreepSide` via pathcorner lookup (not the name suffix). Examples: `lane_mid_pathcorner_badguys_7` → good (SW); `lane_mid_pathcorner_goodguys_1` → bad (NE). Proof table/SVG: `manta-labs/proofs/pathcorner-lane-spawn/`.
    - **Not combat team:** Health-vote mapping usually pairs suffix → `npc_dota_creep_*` team (`pathcorner-map`), but entity stream can disagree at bind time (PA @ 4:00: combat `badguys_ranged`, entity `lane_mid_pathcorner_goodguys_1`). Use combat-log NPC names + health correlation for enemy/friendly; use `GetCreepSide` only for map-side from pathcorner geography.
    - **Lane** cannot be trusted from the pathcorner name prefix (`lane_mid_*` overflow). Each map side has 3 spawn slots (top/mid/bot); use `creeps.GetCreepLaneFromSpawnLocation(x,y)` (nearest centroid). Proof: `manta-labs/proofs/spawn-lane-clusters/`.
+
+7. Creeps on creep damage only shows up in a combat log IF a creep deals a killing blow, normal damage does not show up

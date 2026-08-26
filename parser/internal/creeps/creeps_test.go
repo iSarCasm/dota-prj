@@ -33,6 +33,42 @@ func TestIsEntityClass(t *testing.T) {
 	}
 }
 
+func TestKindFromAttackRange(t *testing.T) {
+	tests := []struct {
+		ar   int32
+		want string
+	}{
+		{AttackRangeMelee, KindMelee},
+		{AttackRangeRanged, KindRanged},
+		{AttackRangeSiege, KindSiege},
+		{0, ""},
+		{250, ""},
+	}
+	for _, tt := range tests {
+		if got := KindFromAttackRange(tt.ar); got != tt.want {
+			t.Fatalf("KindFromAttackRange(%d) = %q, want %q", tt.ar, got, tt.want)
+		}
+	}
+}
+
+func TestKindFromTargetName(t *testing.T) {
+	tests := []struct {
+		name string
+		want string
+	}{
+		{"npc_dota_creep_goodguys_melee", KindMelee},
+		{"npc_dota_creep_badguys_flagbearer", KindFlagbearer},
+		{"npc_dota_creep_badguys_ranged", KindRanged},
+		{"npc_dota_creep_goodguys_siege", KindSiege},
+		{"npc_dota_hero_phantom_assassin", ""},
+	}
+	for _, tt := range tests {
+		if got := KindFromTargetName(tt.name); got != tt.want {
+			t.Fatalf("KindFromTargetName(%q) = %q, want %q", tt.name, got, tt.want)
+		}
+	}
+}
+
 func TestGetCreepSide_PathcornerMapCorner(t *testing.T) {
 	// Spawn geography (not name suffix): SW/bottom-left → good, NE/top-right → bad.
 	tests := []struct {

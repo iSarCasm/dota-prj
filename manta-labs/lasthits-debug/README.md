@@ -49,6 +49,7 @@ go run . -replay <path.dem> [-mode <mode>] [-from SEC] [-to SEC] [filters]
 | `-to` | `170` | Window end (game seconds) |
 | `-health` | `0` | Filter by `m_iHealth` (entity-names / health-match) |
 | `-hero` | | Combat-log attacker/target substring |
+| `-attacker` | | Combat-log **attacker** only; comma-separated OR |
 | `-target` | | Combat-log target substring |
 | `-out` | | Write to file instead of stdout |
 | `-format` | `text` | For `build-pathcorner-map`: `text`/`json`; for `build-pathcorner-lane-spawn`: `text`/`table`/`json` |

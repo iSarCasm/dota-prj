@@ -46,19 +46,20 @@ type pendingCLogCreepEvent struct {
 
 // creepTrack holds per-entity creep state for correlating combat log with entity updates.
 type creepTrack struct {
-	creepName       string  // npc name from combat log once correlated
-	entityName      string  // EntityNames from m_iUnitNameIndex (debugging; lane creeps use pathcorner strings)
-	className       string  // class name from entity
-	lane            string  // lane from entity name
-	side            string  // map side from pathcorner spawn geography (good=SW, bad=NE)
-	spawnTimestamp  float32 // game time when the creep spawned
-	spawnWave       int     // wave number when the creep spawned
-	prevHealth      int32
-	currentHealth   int32
-	hasPrevHealth   bool
-	heroDamagedTick uint32 // 0 if our hero has not damaged this creep recently
-	lastUpdatedTick uint32 // last tick we updated this creep track
-	conflictGroupID uint64 // pending damage id when ambiguous; 0 = unique match
+	combatLogCreepname string  // npc name from combat log once correlated
+	entityName         string  // EntityNames from m_iUnitNameIndex (debugging; lane creeps use pathcorner strings)
+	className          string  // class name from entity
+	creepKind          string  // kind from entity
+	lane               string  // lane from entity name
+	side               string  // map side from pathcorner spawn geography (good=SW, bad=NE)
+	spawnTimestamp     float32 // game time when the creep spawned
+	spawnWave          int     // wave number when the creep spawned
+	prevHealth         int32
+	currentHealth      int32
+	hasPrevHealth      bool
+	heroDamagedTick    uint32 // 0 if our hero has not damaged this creep recently
+	lastUpdatedTick    uint32 // last tick we updated this creep track
+	conflictGroupID    uint64 // pending damage id when ambiguous; 0 = unique match
 }
 
 // conflictGroup tracks ambiguous hero-damage correlation across multiple entity idxs.
@@ -182,40 +183,43 @@ func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
 	}
 }
 
+func (h *Handler) correlateDamagesBy(correlate func(pd pendingCLogCreepEvent, creep *creepTrack) bool) {
+	for i := range h.pendingHeroDamageLogs {
+		pd := &h.pendingHeroDamageLogs[i]
+		if pd.closed {
+			continue
+		}
+
+		for _, v := range h.pendingHealthReducedCreepIds {
+			creep := h.creepTracks[v]
+			if correlate(*pd, creep) {
+				pd.candidates = slicesx.AppendIfMissing(pd.candidates, v)
+				pd.closed = true
+			}
+		}
+	}
+}
+
 func (h *Handler) correlateLastTickDamages(tick uint32, gameTime float32) {
-	// Mark creeps damaged by us
-	// Correlate by prevHealth and currentHealth
-	for i := range h.pendingHeroDamageLogs {
-		pd := &h.pendingHeroDamageLogs[i]
-		if pd.closed {
-			continue
-		}
+	h.correlateDamagesBy(func(pd pendingCLogCreepEvent, creep *creepTrack) bool {
+		return heroDamageCorrelatesExactly(pd, creep.prevHealth, creep.currentHealth)
+	})
 
-		for _, v := range h.pendingHealthReducedCreepIds {
-			creep := h.creepTracks[v]
+	// This may happen if other entity applied damage on the same tick before us
+	// the after health will match (if we are the last attacker) but before health will not
+	h.correlateDamagesBy(func(pd pendingCLogCreepEvent, creep *creepTrack) bool {
+		return heroDamageCorrelatesByAfterHealth(pd, creep.currentHealth)
+	})
 
-			if heroDamageCorrelatesExactly(*pd, creep.prevHealth, creep.currentHealth) {
-				pd.candidates = slicesx.AppendIfMissing(pd.candidates, v)
-				pd.closed = true
-			}
-		}
-	}
-	// Correlate by currentHealth
-	for i := range h.pendingHeroDamageLogs {
-		pd := &h.pendingHeroDamageLogs[i]
-		if pd.closed {
-			continue
-		}
+	// Sometimes we deal damage, then another entity (Creep) deals a killing blow. Check PA 2_10 test
+	// Correlate by creep kind
+	h.correlateDamagesBy(func(pd pendingCLogCreepEvent, creep *creepTrack) bool {
+		return heroDamageCorrelatesByCreepKind(pd, creep.creepKind)
+	})
 
-		for _, v := range h.pendingHealthReducedCreepIds {
-			creep := h.creepTracks[v]
-
-			if heroDamageCorrelatesByAfterHealth(*pd, creep.currentHealth) {
-				pd.candidates = slicesx.AppendIfMissing(pd.candidates, v)
-				pd.closed = true
-			}
-		}
-	}
+	// if h.lastCombatLogTick == 11061 {
+	// 	log.Printf("gameTime %f tick %d pendingHeroDamageLogs: %+v", gameTime, tick, h.pendingHeroDamageLogs)
+	// }
 
 	// Create conflict groups
 	h.closePendingHeroDamageBeforeTick(tick + 1)
@@ -353,11 +357,12 @@ func (h *Handler) onCreepEntity(p *manta.Parser, e *manta.Entity, op manta.Entit
 		return nil
 	}
 	gameTime := h.timeAndPausesHandler.CurrentGameTime()
-	h.onCreepHealthUpdate(e.GetIndex(), health, isMaxHealth, x, y, op, p.Tick, gameTime, entityName, className)
+	creepKind := creeps.KindFromEntity(e)
+	h.onCreepHealthUpdate(e.GetIndex(), health, isMaxHealth, x, y, op, p.Tick, gameTime, entityName, className, creepKind)
 	return nil
 }
 
-func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, isMaxHealth bool, x float32, y float32, op manta.EntityOp, tick uint32, gameTime float32, entityName string, className string) {
+func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, isMaxHealth bool, x float32, y float32, op manta.EntityOp, tick uint32, gameTime float32, entityName string, className string, creepKind string) {
 	if tick != h.lastCombatLogTick {
 		h.correlateLastTickDamages(h.lastCombatLogTick, h.timeAndPausesHandler.LastTickGameTime())
 		h.lastCombatLogTick = tick
@@ -383,6 +388,7 @@ func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, isMaxHealth 
 	}
 	track.entityName = entityName
 	track.className = className
+	track.creepKind = creepKind
 	track.lastUpdatedTick = tick
 	track.currentHealth = health
 
@@ -417,6 +423,8 @@ func (h *Handler) prunePendingEvents(currentTick uint32) {
 	h.pendingHeroDamageLogs = prunePendingByTick(h.pendingHeroDamageLogs, cutoff)
 	h.pendingOtherKillLogs = prunePendingByTick(h.pendingOtherKillLogs, cutoff)
 	h.pendingHeroKillLogs = prunePendingByTick(h.pendingHeroKillLogs, cutoff)
+	// h.pendingOtherKillLogs = make([]pendingCLogCreepEvent, 0, 64)
+	// h.pendingHeroKillLogs = make([]pendingCLogCreepEvent, 0, 64)
 }
 
 func prunePendingByTick(events []pendingCLogCreepEvent, cutoffTick uint32) []pendingCLogCreepEvent {
@@ -529,6 +537,11 @@ func heroDamageCorrelatesExactly(pd pendingCLogCreepEvent, prevHealth, health in
 
 func heroDamageCorrelatesByAfterHealth(pd pendingCLogCreepEvent, health int32) bool {
 	return health == pd.health
+}
+
+func heroDamageCorrelatesByCreepKind(pd pendingCLogCreepEvent, entityCreepKind string) bool {
+	pdCreepKind := creeps.KindFromTargetName(pd.creepName)
+	return entityCreepKind == pdCreepKind
 }
 
 // closePendingHeroDamageBeforeTick closes pending damage from earlier replay ticks (entity phase done).
@@ -657,7 +670,7 @@ func (h *Handler) bindConflictCandidate(entityId int32, groupID uint64, creepNam
 		track = &creepTrack{}
 		h.creepTracks[entityId] = track
 	}
-	track.creepName = creepName
+	track.combatLogCreepname = creepName
 	track.heroDamagedTick = damageTick
 	track.conflictGroupID = groupID
 }
@@ -704,8 +717,8 @@ func (h *Handler) resolveConflictGroup(groupID uint64) {
 func (h *Handler) handleCreepDeath(idx int32, track *creepTrack, deathTick uint32, gameTime float32) {
 	// Both enemyKill and heroKill can be true at the same if there are 2+ combat logs for creep death on the same tick
 	// in this case we assume there is no miss
-	enemyKill := h.hasPendingOtherKill(track.creepName, track.heroDamagedTick)
-	heroKill := h.hasPendingHeroKill(track.creepName, deathTick)
+	enemyKill := h.hasPendingOtherKill(track.combatLogCreepname, track.heroDamagedTick)
+	heroKill := h.hasPendingHeroKill(track.combatLogCreepname, deathTick)
 
 	if track.conflictGroupID == 0 {
 		h.handleCreepDeathWithoutConflict(heroKill, enemyKill, track, deathTick, gameTime)
@@ -716,7 +729,7 @@ func (h *Handler) handleCreepDeath(idx int32, track *creepTrack, deathTick uint3
 
 func (h *Handler) handleCreepDeathWithoutConflict(heroKill bool, enemyKill bool, track *creepTrack, deathTick uint32, gameTime float32) {
 	if heroKill {
-		h.matchPendingHeroKill(track.creepName, deathTick)
+		h.matchPendingHeroKill(track.combatLogCreepname, deathTick)
 		track.heroDamagedTick = 0
 		return
 	}
@@ -725,7 +738,7 @@ func (h *Handler) handleCreepDeathWithoutConflict(heroKill bool, enemyKill bool,
 		h.missedEvents = append(h.missedEvents, Event{
 			Timestamp: gameTime,
 			Type:      "missed_last_hit",
-			CreepName: track.creepName,
+			CreepName: track.combatLogCreepname,
 		})
 		track.heroDamagedTick = 0
 	}
@@ -736,7 +749,7 @@ func (h *Handler) handleCreepDeathWithConflict(entityIdx int32, heroKill bool, e
 	group := h.conflictGroups[groupID]
 
 	if heroKill {
-		h.matchPendingHeroKill(track.creepName, deathTick)
+		h.matchPendingHeroKill(track.combatLogCreepname, deathTick)
 		group.remainingCombatLogsCount--
 		if group.remainingCombatLogsCount == 0 {
 			h.resolveConflictGroup(groupID)
@@ -749,7 +762,7 @@ func (h *Handler) handleCreepDeathWithConflict(entityIdx int32, heroKill bool, e
 			h.missedEvents = append(h.missedEvents, Event{
 				Timestamp: gameTime,
 				Type:      "missed_last_hit",
-				CreepName: track.creepName,
+				CreepName: track.combatLogCreepname,
 			})
 		}
 	}

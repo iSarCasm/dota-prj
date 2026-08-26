@@ -128,8 +128,8 @@ var qualityCases = []qualityCase{
 		Tags:          []CaseTag{TagTooLate},
 	},
 	{
-		Label:         "",
-		Description:   "",
+		Label:         "we attacked a creep on the same tick as 2 allied creeps, didnt count as last hit",
+		Description:   "1st creep attack didnt show on a log, only the killing blow did from 2nd creep",
 		ReplayHero:    rhPhantomAssassin,
 		From:          gameClock(2, 10),
 		To:            gameClock(2, 11),

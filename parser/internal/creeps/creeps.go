@@ -62,6 +62,98 @@ func IsCreep(className string) bool {
 	return strings.HasPrefix(className, "CDOTA_BaseNPC_Creep")
 }
 
+// Lane-creep m_iAttackRange (8934466456). Flagbearer shares melee range (100);
+// distinguish via m_flMagicalResistanceValue == MagicalResistanceFlagbearer.
+const (
+	AttackRangeMelee  int32 = 100
+	AttackRangeRanged int32 = 500
+	AttackRangeSiege  int32 = 690
+)
+
+const (
+	MagicalResistanceMelee       float32 = 0
+	MagicalResistanceRanged      float32 = 0
+	MagicalResistanceFlagbearer  float32 = 40
+	MagicalResistanceSiege       float32 = 80
+)
+
+const (
+	KindFlagbearer = "flagbearer"
+	KindMelee      = "melee"
+	KindRanged     = "ranged"
+	KindSiege      = "siege"
+)
+
+// KindFromAttackRange returns "melee", "ranged", "siege", or "".
+// Melee and flagbearer both use AttackRangeMelee — use KindFromEntity for that split.
+func KindFromAttackRange(attackRange int32) string {
+	switch attackRange {
+	case AttackRangeMelee:
+		return KindMelee
+	case AttackRangeRanged:
+		return KindRanged
+	case AttackRangeSiege:
+		return KindSiege
+	default:
+		return ""
+	}
+}
+
+// GetAttackRange reads m_iAttackRange from a creep entity.
+func GetAttackRange(e *manta.Entity) (int32, bool) {
+	if e == nil {
+		return 0, false
+	}
+	return e.GetInt32("m_iAttackRange")
+}
+
+// GetMagicalResistance reads m_flMagicalResistanceValue from a creep entity.
+func GetMagicalResistance(e *manta.Entity) (float32, bool) {
+	if e == nil {
+		return 0, false
+	}
+	return e.GetFloat32("m_flMagicalResistanceValue")
+}
+
+// KindFromEntity returns creep kind from attack range + magical resistance.
+// Flagbearer: range 100 and resist 40; plain melee: range 100 and resist 0.
+func KindFromEntity(e *manta.Entity) string {
+	ar, ok := GetAttackRange(e)
+	if !ok {
+		return ""
+	}
+	switch ar {
+	case AttackRangeRanged:
+		return KindRanged
+	case AttackRangeSiege:
+		return KindSiege
+	case AttackRangeMelee:
+		if mr, ok := GetMagicalResistance(e); ok && mr == MagicalResistanceFlagbearer {
+			return KindFlagbearer
+		}
+		return KindMelee
+	default:
+		return ""
+	}
+}
+
+// KindFromTargetName returns "flagbearer", "melee", "ranged", "siege", or "" from a combat-log NPC name.
+func KindFromTargetName(targetName string) string {
+	name := strings.ToLower(strings.TrimSpace(targetName))
+	switch {
+	case strings.Contains(name, "_flagbearer"):
+		return KindFlagbearer
+	case strings.Contains(name, "_siege"):
+		return KindSiege
+	case strings.Contains(name, "_ranged"):
+		return KindRanged
+	case strings.Contains(name, "_melee"):
+		return KindMelee
+	default:
+		return ""
+	}
+}
+
 func GetCreepLane(entityName string) string {
 	if strings.Contains(entityName, "_mid_") {
 		return "mid"

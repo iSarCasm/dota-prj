@@ -30,7 +30,7 @@ func seedCreep(h *Handler, idx int32, health int32, tick uint32) {
 }
 
 func updateCreepHealth(h *Handler, idx int32, health int32, op manta.EntityOp, tick uint32) {
-	h.onCreepHealthUpdate(idx, health, true, 0, 0, op, tick, 0, "", "")
+	h.onCreepHealthUpdate(idx, health, true, 0, 0, op, tick, 0, "", "", "")
 }
 
 func closePendingAfterDamageTick(h *Handler, damageTick uint32) {
@@ -129,8 +129,8 @@ func TestCorrelateHeroDamage_BindsFirstMatchingPending(t *testing.T) {
 	h.correlateHeroDamage(idx, track, 50, tick)
 	h.closePendingHeroDamageBeforeTick(tick + 1)
 
-	if track.creepName != testMeleeName {
-		t.Fatalf("creepName = %q, want %q", track.creepName, testMeleeName)
+	if track.combatLogCreepname != testMeleeName {
+		t.Fatalf("creepName = %q, want %q", track.combatLogCreepname, testMeleeName)
 	}
 	if track.heroDamagedTick != tick {
 		t.Fatalf("heroDamagedTick = %v, want %v", track.heroDamagedTick, tick)

@@ -38,7 +38,8 @@ func main() {
 	from := flag.Float64("from", 160, "window start (game seconds, creep spawn = 0)")
 	to := flag.Float64("to", 170, "window end (game seconds)")
 	health := flag.Int("health", 0, "for entity-names / health-match: filter entity updates to this m_iHealth")
-	heroFilter := flag.String("hero", "", "optional combat-log attacker substring filter (e.g. warlock)")
+	heroFilter := flag.String("hero", "", "optional combat-log attacker/target substring filter (e.g. warlock)")
+	attackerFilter := flag.String("attacker", "", "combat-log attacker substring(s), comma-separated OR (e.g. phantom_assassin,npc_dota_creep_badguys_ranged)")
 	targetFilter := flag.String("target", "", "optional combat-log target substring filter (e.g. badguys)")
 	outPath := flag.String("out", "", "write trace to file instead of stdout")
 	flag.Parse()
@@ -85,7 +86,7 @@ func main() {
 
 	switch *mode {
 	case modeTrace:
-		registerTraceCallbacks(p, tp, out, windowStart, windowEnd, *heroFilter, *targetFilter)
+		registerTraceCallbacks(p, tp, out, windowStart, windowEnd, *heroFilter, *attackerFilter, *targetFilter)
 	case modeWarlock:
 		registerWarlockBadguysCallbacks(p, tp, out, windowStart, windowEnd)
 	case modeEntityNames:
@@ -115,19 +116,38 @@ func main() {
 
 func parseReplayPaths(replay, replays string) []string {
 	if replays != "" {
-		var paths []string
-		for _, p := range strings.Split(replays, ",") {
-			p = strings.TrimSpace(p)
-			if p != "" {
-				paths = append(paths, p)
-			}
-		}
-		return paths
+		return splitCSV(replays)
 	}
 	if replay != "" {
 		return []string{replay}
 	}
 	return nil
+}
+
+func splitCSV(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// matchesAnySubstring reports whether haystack contains any needle (case-insensitive).
+// Empty needles means no filter (match everything).
+func matchesAnySubstring(haystack string, needles []string) bool {
+	if len(needles) == 0 {
+		return true
+	}
+	h := strings.ToLower(haystack)
+	for _, n := range needles {
+		if strings.Contains(h, strings.ToLower(n)) {
+			return true
+		}
+	}
+	return false
 }
 
 func inWindow(gt, start, end float32) bool {
@@ -144,12 +164,13 @@ func isCreepEntityClass(className string) bool {
 }
 
 // trace: interleaved COMBAT + ENTITY lines for creeps in the time window.
-func registerTraceCallbacks(p *manta.Parser, tp *gameClock, out io.Writer, start, end float32, heroFilter, targetFilter string) {
+func registerTraceCallbacks(p *manta.Parser, tp *gameClock, out io.Writer, start, end float32, heroFilter, attackerFilter, targetFilter string) {
 	type creepState struct {
 		prevHealth int32
 		hasHealth  bool
 	}
 	tracks := make(map[int32]*creepState)
+	attackerNeedles := splitCSV(attackerFilter)
 
 	p.Callbacks.OnCMsgDOTACombatLogEntry(func(m *dota.CMsgDOTACombatLogEntry) error {
 		gt := tp.currentGameTime()
@@ -163,6 +184,9 @@ func registerTraceCallbacks(p *manta.Parser, tp *gameClock, out io.Writer, start
 		}
 		if heroFilter != "" && !strings.Contains(strings.ToLower(attacker), strings.ToLower(heroFilter)) &&
 			!strings.Contains(strings.ToLower(target), strings.ToLower(heroFilter)) {
+			return nil
+		}
+		if len(attackerNeedles) > 0 && !matchesAnySubstring(attacker, attackerNeedles) {
 			return nil
 		}
 		if targetFilter != "" && !strings.Contains(strings.ToLower(target), strings.ToLower(targetFilter)) &&

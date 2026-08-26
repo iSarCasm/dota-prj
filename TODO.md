@@ -6,8 +6,8 @@ Parser functions:
   - [ ] Per-Creep-Wave info for each CS (attach creep wave number and lane to each CS)
   - [ ] Display Missed CS
   - [ ] Capture missed neutral LH
-  - [ ] Add more quality tests 
-    - [ ] Replay 8934466456 (Divine)
+  - [x] Add more quality tests 
+    - [x] Replay 8934466456 (Divine)
 - [ ] End Game Breakdown Matching Dotabuff / Dotaplus
   - [ ] Total Hero Damage
   - [ ] Total Heal
@@ -27,6 +27,9 @@ Parser functions:
   - [ ] Mid Game
   - [ ] Late Game
 - [ ] Testing Code
+- [ ] 100 ms delay between replay gametime and acutal gametime from combat log
+  - [ ] ihort@Igor:~/projects/dota-prj/manta-labs/lasthits-debug$ go run . -replay ../../dota-replays/8934466456.dem -hero phantom_assassin -from 130 -to 131 | grep COMBAT
+    COMBAT gt=130.400 tick=11061 type=0 attacker=npc_dota_hero_phantom_assassin target=npc_dota_creep_goodguys_melee health=24 value=67
 - [ ] Benchmarking tool
 - [ ] Replay Pool System (from opendota)
 - [ ] Update Game Icons
