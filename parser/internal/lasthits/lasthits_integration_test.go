@@ -88,6 +88,10 @@ func parsePhantomAssassin8934466456(t *testing.T, untilTimestamp float32) *Handl
 	return parseReplayHero(t, "8934466456", "Phantom Assassin", untilTimestamp)
 }
 
+func parseShadowFiend8941961575(t *testing.T, untilTimestamp float32) *Handler {
+	return parseReplayHero(t, "8941961575", "Shadow Fiend", untilTimestamp)
+}
+
 func TestReplay8915936762_WarlockMissedFlagbearerAround_2_45(t *testing.T) {
 	h := parseWarlock8915936762(t, toTimestamp(2, 46))
 
@@ -142,6 +146,23 @@ func TestReplay8934466456_PAMissedRangedDenyTooEarly_4_00(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("expected badguys_ranged miss around 4:00, got %d total misses", len(h.missedEvents))
+	}
+}
+
+// SF auto-attacks badguys melee at ~1:44 (combat post-HP 80); same-tick entity coalesces to 39.
+// Allied melee gets the kill ~1s later (~1:45.7). Quality case: 1:44–1:47.
+func TestReplay8941961575_SFMissedMeleeTooEarly_1_44(t *testing.T) {
+	h := parseShadowFiend8941961575(t, toTimestamp(1, 47))
+
+	var found bool
+	for _, e := range h.missedEvents {
+		if e.CreepName == "npc_dota_creep_badguys_melee" &&
+			e.Timestamp >= toTimestamp(1, 44) && e.Timestamp <= toTimestamp(1, 47) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected badguys_melee miss around 1:44–1:47, got %d total misses", len(h.missedEvents))
 	}
 }
 

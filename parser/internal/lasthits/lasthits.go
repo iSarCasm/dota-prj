@@ -214,7 +214,8 @@ func (h *Handler) correlateLastTickDamages(tick uint32, gameTime float32) {
 	// Sometimes we deal damage, then another entity (Creep) deals a killing blow. Check PA 2_10 test
 	// Correlate by creep kind
 	h.correlateDamagesBy(func(pd pendingCLogCreepEvent, creep *creepTrack) bool {
-		return heroDamageCorrelatesByCreepKind(pd, creep.creepKind)
+		return heroDamageCorrelatesByCreepKindAndSide(pd, creep.creepKind, creep.side) &&
+			creep.currentHealth < pd.health
 	})
 
 	// if h.lastCombatLogTick == 11061 {
@@ -542,9 +543,10 @@ func heroDamageCorrelatesByAfterHealth(pd pendingCLogCreepEvent, health int32) b
 	return health == pd.health
 }
 
-func heroDamageCorrelatesByCreepKind(pd pendingCLogCreepEvent, entityCreepKind string) bool {
+func heroDamageCorrelatesByCreepKindAndSide(pd pendingCLogCreepEvent, entityCreepKind string, entitySide string) bool {
 	pdCreepKind := creeps.KindFromTargetName(pd.creepName)
-	return entityCreepKind == pdCreepKind
+	pdSide := creeps.GetCreepSide(pd.creepName)
+	return pdCreepKind == entityCreepKind && pdSide == entitySide
 }
 
 // closePendingHeroDamageBeforeTick closes pending damage from earlier replay ticks (entity phase done).
@@ -698,7 +700,7 @@ func (h *Handler) aliveConflictGroupMembers(groupID uint64, excludeIdx int32) in
 		if idx == excludeIdx || track.conflictGroupID != groupID {
 			continue
 		}
-		if track.hasPrevHealth && track.prevHealth > 0 {
+		if track.currentHealth > 0 {
 			n++
 		}
 	}
