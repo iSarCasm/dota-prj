@@ -29,12 +29,19 @@ func TestHeroNameToClass_matchesGetHeroClassName(t *testing.T) {
 		{"Warlock", "npc_dota_hero_warlock"},
 		{"Phantom Assassin", "npc_dota_hero_phantom_assassin"},
 		{"Keeper of the Light", "npc_dota_hero_keeper_of_the_light"},
+		{"Shadow Fiend", "npc_dota_hero_nevermore"},
+		{"Zeus", "npc_dota_hero_zuus"},
+		{"Zuus", "npc_dota_hero_zuus"},
+		{"Obsidian Destroyer", "npc_dota_hero_obsidian_destroyer"},
+		{"Outworld Destroyer", "npc_dota_hero_obsidian_destroyer"},
+		{"Anti-Mage", "npc_dota_hero_antimage"},
+		{"Antimage", "npc_dota_hero_antimage"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.heroName, func(t *testing.T) {
 			fromName := HeroNameToClass(tt.heroName)
 			fromNPC := GetHeroClassName(tt.npc)
-			if fromName != fromNPC {
+			if fromName == "" || fromName != fromNPC {
 				t.Fatalf("HeroNameToClass(%q) = %q, GetHeroClassName(%q) = %q",
 					tt.heroName, fromName, tt.npc, fromNPC)
 			}

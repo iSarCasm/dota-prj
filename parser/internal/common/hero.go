@@ -34,6 +34,26 @@ func GetHeroClassName(npc string) string {
 	return b.String()
 }
 
+// displayNameToNPCToken maps Valve display names that do not match npc_dota_hero_* tokens.
+// Key is lowercased display name with spaces as underscores (same as the naive transform).
+var displayNameToNPCToken = map[string]string{
+	"shadow_fiend": "nevermore",
+	"zeus":         "zuus",
+	"outworld_destroyer": "obsidian_destroyer",
+	"wraith_king":  "skeleton_king",
+	"natures_prophet": "furion", // "Nature's Prophet" → natures_prophet after strip
+	"nature's_prophet": "furion",
+	"doom":         "doom_bringer",
+	"clockwerk":    "rattletrap",
+	"lifestealer":  "life_stealer",
+	"treant_protector": "treant",
+	"io":           "wisp",
+	"magnus":       "magnataur",
+	"queen_of_pain": "queenofpain",
+	"anti-mage":    "antimage",
+	"anti_mage":    "antimage",
+}
+
 // HeroNameToClass maps a display hero name (e.g. "Puck", "Phantom Assassin") to the same
 // CDOTA_Unit_Hero_* class name that GetHeroClassName returns for the combat-log npc name.
 func HeroNameToClass(heroName string) string {
@@ -41,8 +61,11 @@ func HeroNameToClass(heroName string) string {
 	if heroName == "" {
 		return ""
 	}
-	npc := "npc_dota_hero_" + strings.ToLower(strings.ReplaceAll(heroName, " ", "_"))
-	return GetHeroClassName(npc)
+	token := strings.ToLower(strings.ReplaceAll(heroName, " ", "_"))
+	if alias, ok := displayNameToNPCToken[token]; ok {
+		token = alias
+	}
+	return GetHeroClassName("npc_dota_hero_" + token)
 }
 
 // entityClassToCombatLogName converts an entity class name to the combat-log style name
