@@ -252,6 +252,11 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 	tick := p.Tick
 	gameTime := h.timeAndPausesHandler.CurrentGameTime()
 
+	if tick != h.lastCombatLogTick {
+		h.correlateLastTickDamages(h.lastCombatLogTick, h.timeAndPausesHandler.LastTickGameTime())
+		h.lastCombatLogTick = tick
+	}
+
 	attackerNameIdx := m.GetAttackerName()
 	targetNameIdx := m.GetTargetName()
 	realAttackerName, okA := p.LookupStringByIndex("CombatLogNames", int32(attackerNameIdx))
@@ -366,11 +371,6 @@ func (h *Handler) onCreepEntity(p *manta.Parser, e *manta.Entity, op manta.Entit
 }
 
 func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, isMaxHealth bool, x float32, y float32, op manta.EntityOp, tick uint32, gameTime float32, entityName string, className string, creepKind string) {
-	if tick != h.lastCombatLogTick {
-		h.correlateLastTickDamages(h.lastCombatLogTick, h.timeAndPausesHandler.LastTickGameTime())
-		h.lastCombatLogTick = tick
-	}
-
 	track := h.creepTracks[entityId]
 	if track == nil {
 		track = &creepTrack{}
@@ -481,19 +481,19 @@ func replayTicksWithinWindow(fromTick, toTick uint32) bool {
 	return toTick-fromTick <= missedLastHitWindowTicks
 }
 
-func (h *Handler) hasPendingHeroKill(creepName string, deathTick uint32) bool {
+func (h *Handler) hasPendingHeroKill(creepName string, currentTick uint32) bool {
 	for _, cLog := range h.pendingHeroKillLogs {
 		if cLog.entityMatched || cLog.creepName != creepName {
 			continue
 		}
-		if cLog.tick <= deathTick { // && replayTicksWithinWindow(cLog.tick, deathTick) {
+		if cLog.tick == currentTick {
 			return true
 		}
 	}
 	return false
 }
 
-func (h *Handler) hasPendingOtherKill(creepName string, heroDamagedTick uint32) bool {
+func (h *Handler) hasPendingOtherKill(creepName string, heroDamagedTick uint32, currentTick uint32) bool {
 	if heroDamagedTick == 0 {
 		return false
 	}
@@ -502,21 +502,21 @@ func (h *Handler) hasPendingOtherKill(creepName string, heroDamagedTick uint32) 
 		if pendingOtherKillLog.entityMatched || pendingOtherKillLog.creepName != creepName {
 			continue
 		}
-		// if !replayTicksWithinWindow(heroDamagedTick, pendingOtherKillLog.tick) {
-		// 	continue
-		// }
+		if !replayTicksWithinWindow(heroDamagedTick, currentTick) {
+			continue
+		}
 		return true
 	}
 	return false
 }
 
-func (h *Handler) matchPendingHeroKill(creepName string, deathTick uint32) {
+func (h *Handler) matchPendingHeroKill(creepName string, currentTick uint32) {
 	for i := range h.pendingHeroKillLogs {
 		cLog := &h.pendingHeroKillLogs[i]
 		if cLog.entityMatched || cLog.creepName != creepName {
 			continue
 		}
-		if cLog.tick <= deathTick && replayTicksWithinWindow(cLog.tick, deathTick) {
+		if cLog.tick == currentTick {
 			cLog.entityMatched = true
 			return
 		}
@@ -717,22 +717,22 @@ func (h *Handler) resolveConflictGroup(groupID uint64) {
 
 // Creep tracks with single candidate: immediate miss on enemy steal;
 // Creep tracks with multiple candidates: defer until resolved.
-func (h *Handler) handleCreepDeath(idx int32, track *creepTrack, deathTick uint32, gameTime float32) {
+func (h *Handler) handleCreepDeath(idx int32, track *creepTrack, currentTick uint32, gameTime float32) {
 	// Both enemyKill and heroKill can be true at the same if there are 2+ combat logs for creep death on the same tick
 	// in this case we assume there is no miss
-	enemyKill := h.hasPendingOtherKill(track.combatLogCreepname, track.heroDamagedTick)
-	heroKill := h.hasPendingHeroKill(track.combatLogCreepname, deathTick)
+	enemyKill := h.hasPendingOtherKill(track.combatLogCreepname, track.heroDamagedTick, currentTick)
+	heroKill := h.hasPendingHeroKill(track.combatLogCreepname, currentTick)
 
 	if track.conflictGroupID == 0 {
-		h.handleCreepDeathWithoutConflict(heroKill, enemyKill, track, deathTick, gameTime)
+		h.handleCreepDeathWithoutConflict(heroKill, enemyKill, track, currentTick, gameTime)
 	} else {
-		h.handleCreepDeathWithConflict(idx, heroKill, enemyKill, track, deathTick, gameTime)
+		h.handleCreepDeathWithConflict(idx, heroKill, enemyKill, track, currentTick, gameTime)
 	}
 }
 
-func (h *Handler) handleCreepDeathWithoutConflict(heroKill bool, enemyKill bool, track *creepTrack, deathTick uint32, gameTime float32) {
+func (h *Handler) handleCreepDeathWithoutConflict(heroKill bool, enemyKill bool, track *creepTrack, currentTick uint32, gameTime float32) {
 	if heroKill {
-		h.matchPendingHeroKill(track.combatLogCreepname, deathTick)
+		h.matchPendingHeroKill(track.combatLogCreepname, currentTick)
 		track.heroDamagedTick = 0
 		return
 	}
@@ -747,12 +747,12 @@ func (h *Handler) handleCreepDeathWithoutConflict(heroKill bool, enemyKill bool,
 	}
 }
 
-func (h *Handler) handleCreepDeathWithConflict(entityIdx int32, heroKill bool, enemyKill bool, track *creepTrack, deathTick uint32, gameTime float32) {
+func (h *Handler) handleCreepDeathWithConflict(entityIdx int32, heroKill bool, enemyKill bool, track *creepTrack, currentTick uint32, gameTime float32) {
 	groupID := track.conflictGroupID
 	group := h.conflictGroups[groupID]
 
 	if heroKill {
-		h.matchPendingHeroKill(track.combatLogCreepname, deathTick)
+		h.matchPendingHeroKill(track.combatLogCreepname, currentTick)
 		group.remainingCombatLogsCount--
 		if group.remainingCombatLogsCount == 0 {
 			h.resolveConflictGroup(groupID)
