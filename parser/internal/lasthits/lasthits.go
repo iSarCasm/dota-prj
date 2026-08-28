@@ -235,7 +235,10 @@ func (h *Handler) correlateLastTickDamages(tick uint32, gameTime float32) {
 	// Clean up temp tick arrays
 	h.pendingHealthReducedCreepIds = make([]int32, 0, 64)
 	h.pendingDeadCreeps = make([]int32, 0, 64)
-	h.prunePendingEvents(tick)
+	// h.prunePendingEvents(tick)
+	h.pendingHeroDamageLogs = make([]pendingCLogCreepEvent, 0, 64)
+	h.pendingOtherKillLogs = make([]pendingCLogCreepEvent, 0, 64)
+	h.pendingHeroKillLogs = make([]pendingCLogCreepEvent, 0, 64)
 	// Rollover health into prevHealth
 	for k := range h.creepTracks {
 		creep := h.creepTracks[k]
@@ -483,7 +486,7 @@ func (h *Handler) hasPendingHeroKill(creepName string, deathTick uint32) bool {
 		if cLog.entityMatched || cLog.creepName != creepName {
 			continue
 		}
-		if cLog.tick <= deathTick && replayTicksWithinWindow(cLog.tick, deathTick) {
+		if cLog.tick <= deathTick { // && replayTicksWithinWindow(cLog.tick, deathTick) {
 			return true
 		}
 	}
@@ -499,9 +502,9 @@ func (h *Handler) hasPendingOtherKill(creepName string, heroDamagedTick uint32) 
 		if pendingOtherKillLog.entityMatched || pendingOtherKillLog.creepName != creepName {
 			continue
 		}
-		if !replayTicksWithinWindow(heroDamagedTick, pendingOtherKillLog.tick) {
-			continue
-		}
+		// if !replayTicksWithinWindow(heroDamagedTick, pendingOtherKillLog.tick) {
+		// 	continue
+		// }
 		return true
 	}
 	return false
