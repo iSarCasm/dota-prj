@@ -47,7 +47,9 @@ func TypeFromTargetName(targetName string) string {
 	if strings.HasPrefix(targetName, "npc_dota_creep_goodguys_") || strings.HasPrefix(targetName, "npc_dota_creep_badguys_") {
 		return "lane"
 	}
-	if strings.HasPrefix(targetName, "npc_dota_creep_siege") {
+	// Siege units: legacy npc_dota_creep_siege* and current npc_dota_{good,bad}guys_siege.
+	if strings.HasPrefix(targetName, "npc_dota_creep_siege") ||
+		targetName == "npc_dota_goodguys_siege" || targetName == "npc_dota_badguys_siege" {
 		return "lane"
 	}
 	return ""

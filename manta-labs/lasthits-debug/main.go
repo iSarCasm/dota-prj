@@ -156,7 +156,9 @@ func inWindow(gt, start, end float32) bool {
 
 func isLaneOrNeutralCreep(name string) bool {
 	name = strings.ToLower(strings.TrimSpace(name))
-	return strings.HasPrefix(name, "npc_dota_creep_") || strings.HasPrefix(name, "npc_dota_neutral_")
+	return strings.HasPrefix(name, "npc_dota_creep_") ||
+		strings.HasPrefix(name, "npc_dota_neutral_") ||
+		name == "npc_dota_goodguys_siege" || name == "npc_dota_badguys_siege"
 }
 
 func isCreepEntityClass(className string) bool {

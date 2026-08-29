@@ -2,12 +2,12 @@ package strategic_states
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/dotabuff/manta"
 	"github.com/dotabuff/manta/dota"
 
 	"dota2/internal/common"
+	"dota2/internal/creeps"
 	"dota2/internal/timeandpauses"
 )
 
@@ -70,22 +70,10 @@ func (h *Handler) Init(ctx *common.ParseContext) error {
 }
 
 // creepSubstateFromTargetName returns "jungle", "lane", or "" if target is not a creep we track.
-// Combat log target names: npc_dota_neutral_*, npc_dota_creep_goodguys_*, npc_dota_creep_badguys_*, npc_dota_creep_siege.
+// Combat log target names: npc_dota_neutral_*, npc_dota_creep_goodguys_*, npc_dota_creep_badguys_*,
+// npc_dota_creep_siege*, npc_dota_goodguys_siege, npc_dota_badguys_siege.
 func creepSubstateFromTargetName(targetName string) string {
-	targetName = strings.ToLower(strings.TrimSpace(targetName))
-	if targetName == "" {
-		return ""
-	}
-	if strings.HasPrefix(targetName, "npc_dota_neutral_") {
-		return SubstateJungle
-	}
-	if strings.HasPrefix(targetName, "npc_dota_creep_goodguys_") || strings.HasPrefix(targetName, "npc_dota_creep_badguys_") {
-		return SubstateLane
-	}
-	if strings.HasPrefix(targetName, "npc_dota_creep_siege") {
-		return SubstateLane
-	}
-	return ""
+	return creeps.TypeFromTargetName(targetName)
 }
 
 // isHeroInCombat returns true if the hero had dealt or received hero damage within fightingTimeoutSec. Buffs do not set this; only damage does (buffs are not contagious).

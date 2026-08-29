@@ -11,6 +11,8 @@ func TestTypeFromTargetName(t *testing.T) {
 		{"lane badguys melee", "npc_dota_creep_badguys_melee", "lane"},
 		{"lane goodguys ranged", "npc_dota_creep_goodguys_ranged", "lane"},
 		{"lane siege", "npc_dota_creep_siege", "lane"},
+		{"lane goodguys siege", "npc_dota_goodguys_siege", "lane"},
+		{"lane badguys siege", "npc_dota_badguys_siege", "lane"},
 		{"jungle neutral", "npc_dota_neutral_kobold", "jungle"},
 		{"hero not creep", "npc_dota_hero_warlock", ""},
 		{"empty", "", ""},
@@ -60,6 +62,8 @@ func TestKindFromTargetName(t *testing.T) {
 		{"npc_dota_creep_badguys_flagbearer", KindFlagbearer},
 		{"npc_dota_creep_badguys_ranged", KindRanged},
 		{"npc_dota_creep_goodguys_siege", KindSiege},
+		{"npc_dota_goodguys_siege", KindSiege},
+		{"npc_dota_badguys_siege", KindSiege},
 		{"npc_dota_hero_phantom_assassin", ""},
 	}
 	for _, tt := range tests {

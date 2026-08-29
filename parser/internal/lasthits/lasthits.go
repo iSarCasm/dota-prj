@@ -20,7 +20,7 @@ import (
 var lasthitInflictorsFile string
 
 const (
-	missedLastHitWindowSec   = float32(2.0)
+	missedLastHitWindowSec   = float32(2.5)
 	missedLastHitWindowTicks = uint32(missedLastHitWindowSec * timeandpauses.TickRate)
 )
 
@@ -215,7 +215,7 @@ func (h *Handler) correlateLastTickDamages(tick uint32, gameTime float32) {
 	// Correlate by creep kind
 	h.correlateDamagesBy(func(pd pendingCLogCreepEvent, creep *creepTrack) bool {
 		return heroDamageCorrelatesByCreepKindAndSide(pd, creep.creepKind, creep.side) &&
-			creep.currentHealth < pd.health
+			creep.currentHealth < (pd.health+2) // accounting for creep regen
 	})
 
 	// if h.lastCombatLogTick == 11061 {
