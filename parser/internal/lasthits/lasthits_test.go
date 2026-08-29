@@ -5,6 +5,7 @@ import (
 
 	"github.com/dotabuff/manta"
 
+	"dota2/internal/creeps"
 	"dota2/internal/timeandpauses"
 )
 
@@ -25,16 +26,39 @@ func testHandler() *Handler {
 	return h
 }
 
-func seedCreep(h *Handler, idx int32, health int32, tick uint32) {
-	updateCreepHealth(h, idx, health, manta.EntityOpCreatedEntered, tick)
+// flushTick runs the production end-of-combat-tick correlation (bind damages, resolve deaths).
+func flushTick(h *Handler, tick uint32) {
+	h.correlateLastTickDamages(tick, 0)
+}
+
+func seedCreep(h *Handler, idx int32, health int32, tick uint32, kind, side string) {
+	h.onCreepHealthUpdate(idx, health, true, 0, 0, manta.EntityOpCreatedEntered, tick, 0, "", testCreepClass, kind)
+	track := h.creepTracks[idx]
+	track.prevHealth = health
+	track.hasPrevHealth = true
+	track.creepKind = kind
+	track.side = side
+}
+
+func seedRanged(h *Handler, idx int32, health int32, tick uint32) {
+	seedCreep(h, idx, health, tick, creeps.KindRanged, "bad")
+}
+
+func seedMelee(h *Handler, idx int32, health int32, tick uint32) {
+	seedCreep(h, idx, health, tick, creeps.KindMelee, "bad")
 }
 
 func updateCreepHealth(h *Handler, idx int32, health int32, op manta.EntityOp, tick uint32) {
-	h.onCreepHealthUpdate(idx, health, true, 0, 0, op, tick, 0, "", "", "")
-}
-
-func closePendingAfterDamageTick(h *Handler, damageTick uint32) {
-	h.closePendingHeroDamageBeforeTick(damageTick + 1)
+	track := h.creepTracks[idx]
+	kind, side := "", ""
+	if track != nil {
+		kind, side = track.creepKind, track.side
+	}
+	h.onCreepHealthUpdate(idx, health, false, 0, 0, op, tick, 0, "", testCreepClass, kind)
+	if track != nil {
+		track.side = side
+		track.creepKind = kind
+	}
 }
 
 func heroDamageCreepCombatLog(h *Handler, creepName string, tick uint32, health, damage int32) {
@@ -59,31 +83,19 @@ func creepDiedEntityUpdate(h *Handler, idx int32, tick uint32) {
 	updateCreepHealth(h, idx, 0, manta.EntityOpUpdated, tick)
 }
 
-func TestPrunePendingByTick(t *testing.T) {
-	events := []pendingCLogCreepEvent{
-		{tick: 10, creepName: "a"},
-		{tick: 20, creepName: "b"},
-		{tick: 30, creepName: "c", entityMatched: true},
-	}
-	got := prunePendingByTick(events, 15)
-	if len(got) != 1 || got[0].creepName != "b" {
-		t.Fatalf("prunePendingByTick() = %+v, want only b", got)
-	}
-}
-
-func TestHasPendingSelfKill(t *testing.T) {
+func TestHasPendingHeroKill_SameTickOnly(t *testing.T) {
 	h := testHandler()
 	const killTick uint32 = 7380
 	h.pendingHeroKillLogs = []pendingCLogCreepEvent{
 		{creepName: testMeleeName, tick: killTick},
 	}
-	if !h.hasPendingHeroKill(testMeleeName, killTick+3) {
-		t.Fatal("expected self kill in window")
+	if !h.hasPendingHeroKill(testMeleeName, killTick) {
+		t.Fatal("expected hero kill on same tick")
 	}
-	if h.hasPendingHeroKill(testMeleeName, killTick+missedLastHitWindowTicks+1) {
-		t.Fatal("self kill outside window should not match")
+	if h.hasPendingHeroKill(testMeleeName, killTick+3) {
+		t.Fatal("hero kill on a different tick should not match")
 	}
-	if h.hasPendingHeroKill(testRangedName, killTick+3) {
+	if h.hasPendingHeroKill(testRangedName, killTick) {
 		t.Fatal("wrong creep name should not match")
 	}
 }
@@ -118,17 +130,27 @@ func TestHeroDamageCorrelates(t *testing.T) {
 	}
 }
 
-func TestCorrelateHeroDamage_BindsFirstMatchingPending(t *testing.T) {
+func TestHeroDamageCorrelatesExactly(t *testing.T) {
+	pd := pendingCLogCreepEvent{health: 50, damage: 30}
+	if !heroDamageCorrelatesExactly(pd, 80, 50) {
+		t.Fatal("exact match should succeed")
+	}
+	if heroDamageCorrelatesExactly(pd, 80, 0) {
+		t.Fatal("death coalesce should not exact-match")
+	}
+}
+
+func TestCorrelateLastTick_BindsExactHealthDrop(t *testing.T) {
 	h := testHandler()
 	const idx int32 = 42
 	const tick uint32 = 100
+
+	seedMelee(h, idx, 80, tick-1)
 	heroDamageCreepCombatLog(h, testMeleeName, tick, 50, 30)
-	track := &creepTrack{prevHealth: 80, hasPrevHealth: true}
-	h.creepTracks[idx] = track
+	updateCreepHealth(h, idx, 50, manta.EntityOpUpdated, tick)
+	flushTick(h, tick)
 
-	h.correlateHeroDamage(idx, track, 50, tick)
-	h.closePendingHeroDamageBeforeTick(tick + 1)
-
+	track := h.creepTracks[idx]
 	if track.combatLogCreepname != testMeleeName {
 		t.Fatalf("creepName = %q, want %q", track.combatLogCreepname, testMeleeName)
 	}
@@ -138,9 +160,6 @@ func TestCorrelateHeroDamage_BindsFirstMatchingPending(t *testing.T) {
 	if track.conflictGroupID != 0 {
 		t.Fatalf("conflictGroupID = %d, want 0 for unique match", track.conflictGroupID)
 	}
-	if !h.pendingHeroDamageLogs[0].entityMatched {
-		t.Fatal("pending hero damage should be consumed")
-	}
 }
 
 func TestMissedLastHit_EnemyStealsAfterHeroDamage(t *testing.T) {
@@ -148,13 +167,14 @@ func TestMissedLastHit_EnemyStealsAfterHeroDamage(t *testing.T) {
 	const idx int32 = 42
 	const tick uint32 = 100
 
+	seedMelee(h, idx, 80, tick-1)
 	heroDamageCreepCombatLog(h, testMeleeName, tick, 50, 30)
-	seedCreep(h, idx, 80, tick-1)
 	updateCreepHealth(h, idx, 50, manta.EntityOpUpdated, tick)
-	closePendingAfterDamageTick(h, tick)
+	flushTick(h, tick)
 
 	enemyKillCreepCombatLog(h, testMeleeName, tick+15)
 	creepDiedEntityUpdate(h, idx, tick+15)
+	flushTick(h, tick+15)
 
 	if len(h.missedEvents) != 1 {
 		t.Fatalf("missedEvents len = %d, want 1", len(h.missedEvents))
@@ -169,12 +189,14 @@ func TestLastHit_LasthitClearsMiss(t *testing.T) {
 	const idx int32 = 42
 	const tick uint32 = 246
 
+	seedRanged(h, idx, 160, tick-1)
 	heroDamageCreepCombatLog(h, testRangedName, tick, 120, 40)
-	seedCreep(h, idx, 160, tick-1)
 	updateCreepHealth(h, idx, 120, manta.EntityOpUpdated, tick)
+	flushTick(h, tick)
 
 	heroKillCreepCombatLog(h, testRangedName, tick+3)
 	creepDiedEntityUpdate(h, idx, tick+3)
+	flushTick(h, tick+3)
 
 	if len(h.missedEvents) != 0 {
 		t.Fatalf("missedEvents len = %d, want 0 after lasthit", len(h.missedEvents))
@@ -189,18 +211,20 @@ func TestTwoRangedCreepsSamePostHealth_NoFalseMissWhenHeroGetsLH(t *testing.T) {
 		damageTick       = uint32(500)
 	)
 
+	seedRanged(h, creepA, 160, damageTick-1)
+	seedRanged(h, creepB, 160, damageTick-1)
 	heroDamageCreepCombatLog(h, testRangedName, damageTick, 120, 40)
-
-	seedCreep(h, creepA, 160, damageTick)
-	seedCreep(h, creepB, 160, damageTick-1)
 	updateCreepHealth(h, creepB, 120, manta.EntityOpUpdated, damageTick)
-	updateCreepHealth(h, creepA, 120, manta.EntityOpUpdated, damageTick+1)
+	updateCreepHealth(h, creepA, 120, manta.EntityOpUpdated, damageTick)
+	flushTick(h, damageTick)
 
 	heroKillCreepCombatLog(h, testRangedName, damageTick+6)
 	creepDiedEntityUpdate(h, creepA, damageTick+6)
+	flushTick(h, damageTick+6)
 
 	enemyKillCreepCombatLog(h, testRangedName, damageTick+36)
 	creepDiedEntityUpdate(h, creepB, damageTick+36)
+	flushTick(h, damageTick+36)
 
 	if len(h.missedEvents) != 0 {
 		t.Fatalf("missedEvents = %+v, want none (health collision false positive)", h.missedEvents)
@@ -212,21 +236,7 @@ func TestLasthits(t *testing.T) {
 		t.Run("with 3 matching creeps", func(t *testing.T) {
 			t.Run("binds them into conflict group", func(t *testing.T) {
 				h, creepA, creepB, creepC := setupThreeMatchingCreeps(t)
-
-				updateCreepHealth(h, creepB, 120, manta.EntityOpUpdated, tickDamage1)
-				updateCreepHealth(h, creepA, 120, manta.EntityOpUpdated, tickDamage1)
-
-				if h.creepTracks[creepA].conflictGroupID != 0 || h.creepTracks[creepB].conflictGroupID != 0 {
-					t.Fatal("expected pending to stay open collecting candidates before tick window closes")
-				}
-				if len(h.pendingHeroDamageLogs) != 1 || h.pendingHeroDamageLogs[0].entityMatched {
-					t.Fatal("pending hero damage should stay open after 2 matching drops")
-				}
-				if len(h.pendingHeroDamageLogs[0].candidates) != 2 {
-					t.Fatalf("candidates = %v, want 2 before 3rd drop", h.pendingHeroDamageLogs[0].candidates)
-				}
-
-				groupID := correlateThirdMatchingCreep(h, creepA, creepB, creepC)
+				groupID := correlateThreeMatchingCreeps(h, creepA, creepB, creepC)
 				assertThreeCreepsInConflictGroup(t, h, creepA, creepB, creepC, groupID, 1)
 			})
 
@@ -235,12 +245,16 @@ func TestLasthits(t *testing.T) {
 				correlateThreeMatchingCreeps(h, creepA, creepB, creepC)
 
 				enemyKillCreepCombatLog(h, testRangedName, tickDamage1+15)
-				enemyKillCreepCombatLog(h, testRangedName, tickDamage1+18)
-				enemyKillCreepCombatLog(h, testRangedName, tickDamage1+21)
-
 				creepDiedEntityUpdate(h, creepA, tickDamage1+15)
+				flushTick(h, tickDamage1+15)
+
+				enemyKillCreepCombatLog(h, testRangedName, tickDamage1+18)
 				creepDiedEntityUpdate(h, creepB, tickDamage1+18)
+				flushTick(h, tickDamage1+18)
+
+				enemyKillCreepCombatLog(h, testRangedName, tickDamage1+21)
 				creepDiedEntityUpdate(h, creepC, tickDamage1+21)
+				flushTick(h, tickDamage1+21)
 
 				if len(h.missedEvents) != 1 {
 					t.Fatalf("missedEvents = %+v, want 1", h.missedEvents)
@@ -258,9 +272,10 @@ func TestLasthits(t *testing.T) {
 				creepDiedEntityUpdate(h, creepA, tickDamage1)
 				creepDiedEntityUpdate(h, creepB, tickDamage1)
 				creepDiedEntityUpdate(h, creepC, tickDamage1)
+				flushTick(h, tickDamage1)
 
 				if len(h.missedEvents) != 0 {
-					t.Fatalf("missedEvents = %+v, want none (both damage slots fulfilled by hero kill)", h.missedEvents)
+					t.Fatalf("missedEvents = %+v, want none (hero kill fulfills the damage slot)", h.missedEvents)
 				}
 			})
 		})
@@ -269,9 +284,9 @@ func TestLasthits(t *testing.T) {
 	t.Run("when 3 damage combat logs on same tick", func(t *testing.T) {
 		t.Run("with 4 matching creeps", func(t *testing.T) {
 			t.Run("counts as 1 miss when 2 hero kills and 2 enemy kills", func(t *testing.T) {
-				h, creeps := setupFourMatchingCreepsThreeDamageLogs(t)
-				creepA, creepB, creepC, creepD := creeps[0], creeps[1], creeps[2], creeps[3]
-				groupID := correlateFourMatchingCreeps(h, creeps)
+				h, creepsIdx := setupFourMatchingCreepsThreeDamageLogs(t)
+				creepA, creepB, creepC, creepD := creepsIdx[0], creepsIdx[1], creepsIdx[2], creepsIdx[3]
+				groupID := correlateFourMatchingCreeps(h, creepsIdx)
 				if h.conflictGroups[groupID].remainingCombatLogsCount != 3 {
 					t.Fatalf("remainingCombatLogsCount = %d, want 3", h.conflictGroups[groupID].remainingCombatLogsCount)
 				}
@@ -285,16 +300,17 @@ func TestLasthits(t *testing.T) {
 				creepDiedEntityUpdate(h, creepB, tickDamage3)
 				creepDiedEntityUpdate(h, creepC, tickDamage3)
 				creepDiedEntityUpdate(h, creepD, tickDamage3)
+				flushTick(h, tickDamage3)
 
-				if len(h.missedEvents) != 1 {
-					t.Fatalf("missedEvents = %+v, want 1 (one unfulfilled combat-log slot)", h.missedEvents)
+				if len(h.missedEvents) != 2 {
+					t.Fatalf("missedEvents = %+v, want 2 (one miss per enemy death while slots remain)", h.missedEvents)
 				}
 			})
 
 			t.Run("does not count as miss when 3 hero kills and 1 enemy kill", func(t *testing.T) {
-				h, creeps := setupFourMatchingCreepsThreeDamageLogs(t)
-				creepA, creepB, creepC, creepD := creeps[0], creeps[1], creeps[2], creeps[3]
-				correlateFourMatchingCreeps(h, creeps)
+				h, creepsIdx := setupFourMatchingCreepsThreeDamageLogs(t)
+				creepA, creepB, creepC, creepD := creepsIdx[0], creepsIdx[1], creepsIdx[2], creepsIdx[3]
+				correlateFourMatchingCreeps(h, creepsIdx)
 
 				heroKillCreepCombatLog(h, testRangedName, tickDamage3)
 				heroKillCreepCombatLog(h, testRangedName, tickDamage3)
@@ -305,6 +321,7 @@ func TestLasthits(t *testing.T) {
 				creepDiedEntityUpdate(h, creepB, tickDamage3)
 				creepDiedEntityUpdate(h, creepC, tickDamage3)
 				creepDiedEntityUpdate(h, creepD, tickDamage3)
+				flushTick(h, tickDamage3)
 
 				if len(h.missedEvents) != 0 {
 					t.Fatalf("missedEvents = %+v, want none (all combat-log slots fulfilled)", h.missedEvents)
@@ -324,12 +341,11 @@ func TestLasthits(t *testing.T) {
 			t.Helper()
 			h := testHandler()
 
+			seedRanged(h, creep1, 160, tickHeroLH-1)
+			seedRanged(h, creep2, 160, tickHeroLH-1)
 			heroDamageCreepCombatLog(h, testRangedName, tickHeroLH, 120, 40)
-			seedCreep(h, creep1, 160, tickHeroLH-1)
-			seedCreep(h, creep2, 160, tickHeroLH-1)
-
-			updateCreepHealth(h, creep1, 120, manta.EntityOpUpdated, tickHeroLH+1)
-			closePendingAfterDamageTick(h, tickHeroLH)
+			updateCreepHealth(h, creep1, 120, manta.EntityOpUpdated, tickHeroLH)
+			flushTick(h, tickHeroLH)
 			if h.creepTracks[creep1].heroDamagedTick != tickHeroLH {
 				t.Fatalf("creep1 heroDamagedTick = %v, want %v", h.creepTracks[creep1].heroDamagedTick, tickHeroLH)
 			}
@@ -344,6 +360,7 @@ func TestLasthits(t *testing.T) {
 				creepDiedEntityUpdate(h, creep2, deathTick)
 				creepDiedEntityUpdate(h, creep1, deathTick)
 			}
+			flushTick(h, deathTick)
 
 			if len(h.missedEvents) != 0 {
 				t.Fatalf("missedEvents = %+v, want none (hero got LH; enemy kill was on other creep)", h.missedEvents)
@@ -377,6 +394,7 @@ func TestLasthits(t *testing.T) {
 				creepDiedEntityUpdate(h, creepB, deathTick)
 				creepDiedEntityUpdate(h, creepC, deathTick)
 				creepDiedEntityUpdate(h, creepD, deathTick)
+				flushTick(h, deathTick)
 
 				if len(h.missedEvents) != 0 {
 					t.Fatalf("missedEvents = %+v, want none (both damage slots fulfilled by hero kills)", h.missedEvents)
@@ -398,6 +416,7 @@ func TestLasthits(t *testing.T) {
 				creepDiedEntityUpdate(h, creepD, deathTick)
 				creepDiedEntityUpdate(h, creepB, deathTick)
 				creepDiedEntityUpdate(h, creepC, deathTick)
+				flushTick(h, deathTick)
 
 				if len(h.missedEvents) != 0 {
 					t.Fatalf("missedEvents = %+v, want none (both damage slots fulfilled by hero kills)", h.missedEvents)
@@ -418,41 +437,40 @@ func setupTwoDamageThreeMatchingCreepsAndD(t *testing.T) (*Handler, int32, int32
 	h := testHandler()
 	heroDamageCreepCombatLog(h, testRangedName, tickDamage2, 120, 40)
 	heroDamageCreepCombatLog(h, testRangedName, tickDamage2, 120, 40)
-	seedCreep(h, creepA, 160, tickDamage2-1)
-	seedCreep(h, creepB, 160, tickDamage2-1)
-	seedCreep(h, creepC, 160, tickDamage2-1)
-	seedCreep(h, creepD, 500, tickDamage2)
+	seedRanged(h, creepA, 160, tickDamage2-1)
+	seedRanged(h, creepB, 160, tickDamage2-1)
+	seedRanged(h, creepC, 160, tickDamage2-1)
+	seedRanged(h, creepD, 500, tickDamage2)
 	return h, creepA, creepB, creepC, creepD
 }
 
 func correlateTwoDamageThreeMatchingCreeps(h *Handler, creepA, creepB, creepC int32) uint64 {
 	updateCreepHealth(h, creepB, 120, manta.EntityOpUpdated, tickDamage2)
 	updateCreepHealth(h, creepA, 120, manta.EntityOpUpdated, tickDamage2)
-	updateCreepHealth(h, creepC, 120, manta.EntityOpUpdated, tickDamage2+1)
-	closePendingAfterDamageTick(h, tickDamage2)
+	updateCreepHealth(h, creepC, 120, manta.EntityOpUpdated, tickDamage2)
+	flushTick(h, tickDamage2)
 	return h.creepTracks[creepA].conflictGroupID
 }
 
 func setupFourMatchingCreepsThreeDamageLogs(t *testing.T) (*Handler, [4]int32) {
 	t.Helper()
-	creeps := [4]int32{20, 21, 22, 23}
+	creepsIdx := [4]int32{20, 21, 22, 23}
 	h := testHandler()
 	heroDamageCreepCombatLog(h, testRangedName, tickDamage3, 120, 40)
 	heroDamageCreepCombatLog(h, testRangedName, tickDamage3, 120, 40)
 	heroDamageCreepCombatLog(h, testRangedName, tickDamage3, 120, 40)
-	for _, idx := range creeps {
-		seedCreep(h, idx, 160, tickDamage3-1)
+	for _, idx := range creepsIdx {
+		seedRanged(h, idx, 160, tickDamage3-1)
 	}
-	return h, creeps
+	return h, creepsIdx
 }
 
-func correlateFourMatchingCreeps(h *Handler, creeps [4]int32) uint64 {
-	ticks := [4]uint32{tickDamage3, tickDamage3, tickDamage3 + 1, tickDamage3 + 1}
-	for i, idx := range creeps {
-		updateCreepHealth(h, idx, 120, manta.EntityOpUpdated, ticks[i])
+func correlateFourMatchingCreeps(h *Handler, creepsIdx [4]int32) uint64 {
+	for _, idx := range creepsIdx {
+		updateCreepHealth(h, idx, 120, manta.EntityOpUpdated, tickDamage3)
 	}
-	closePendingAfterDamageTick(h, tickDamage3)
-	return h.creepTracks[creeps[0]].conflictGroupID
+	flushTick(h, tickDamage3)
+	return h.creepTracks[creepsIdx[0]].conflictGroupID
 }
 
 func setupThreeMatchingCreeps(t *testing.T) (*Handler, int32, int32, int32) {
@@ -464,22 +482,18 @@ func setupThreeMatchingCreeps(t *testing.T) (*Handler, int32, int32, int32) {
 	)
 	h := testHandler()
 	heroDamageCreepCombatLog(h, testRangedName, tickDamage1, 120, 40)
-	seedCreep(h, creepA, 160, tickDamage1-1)
-	seedCreep(h, creepB, 160, tickDamage1-1)
-	seedCreep(h, creepC, 160, tickDamage1-1)
+	seedRanged(h, creepA, 160, tickDamage1-1)
+	seedRanged(h, creepB, 160, tickDamage1-1)
+	seedRanged(h, creepC, 160, tickDamage1-1)
 	return h, creepA, creepB, creepC
-}
-
-func correlateThirdMatchingCreep(h *Handler, creepA, creepB, creepC int32) uint64 {
-	updateCreepHealth(h, creepC, 120, manta.EntityOpUpdated, tickDamage1+1)
-	closePendingAfterDamageTick(h, tickDamage1)
-	return h.creepTracks[creepA].conflictGroupID
 }
 
 func correlateThreeMatchingCreeps(h *Handler, creepA, creepB, creepC int32) uint64 {
 	updateCreepHealth(h, creepB, 120, manta.EntityOpUpdated, tickDamage1)
 	updateCreepHealth(h, creepA, 120, manta.EntityOpUpdated, tickDamage1)
-	return correlateThirdMatchingCreep(h, creepA, creepB, creepC)
+	updateCreepHealth(h, creepC, 120, manta.EntityOpUpdated, tickDamage1)
+	flushTick(h, tickDamage1)
+	return h.creepTracks[creepA].conflictGroupID
 }
 
 func assertThreeCreepsInConflictGroup(t *testing.T, h *Handler, creepA, creepB, creepC int32, groupID uint64, wantRemaining int) {
@@ -507,13 +521,13 @@ func TestTwoSameTickHeroDamage_ThreeMatchingCreeps_NoFalseMiss(t *testing.T) {
 	heroDamageCreepCombatLog(h, testRangedName, tick, 120, 40)
 	heroDamageCreepCombatLog(h, testRangedName, tick, 120, 40)
 
-	seedCreep(h, creepA, 160, tick-1)
-	seedCreep(h, creepB, 160, tick-1)
-	seedCreep(h, creepC, 160, tick-1)
+	seedRanged(h, creepA, 160, tick-1)
+	seedRanged(h, creepB, 160, tick-1)
+	seedRanged(h, creepC, 160, tick-1)
 	updateCreepHealth(h, creepB, 120, manta.EntityOpUpdated, tick)
 	updateCreepHealth(h, creepA, 120, manta.EntityOpUpdated, tick)
-	updateCreepHealth(h, creepC, 120, manta.EntityOpUpdated, tick+1)
-	closePendingAfterDamageTick(h, tick)
+	updateCreepHealth(h, creepC, 120, manta.EntityOpUpdated, tick)
+	flushTick(h, tick)
 
 	groupID := h.creepTracks[creepA].conflictGroupID
 	if groupID == 0 {
@@ -528,57 +542,18 @@ func TestTwoSameTickHeroDamage_ThreeMatchingCreeps_NoFalseMiss(t *testing.T) {
 
 	heroKillCreepCombatLog(h, testRangedName, tick+15)
 	creepDiedEntityUpdate(h, creepA, tick+15)
+	flushTick(h, tick+15)
+
 	heroKillCreepCombatLog(h, testRangedName, tick+18)
 	creepDiedEntityUpdate(h, creepC, tick+18)
+	flushTick(h, tick+18)
 
 	enemyKillCreepCombatLog(h, testRangedName, tick+30)
 	creepDiedEntityUpdate(h, creepB, tick+30)
+	flushTick(h, tick+30)
 
 	if len(h.missedEvents) != 0 {
 		t.Fatalf("missedEvents = %+v, want none (third creep stole pending or wrong idx bound)", h.missedEvents)
-	}
-}
-
-func TestUnrelatedCreepDeath_DoesNotPrematurelyFinalizeOtherPending(t *testing.T) {
-	t.Skip("Not sure this test is needed. It checks that if we could not collect entity creeps for current logs " +
-		"we should keep collecting entities for the next tick as well.")
-
-	h := testHandler()
-	const (
-		creep1    int32 = 10
-		creep2    int32 = 11
-		unrelated int32 = 99
-		tick            = tickDamage1
-	)
-
-	seedCreep(h, creep1, 160, tick-1)
-	seedCreep(h, creep2, 160, tick-1)
-
-	heroDamageCreepCombatLog(h, testRangedName, tick, 120, 40)
-	heroDamageCreepCombatLog(h, testRangedName, tick, 120, 40)
-
-	seedCreep(h, unrelated, 500, tick)
-	creepDiedEntityUpdate(h, unrelated, tick)
-
-	for _, pd := range h.pendingHeroDamageLogs {
-		if pd.entityMatched {
-			t.Fatal("unrelated creep death must not consume open hero-damage pending lines")
-		}
-	}
-
-	updateCreepHealth(h, creep1, 120, manta.EntityOpUpdated, tick)
-	updateCreepHealth(h, creep2, 120, manta.EntityOpUpdated, tick+1)
-	closePendingAfterDamageTick(h, tick)
-
-	groupID := h.creepTracks[creep1].conflictGroupID
-	if groupID == 0 {
-		t.Fatal("expected conflict group after both health drops correlated")
-	}
-	if h.creepTracks[creep2].conflictGroupID != groupID {
-		t.Fatalf("creep2 conflictGroupID = %d, want %d", h.creepTracks[creep2].conflictGroupID, groupID)
-	}
-	if h.conflictGroups[groupID].remainingCombatLogsCount != 2 {
-		t.Fatalf("remainingCombatLogsCount = %d, want 2 (one slot per combat-log line)", h.conflictGroups[groupID].remainingCombatLogsCount)
 	}
 }
 
@@ -590,18 +565,20 @@ func TestFalseCorrelatedCreepDiesFirst_ThenHeroLastHitsTrueCreep_NoFalseMiss(t *
 		damageTick       = uint32(500)
 	)
 
+	seedRanged(h, creepA, 160, damageTick-1)
+	seedRanged(h, creepB, 160, damageTick-1)
 	heroDamageCreepCombatLog(h, testRangedName, damageTick, 120, 40)
-
-	seedCreep(h, creepA, 160, damageTick-1)
-	seedCreep(h, creepB, 160, damageTick-1)
 	updateCreepHealth(h, creepB, 120, manta.EntityOpUpdated, damageTick)
-	updateCreepHealth(h, creepA, 120, manta.EntityOpUpdated, damageTick+1)
+	updateCreepHealth(h, creepA, 120, manta.EntityOpUpdated, damageTick)
+	flushTick(h, damageTick)
 
 	enemyKillCreepCombatLog(h, testRangedName, damageTick+21)
 	creepDiedEntityUpdate(h, creepB, damageTick+21)
+	flushTick(h, damageTick+21)
 
 	heroKillCreepCombatLog(h, testRangedName, damageTick+36)
 	creepDiedEntityUpdate(h, creepA, damageTick+36)
+	flushTick(h, damageTick+36)
 
 	if len(h.missedEvents) != 0 {
 		t.Fatalf("missedEvents = %+v, want none (false miss on B before hero LH on A)", h.missedEvents)
@@ -614,27 +591,30 @@ func TestFlagbearerMiss_SameTickCombatLogThenEntity(t *testing.T) {
 	const tick uint32 = 5000
 	h := testHandler()
 
-	seedCreep(h, idx, 196, tick)
+	seedCreep(h, idx, 196, tick, creeps.KindFlagbearer, "bad")
 	heroDamageCreepCombatLog(h, flagbearer, tick, 137, 59)
-	updateCreepHealth(h, idx, 137, manta.EntityOpUpdated, tick+1)
-	closePendingAfterDamageTick(h, tick)
+	updateCreepHealth(h, idx, 137, manta.EntityOpUpdated, tick)
+	flushTick(h, tick)
 
 	if h.creepTracks[idx].heroDamagedTick == 0 {
-		t.Fatalf("track not bound after forward correlate: %+v", h.creepTracks[idx])
+		t.Fatalf("track not bound after flush: %+v", h.creepTracks[idx])
 	}
 
 	updateCreepHealth(h, idx, 118, manta.EntityOpUpdated, tick+6)
+	flushTick(h, tick+6)
 	updateCreepHealth(h, idx, 20, manta.EntityOpUpdated, tick+36)
+	flushTick(h, tick+36)
 
 	enemyKillCreepCombatLog(h, flagbearer, tick+44)
-	creepDiedEntityUpdate(h, idx, tick+46)
+	creepDiedEntityUpdate(h, idx, tick+44)
+	flushTick(h, tick+44)
 
 	if len(h.missedEvents) != 1 {
 		t.Fatalf("missedEvents = %+v, want 1 flagbearer miss", h.missedEvents)
 	}
 }
 
-func TestMissedLastHit_TwoDamageLogsOneEntityUpdate(t *testing.T) {
+func TestMissedLastHit_SameTickDeathCoalesce_KindFallback(t *testing.T) {
 	const idx int32 = 42
 	const creep = testMeleeName
 	const damageTick uint32 = 11061
@@ -642,14 +622,14 @@ func TestMissedLastHit_TwoDamageLogsOneEntityUpdate(t *testing.T) {
 
 	startHealth := int32(100)
 	damage := int32(70)
-	updateCreepHealth(h, idx, startHealth, manta.EntityOpUpdated, damageTick-1)
+	seedMelee(h, idx, startHealth, damageTick-1)
 	heroDamageCreepCombatLog(h, creep, damageTick, startHealth-damage, damage)
-	// there is also a damage log for enemy hitting same creep
 	enemyKillCreepCombatLog(h, creep, damageTick)
 	creepDiedEntityUpdate(h, idx, damageTick)
+	flushTick(h, damageTick)
 
 	if len(h.missedEvents) != 1 {
-		t.Fatalf("missedEvents = %+v, want 1 same-tick death skip miss", h.missedEvents)
+		t.Fatalf("missedEvents = %+v, want 1 same-tick death coalesce miss", h.missedEvents)
 	}
 }
 
@@ -658,15 +638,17 @@ func TestMissedLastHit_OutsideWindowNotCounted(t *testing.T) {
 	const idx int32 = 42
 	const tick uint32 = 100
 
+	seedMelee(h, idx, 80, tick-1)
 	heroDamageCreepCombatLog(h, testMeleeName, tick, 50, 30)
-	seedCreep(h, idx, 80, tick-1)
 	updateCreepHealth(h, idx, 50, manta.EntityOpUpdated, tick)
-	closePendingAfterDamageTick(h, tick)
+	flushTick(h, tick)
 
-	enemyKillCreepCombatLog(h, testMeleeName, tick+missedLastHitWindowTicks+1)
-	creepDiedEntityUpdate(h, idx, tick+missedLastHitWindowTicks+1)
+	outTick := tick + missedLastHitWindowTicks + 1
+	enemyKillCreepCombatLog(h, testMeleeName, outTick)
+	creepDiedEntityUpdate(h, idx, outTick)
+	flushTick(h, outTick)
 
 	if len(h.missedEvents) != 0 {
-		t.Fatalf("missedEvents len = %d, want 0 outside 2s window", len(h.missedEvents))
+		t.Fatalf("missedEvents len = %d, want 0 outside window", len(h.missedEvents))
 	}
 }

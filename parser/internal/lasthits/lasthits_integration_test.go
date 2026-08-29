@@ -166,6 +166,28 @@ func TestReplay8941961575_SFMissedMeleeTooEarly_1_44(t *testing.T) {
 	}
 }
 
+func parseJuggernaut8941961575(t *testing.T, untilTimestamp float32) *Handler {
+	return parseReplayHero(t, "8941961575", "Juggernaut", untilTimestamp)
+}
+
+// Jugg damages badguys melee at ~22:10.3 (combat post-HP 34, dmg 356); same-tick entity
+// coalesces 390→13. Same tick also has a Jugg kill on another melee. Ally melee steals
+// the damaged creep at ~22:10.8. Quality case: 22:09–22:12 (AOE / free-farming).
+func TestReplay8941961575_JuggMissedMeleeAOE_22_09(t *testing.T) {
+	h := parseJuggernaut8941961575(t, toTimestamp(22, 12))
+
+	var found bool
+	for _, e := range h.missedEvents {
+		if e.CreepName == "npc_dota_creep_badguys_melee" &&
+			e.Timestamp >= toTimestamp(22, 9) && e.Timestamp <= toTimestamp(22, 12) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected badguys_melee miss around 22:09–22:12, got %d total misses", len(h.missedEvents))
+	}
+}
+
 func toTimestamp(min int, sec int) float32 {
 	return float32(min*60 + sec)
 }

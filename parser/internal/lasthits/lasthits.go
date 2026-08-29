@@ -236,7 +236,6 @@ func (h *Handler) correlateLastTickDamages(tick uint32, gameTime float32) {
 	// Clean up temp tick arrays
 	h.pendingHealthReducedCreepIds = make([]int32, 0, 64)
 	h.pendingDeadCreeps = make([]int32, 0, 64)
-	// h.prunePendingEvents(tick)
 	h.pendingHeroDamageLogs = make([]pendingCLogCreepEvent, 0, 64)
 	h.pendingOtherKillLogs = make([]pendingCLogCreepEvent, 0, 64)
 	h.pendingHeroKillLogs = make([]pendingCLogCreepEvent, 0, 64)
@@ -315,6 +314,8 @@ func (h *Handler) onCombatLogEntry(p *manta.Parser, m *dota.CMsgDOTACombatLogEnt
 			h.pendingHeroKillLogs = append(h.pendingHeroKillLogs, pendingCLogCreepEvent{
 				creepName: realTargetName,
 				tick:      tick,
+				damage:    int32(m.GetValue()),
+				health:    m.GetHealth(),
 				gameTime:  gameTime,
 			})
 			switch creepType {
@@ -420,59 +421,6 @@ func (h *Handler) onCreepHealthUpdate(entityId int32, health int32, isMaxHealth 
 // MissedEvents returns detected missed last-hit events (for tooling / quality reports).
 func (h *Handler) MissedEvents() []Event {
 	return h.missedEvents
-}
-
-func (h *Handler) prunePendingEvents(currentTick uint32) {
-	cutoff := currentTick - missedLastHitWindowTicks
-	h.pendingHeroDamageLogs = prunePendingByTick(h.pendingHeroDamageLogs, cutoff)
-	h.pendingOtherKillLogs = prunePendingByTick(h.pendingOtherKillLogs, cutoff)
-	h.pendingHeroKillLogs = prunePendingByTick(h.pendingHeroKillLogs, cutoff)
-	// h.pendingOtherKillLogs = make([]pendingCLogCreepEvent, 0, 64)
-	// h.pendingHeroKillLogs = make([]pendingCLogCreepEvent, 0, 64)
-}
-
-func prunePendingByTick(events []pendingCLogCreepEvent, cutoffTick uint32) []pendingCLogCreepEvent {
-	n := 0
-	for _, e := range events {
-		if e.entityMatched || e.tick < cutoffTick {
-			continue
-		}
-		events[n] = e
-		n++
-	}
-	return events[:n]
-}
-
-func (h *Handler) pruneMatchedCombatLogs() {
-	n := 0
-	for _, e := range h.pendingHeroDamageLogs {
-		if e.entityMatched {
-			continue
-		}
-		h.pendingHeroDamageLogs[n] = e
-		n++
-	}
-	h.pendingHeroDamageLogs = h.pendingHeroDamageLogs[:n]
-
-	n = 0
-	for _, e := range h.pendingOtherKillLogs {
-		if e.entityMatched {
-			continue
-		}
-		h.pendingOtherKillLogs[n] = e
-		n++
-	}
-	h.pendingOtherKillLogs = h.pendingOtherKillLogs[:n]
-
-	n = 0
-	for _, e := range h.pendingHeroKillLogs {
-		if e.entityMatched {
-			continue
-		}
-		h.pendingHeroKillLogs[n] = e
-		n++
-	}
-	h.pendingHeroKillLogs = h.pendingHeroKillLogs[:n]
 }
 
 func replayTicksWithinWindow(fromTick, toTick uint32) bool {
