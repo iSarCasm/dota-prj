@@ -30,6 +30,7 @@ func (h *Handler) onHeroDeath(p *manta.Parser, m *dota.CMsgDOTACombatLogEntry) {
 
 	if attackerClass == h.heroClass && !m.GetIsAttackerIllusion() {
 		h.summary.KDA.Kills++
+		h.recordHeroKill(targetName)
 	}
 	if targetClass == h.heroClass && !m.GetIsTargetIllusion() {
 		h.summary.KDA.Deaths++

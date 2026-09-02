@@ -15,7 +15,8 @@ type Summary struct {
 	KDA         KDA         `json:"kda"`
 	HeroDamage  HeroDamage  `json:"hero_damage"`
 	TowerDamage TowerDamage `json:"tower_damage"`
-	Healing     Healing     `json:"healing"`
+	Healing      Healing       `json:"healing"`
+	HeroesKilled []HeroKillRow `json:"heroes_killed"`
 }
 
 // Handler implements common.ReplayHandler for end-game match summary stats.
@@ -24,6 +25,7 @@ type Handler struct {
 	heroClass            string
 	playerID             uint32
 	hasPlayerID          bool
+	heroesKilled         map[string]int
 	summary              Summary
 }
 
@@ -80,6 +82,7 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 }
 
 func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
+	h.summary.HeroesKilled = h.heroesKilledTable()
 	return map[string]interface{}{
 		"match_summary": h.summary,
 	}

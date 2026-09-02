@@ -95,6 +95,39 @@ func TestReplay8934466456_PhantomAssassinKDA(t *testing.T) {
 	}
 }
 
+func TestReplay8934466456_PhantomAssassinHeroesKilled(t *testing.T) {
+	h := parseReplayHeroMatchSummary(t, "8934466456", "Phantom Assassin")
+	h.summary.HeroesKilled = h.heroesKilledTable()
+	want := []HeroKillRow{
+		{Hero: "npc_dota_hero_lich", Kills: 2},
+		{Hero: "npc_dota_hero_ancient_apparition", Kills: 1},
+		{Hero: "npc_dota_hero_dark_seer", Kills: 1},
+	}
+	if !heroKillRowsEqual(h.summary.HeroesKilled, want) {
+		t.Fatalf("heroes_killed = %+v, want %+v", h.summary.HeroesKilled, want)
+	}
+}
+
+func TestReplay8915936762_WarlockHeroesKilled(t *testing.T) {
+	h := parseReplayHeroMatchSummary(t, "8915936762", "Warlock")
+	h.summary.HeroesKilled = h.heroesKilledTable()
+	if len(h.summary.HeroesKilled) != 0 {
+		t.Fatalf("heroes_killed = %+v, want empty", h.summary.HeroesKilled)
+	}
+}
+
+func heroKillRowsEqual(a, b []HeroKillRow) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func TestReplay8915936762_WarlockHeroDamage(t *testing.T) {
 	h := parseReplayHeroMatchSummary(t, "8915936762", "Warlock")
 	got := h.summary.HeroDamage.Total
