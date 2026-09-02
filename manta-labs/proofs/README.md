@@ -9,5 +9,6 @@ Reproducible scripts that prove parser/replay findings. Each proof has its own R
 | [spawn-lane-clusters](spawn-lane-clusters/README.md) | Per-side top/mid/bot spawn centroids for `GetCreepLaneFromSpawnLocation` | `run.sh` / `compute_centroids.py` |
 | [tick-ordering](tick-ordering/README.md) | Entity updates for tick N finish before combat log for tick N+1 | `run.sh` |
 | [combat-catalog](combat-catalog/README.md) | Unique hero / item / spell names from combat logs across replays | `combat-catalog` / `run.sh` |
+| [matchsummary-kda](matchsummary-kda/README.md) | KDA from combat log deaths + `assist_players` (`m_iPlayerID / 2`) | `go test ./parser/internal/matchsummary/ -run KDA` |
 
 When adding a new finding anywhere in the repo, add a row here and a folder under `manta-labs/proofs/` (or a dedicated lab tool) with README + runnable command.
