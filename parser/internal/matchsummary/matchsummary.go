@@ -12,7 +12,8 @@ import (
 
 // Summary is the match summary output for the analyzed hero.
 type Summary struct {
-	KDA KDA `json:"kda"`
+	KDA        KDA        `json:"kda"`
+	HeroDamage HeroDamage `json:"hero_damage"`
 }
 
 // Handler implements common.ReplayHandler for end-game match summary stats.
@@ -28,6 +29,9 @@ type Handler struct {
 func NewHandler(timeAndPausesHandler *timeandpauses.Handler) *Handler {
 	return &Handler{
 		timeAndPausesHandler: timeAndPausesHandler,
+		summary: Summary{
+			HeroDamage: newHeroDamage(),
+		},
 	}
 }
 
@@ -57,13 +61,15 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 	})
 
 	p.Callbacks.OnCMsgDOTACombatLogEntry(func(m *dota.CMsgDOTACombatLogEntry) error {
-		if m.GetType() != dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DEATH {
-			return nil
+		switch m.GetType() {
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DAMAGE:
+			h.onHeroDamage(p, m)
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DEATH:
+			if !m.GetIsTargetHero() {
+				return nil
+			}
+			h.onHeroDeath(p, m)
 		}
-		if !m.GetIsTargetHero() {
-			return nil
-		}
-		h.onHeroDeath(p, m)
 		return nil
 	})
 }

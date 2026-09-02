@@ -94,3 +94,21 @@ func TestReplay8934466456_PhantomAssassinKDA(t *testing.T) {
 		t.Fatalf("KDA = %+v, want %+v", got, want)
 	}
 }
+
+func TestReplay8915936762_WarlockHeroDamage(t *testing.T) {
+	h := parseReplayHeroMatchSummary(t, "8915936762", "Warlock")
+	got := h.summary.HeroDamage.Total
+	want := uint32(13488)
+	if got != want {
+		t.Fatalf("hero_damage.total = %d, want %d (by_type=%v)", got, want, h.summary.HeroDamage.ByType)
+	}
+}
+
+func TestReplay8934466456_PhantomAssassinHeroDamage(t *testing.T) {
+	h := parseReplayHeroMatchSummary(t, "8934466456", "Phantom Assassin")
+	got := h.summary.HeroDamage.Total
+	want := uint32(10901)
+	if got != want {
+		t.Fatalf("hero_damage.total = %d, want %d (by_type=%v)", got, want, h.summary.HeroDamage.ByType)
+	}
+}

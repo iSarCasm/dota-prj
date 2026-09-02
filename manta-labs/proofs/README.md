@@ -10,5 +10,6 @@ Reproducible scripts that prove parser/replay findings. Each proof has its own R
 | [tick-ordering](tick-ordering/README.md) | Entity updates for tick N finish before combat log for tick N+1 | `run.sh` |
 | [combat-catalog](combat-catalog/README.md) | Unique hero / item / spell names from combat logs across replays | `combat-catalog` / `run.sh` |
 | [matchsummary-kda](matchsummary-kda/README.md) | KDA from combat log deaths + `assist_players` (`m_iPlayerID / 2`) | `go test ./parser/internal/matchsummary/ -run KDA` |
+| [matchsummary-hero-damage](matchsummary-hero-damage/README.md) | Hero damage from combat log, credited via `damage_source_name` | `go test ./parser/internal/matchsummary/ -run HeroDamage` |
 
 When adding a new finding anywhere in the repo, add a row here and a folder under `manta-labs/proofs/` (or a dedicated lab tool) with README + runnable command.
