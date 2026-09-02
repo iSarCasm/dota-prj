@@ -112,3 +112,28 @@ func TestReplay8934466456_PhantomAssassinHeroDamage(t *testing.T) {
 		t.Fatalf("hero_damage.total = %d, want %d (by_type=%v)", got, want, h.summary.HeroDamage.ByType)
 	}
 }
+
+func TestReplay8941961575_TerrorbladeTowerDamage(t *testing.T) {
+	h := parseReplayHeroMatchSummary(t, "8941961575", "Terrorblade")
+	got := h.summary.TowerDamage.Total
+	want := uint32(24794)
+	if got != want {
+		t.Fatalf("tower_damage.total = %d, want %d", got, want)
+	}
+}
+
+func TestReplay8941817475_SlarkTowerDamage(t *testing.T) {
+	h := parseReplayHeroMatchSummary(t, "8941817475", "Slark")
+	got := h.summary.TowerDamage.Total
+	want := uint32(1046)
+	if got != want {
+		t.Fatalf("tower_damage.total = %d, want %d", got, want)
+	}
+}
+
+func TestReplay8915936762_WarlockTowerDamage(t *testing.T) {
+	h := parseReplayHeroMatchSummary(t, "8915936762", "Warlock")
+	if h.summary.TowerDamage.Total != 0 {
+		t.Fatalf("tower_damage.total = %d, want 0", h.summary.TowerDamage.Total)
+	}
+}
