@@ -1,0 +1,47 @@
+- [x] CS v1
+- [ ] Basic Match Summary
+  - [ ] Tests
+  - [ ] KDA
+  - [ ] NW
+  - [ ] Items
+  - [ ] LH / D
+  - [ ] Hero Damage: Raw vs Real
+  - [ ] Building Damage
+  - [ ] Damage Received: Raw vs Real, Magical/Phys/Pure
+  - [ ] Heals
+  - [ ] Death Losses: Gold, Time
+  - [ ] Pick #
+  - [ ] Heroes Killed
+  - [ ] Support Items bought 
+  - [ ] Stacks
+  - [ ] Dewards 
+  - [ ] Wisdom Shrines captured 
+  - [ ] Talent Tree
+  - [ ] Skill Build
+- [ ] Extra Match Summary
+  - [ ] Healing Prevented (e.g. AA ult), can count as damage
+  - [ ] Damage Prevented (via barriers, armor, etc.)
+- [ ] Laning 
+  - [ ] Per wave analysis (how many creeps killed/denied, how gold/xp was distributed)
+    - [ ] Display what happened to each creep from that wave: LH, died in XP range, denied in XP range, died outside XP range, denied by a neutral
+    - [ ] Display hero kills (gold and XP swings)
+    - [ ] Display what happened to each bounty rune
+    - [ ] Display what happened to each power rune / water rune
+    - [ ] Display how much tower damage was dealt by a siege creep (possible?)
+    - [ ] Display what happened to Wisdom Shrine
+    - [ ] Display who claimed Lotuses
+    - [ ] Display creeps camps stacked (+who claimed it and when)
+    - [ ] Display creep camps blocked
+    - [ ] Display wards dewarded
+    - [ ] Display wards planted (+ if it blocks a camp)
+    - [ ] Display ganks
+  - [ ] Display Laning Results 
+    - [ ] Resulting LH / D + NW + Items NW
+    - [ ] Tower Health
+    - [ ] Who won each lane (impact)
+    - [ ] Lane peformance (skill): how you heroes on that lane performed on this lane vs enemy heroes in comparison to global average (all dota games)
+- [ ] Mid Game
+ - [ ] Display per-minute info
+  - [ ] Who claimed each creep and each neutral camp
+  - [ ] Runes
+  - [ ] Tormentor
