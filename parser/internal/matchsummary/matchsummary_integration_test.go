@@ -128,6 +128,30 @@ func heroKillRowsEqual(a, b []HeroKillRow) bool {
 	return true
 }
 
+func heroDamageRowsEqual(a, b []HeroDamageRow) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func heroHealingRowsEqual(a, b []HeroHealingRow) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func TestReplay8915936762_WarlockHeroDamage(t *testing.T) {
 	h := parseReplayHeroMatchSummary(t, "8915936762", "Warlock")
 	got := h.summary.HeroDamage.Total
@@ -143,6 +167,17 @@ func TestReplay8934466456_PhantomAssassinHeroDamage(t *testing.T) {
 	want := uint32(10901)
 	if got != want {
 		t.Fatalf("hero_damage.total = %d, want %d (by_type=%v)", got, want, h.summary.HeroDamage.ByType)
+	}
+	h.summary.HeroDamage.ByHero = h.heroDamageByHeroTable()
+	wantRows := []HeroDamageRow{
+		{Hero: "npc_dota_hero_dark_seer", Damage: 5636},
+		{Hero: "npc_dota_hero_lich", Damage: 3323},
+		{Hero: "npc_dota_hero_ancient_apparition", Damage: 1204},
+		{Hero: "npc_dota_hero_mars", Damage: 373},
+		{Hero: "npc_dota_hero_nevermore", Damage: 365},
+	}
+	if !heroDamageRowsEqual(h.summary.HeroDamage.ByHero, wantRows) {
+		t.Fatalf("hero_damage.by_hero = %+v, want %+v", h.summary.HeroDamage.ByHero, wantRows)
 	}
 }
 
@@ -186,6 +221,16 @@ func TestReplay8934466456_DazzleHealing(t *testing.T) {
 	want := uint32(5197)
 	if got != want {
 		t.Fatalf("healing.total = %d, want %d", got, want)
+	}
+	h.summary.Healing.ByHero = h.healingByHeroTable()
+	wantRows := []HeroHealingRow{
+		{Hero: "npc_dota_hero_axe", Healing: 1791},
+		{Hero: "npc_dota_hero_lion", Healing: 1390},
+		{Hero: "npc_dota_hero_phantom_assassin", Healing: 1208},
+		{Hero: "npc_dota_hero_obsidian_destroyer", Healing: 808},
+	}
+	if !heroHealingRowsEqual(h.summary.Healing.ByHero, wantRows) {
+		t.Fatalf("healing.by_hero = %+v, want %+v", h.summary.Healing.ByHero, wantRows)
 	}
 }
 

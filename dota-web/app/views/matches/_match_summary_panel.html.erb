@@ -1,0 +1,124 @@
+<% summary = local_assigns[:summary] || {} %>
+<% kda = summary["kda"].is_a?(Hash) ? summary["kda"] : {} %>
+<% hero_damage = summary["hero_damage"].is_a?(Hash) ? summary["hero_damage"] : {} %>
+<% hero_damage_by_type = hero_damage["by_type"].is_a?(Hash) ? hero_damage["by_type"] : {} %>
+<% hero_damage_by_hero = hero_damage["by_hero"].is_a?(Array) ? hero_damage["by_hero"] : [] %>
+<% tower_damage = summary["tower_damage"].is_a?(Hash) ? summary["tower_damage"] : {} %>
+<% healing = summary["healing"].is_a?(Hash) ? summary["healing"] : {} %>
+<% healing_by_hero = healing["by_hero"].is_a?(Array) ? healing["by_hero"] : [] %>
+<% heroes_killed = summary["heroes_killed"].is_a?(Array) ? summary["heroes_killed"] : [] %>
+
+<h3 style="font-size: 1rem; margin-bottom: 0.75rem; font-weight: bold;">Match summary (from replay)</h3>
+<p style="opacity: 0.85; margin-bottom: 1rem; font-size: 0.9rem;">Reconstructed from combat log by the parser.</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.75rem 1.5rem; margin-bottom: 1.5rem;">
+  <div><strong>K/D/A:</strong> <%= kda["kills"] || 0 %>/<%= kda["deaths"] || 0 %>/<%= kda["assists"] || 0 %></div>
+  <div><strong>Hero damage:</strong> <%= number_with_delimiter(hero_damage["total"].to_i) %></div>
+  <div><strong>Tower damage:</strong> <%= number_with_delimiter(tower_damage["total"].to_i) %></div>
+  <div><strong>Healing:</strong> <%= number_with_delimiter(healing["total"].to_i) %></div>
+</div>
+
+<% if hero_damage_by_type.any? %>
+  <div style="margin-bottom: 1.5rem;">
+    <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; font-weight: bold;">Hero damage by type</h4>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem;">
+      <% hero_damage_by_type.sort_by { |type, _| type }.each do |type, amount| %>
+        <% next if amount.to_i <= 0 %>
+        <span><strong><%= type.to_s.capitalize %>:</strong> <%= number_with_delimiter(amount.to_i) %></span>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; font-weight: bold;">Damage by hero</h4>
+<% if hero_damage_by_hero.any? %>
+  <div style="overflow-x: auto; margin-bottom: 1.5rem;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.3);">
+          <th style="padding: 0.5rem; text-align: left;">Hero</th>
+          <th style="padding: 0.5rem; text-align: right;">Damage</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% hero_damage_by_hero.each do |row| %>
+          <% hero_npc = row["hero"].to_s %>
+          <% display_name = hero_display_name_for_npc(hero_npc) %>
+          <tr style="border-top: 1px solid rgba(255,255,255,0.1);">
+            <td style="padding: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <%= dota_named_image_tag(display_name, folders: ["hero_icons"], alt: display_name, style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
+                <span><%= display_name %></span>
+              </div>
+            </td>
+            <td style="padding: 0.5rem; text-align: right;"><%= number_with_delimiter(row["damage"].to_i) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <p style="opacity: 0.85; margin-bottom: 1.5rem;">No hero damage recorded.</p>
+<% end %>
+
+<h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; font-weight: bold;">Healing by hero</h4>
+<% if healing_by_hero.any? %>
+  <div style="overflow-x: auto; margin-bottom: 1.5rem;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.3);">
+          <th style="padding: 0.5rem; text-align: left;">Hero</th>
+          <th style="padding: 0.5rem; text-align: right;">Healing</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% healing_by_hero.each do |row| %>
+          <% hero_npc = row["hero"].to_s %>
+          <% display_name = hero_display_name_for_npc(hero_npc) %>
+          <tr style="border-top: 1px solid rgba(255,255,255,0.1);">
+            <td style="padding: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <%= dota_named_image_tag(display_name, folders: ["hero_icons"], alt: display_name, style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
+                <span><%= display_name %></span>
+              </div>
+            </td>
+            <td style="padding: 0.5rem; text-align: right;"><%= number_with_delimiter(row["healing"].to_i) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <p style="opacity: 0.85; margin-bottom: 1.5rem;">No healing recorded.</p>
+<% end %>
+
+<h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; font-weight: bold;">Heroes killed</h4>
+<% if heroes_killed.any? %>
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.3);">
+          <th style="padding: 0.5rem; text-align: left;">Hero</th>
+          <th style="padding: 0.5rem; text-align: right;">Kills</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% heroes_killed.each do |row| %>
+          <% hero_npc = row["hero"].to_s %>
+          <% display_name = hero_display_name_for_npc(hero_npc) %>
+          <tr style="border-top: 1px solid rgba(255,255,255,0.1);">
+            <td style="padding: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <%= dota_named_image_tag(display_name, folders: ["hero_icons"], alt: display_name, style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
+                <span><%= display_name %></span>
+              </div>
+            </td>
+            <td style="padding: 0.5rem; text-align: right;"><%= row["kills"] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <p style="opacity: 0.85;">No hero kills recorded.</p>
+<% end %>

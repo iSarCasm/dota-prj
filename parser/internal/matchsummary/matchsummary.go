@@ -26,6 +26,8 @@ type Handler struct {
 	playerID             uint32
 	hasPlayerID          bool
 	heroesKilled         map[string]int
+	heroDamageByHero     map[string]uint32
+	healingByHero        map[string]uint32
 	summary              Summary
 }
 
@@ -83,6 +85,8 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 
 func (h *Handler) Output(ctx *common.ParseContext) map[string]interface{} {
 	h.summary.HeroesKilled = h.heroesKilledTable()
+	h.summary.HeroDamage.ByHero = h.heroDamageByHeroTable()
+	h.summary.Healing.ByHero = h.healingByHeroTable()
 	return map[string]interface{}{
 		"match_summary": h.summary,
 	}

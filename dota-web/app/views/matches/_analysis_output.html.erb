@@ -37,6 +37,14 @@
     <% insights_data = out["insights"].is_a?(Array) ? out["insights"] : [] %>
     <% last_hits_data = out["last_hits"].is_a?(Hash) ? out["last_hits"] : {} %>
     <% missed_last_hits = last_hits_data["missed_last_hits"].is_a?(Array) ? last_hits_data["missed_last_hits"] : [] %>
+    <% match_summary = out["match_summary"].is_a?(Hash) ? out["match_summary"] : {} %>
+    <% has_summary = match_summary.present? && (
+         match_summary["kda"].present? ||
+         match_summary["hero_damage"].present? ||
+         match_summary["tower_damage"].present? ||
+         match_summary["healing"].present? ||
+         match_summary["heroes_killed"].present?
+       ) %>
     <% has_mana = mana_data.present? && mana_data.any? %>
     <% has_abilities = ability_usages.any? %>
     <% has_insights = insights_data.any? %>
@@ -61,6 +69,7 @@
         color: #fff;
       }
       .analysis-panel { display: none; padding-top: 1rem; }
+      .analysis-tabs input#tab-summary:checked ~ .analysis-panel.summary-panel,
       .analysis-tabs input#tab-mana:checked ~ .analysis-panel.mana-panel,
       .analysis-tabs input#tab-abilities:checked ~ .analysis-panel.abilities-panel,
       .analysis-tabs input#tab-insights:checked ~ .analysis-panel.insights-panel,
@@ -68,21 +77,31 @@
     </style>
 
     <div class="analysis-tabs">
+      <% if has_summary %>
+        <input type="radio" name="analysis_tab" id="tab-summary" checked>
+        <label for="tab-summary">Summary</label>
+      <% end %>
       <% if has_mana %>
-        <input type="radio" name="analysis_tab" id="tab-mana" checked>
+        <input type="radio" name="analysis_tab" id="tab-mana" <%= "checked" unless has_summary %>>
         <label for="tab-mana">Mana</label>
       <% end %>
       <% if has_abilities %>
-        <input type="radio" name="analysis_tab" id="tab-abilities" <%= "checked" if !has_mana %>>
+        <input type="radio" name="analysis_tab" id="tab-abilities" <%= "checked" if !has_summary && !has_mana %>>
         <label for="tab-abilities">Abilities</label>
       <% end %>
       <% if has_insights %>
-        <input type="radio" name="analysis_tab" id="tab-insights" <%= "checked" if !has_mana && !has_abilities && !has_last_hits %>>
+        <input type="radio" name="analysis_tab" id="tab-insights" <%= "checked" if !has_summary && !has_mana && !has_abilities && !has_last_hits %>>
         <label for="tab-insights">Insights</label>
       <% end %>
       <% if has_last_hits %>
-        <input type="radio" name="analysis_tab" id="tab-lasthits" <%= "checked" if !has_mana && !has_abilities && !has_insights %>>
+        <input type="radio" name="analysis_tab" id="tab-lasthits" <%= "checked" if !has_summary && !has_mana && !has_abilities && !has_insights %>>
         <label for="tab-lasthits">Last Hits (<%= last_hits_data["missed_last_hits_total"] || missed_last_hits.size %>)</label>
+      <% end %>
+
+      <% if has_summary %>
+        <div class="analysis-panel summary-panel">
+          <%= render "matches/match_summary_panel", summary: match_summary %>
+        </div>
       <% end %>
 
       <% if has_mana %>

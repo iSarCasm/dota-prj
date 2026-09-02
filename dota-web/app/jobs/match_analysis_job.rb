@@ -5,6 +5,9 @@ require "open3"
 class MatchAnalysisJob < ApplicationJob
   queue_as :default
 
+  PBDEMS2_MAGIC = "PBDEMS2\x00".b
+  PARSER_DIR = Rails.root.join("..", "parser").expand_path
+
   def perform(dota_match_id)
     dota_match = DotaMatch.find_by(id: dota_match_id)
     if dota_match.blank?
@@ -46,15 +49,20 @@ class MatchAnalysisJob < ApplicationJob
     bz2_path = "#{replay_path}.bz2"
     FileUtils.mkdir_p(replay_path.parent)
 
-    if cached.present? && cached.demo_path.present? && File.exist?(cached.demo_path)
+    if cached.present? && cached.demo_path.present? && File.exist?(cached.demo_path) && valid_dem?(cached.demo_path)
       replay_path = Pathname(cached.demo_path)
       Rails.logger.info "[MatchAnalysisJob] using cached replay at #{replay_path}"
     else
+      if File.exist?(replay_path) && !valid_dem?(replay_path)
+        Rails.logger.warn "[MatchAnalysisJob] replacing invalid replay at #{replay_path}"
+        FileUtils.rm_f(replay_path)
+      end
+
       dota_match.update(status: "downloading_replay")
-      Rails.logger.info "[MatchAnalysisJob] downloading replay (bz2) to #{bz2_path}"
+      Rails.logger.info "[MatchAnalysisJob] downloading replay to #{bz2_path}"
       api.download_replay(replay_url: replay_url, file_name: bz2_path)
 
-      unless decompress_bz2(bz2_path, replay_path.to_s)
+      unless decompress_replay(bz2_path, replay_path.to_s)
         mark_error!(dota_match, "Failed to decompress replay")
         return
       end
@@ -91,15 +99,30 @@ class MatchAnalysisJob < ApplicationJob
     Rails.configuration.x.constants.heroes.dig(hero_id, "localized_name")
   end
 
-  def decompress_bz2(bz2_path, dem_path)
-    stdout, stderr, status = Open3.capture3("bunzip2", "-f", "-c", bz2_path)
-    if status.success?
-      File.binwrite(dem_path, stdout)
-      true
-    else
-      Rails.logger.error "[MatchAnalysisJob] bunzip2 failed: #{stderr}"
-      false
+  def valid_dem?(dem_path)
+    return false unless File.exist?(dem_path)
+
+    File.binread(dem_path, PBDEMS2_MAGIC.bytesize) == PBDEMS2_MAGIC
+  end
+
+  def decompress_replay(compressed_path, dem_path)
+    stdout, stderr, status = Open3.capture3(
+      "go", "run", "./cmd/replay-decompress",
+      chdir: PARSER_DIR.to_s,
+      binmode: true,
+      stdin_data: File.binread(compressed_path)
+    )
+    unless status.success?
+      Rails.logger.error "[MatchAnalysisJob] decompress failed: #{sanitize_parser_output(stderr)}"
+      return false
     end
+    unless stdout.start_with?(PBDEMS2_MAGIC)
+      Rails.logger.error "[MatchAnalysisJob] decompressed replay missing PBDEMS2 header"
+      return false
+    end
+
+    File.binwrite(dem_path, stdout)
+    true
   end
 
   def run_parser(replay_path, dota_match, hero_name)
@@ -124,7 +147,7 @@ class MatchAnalysisJob < ApplicationJob
     )
 
     unless status.success?
-      mark_error!(dota_match, "Parser failed", details: stderr.to_s.strip.presence || stdout.to_s.strip)
+      mark_error!(dota_match, "Parser failed", details: sanitize_parser_output(stderr).presence || sanitize_parser_output(stdout))
       return
     end
 
@@ -136,7 +159,7 @@ class MatchAnalysisJob < ApplicationJob
   end
 
   def mark_error!(dota_match, message, details: nil)
-    details_text = details.to_s.strip.presence
+    details_text = sanitize_parser_output(details).presence
 
     dota_match.update(
       status: "error",
@@ -146,5 +169,9 @@ class MatchAnalysisJob < ApplicationJob
 
     Rails.logger.error("[MatchAnalysisJob] #{message}")
     Rails.logger.error(details_text) if details_text.present?
+  end
+
+  def sanitize_parser_output(text)
+    text.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "?").strip
   end
 end
