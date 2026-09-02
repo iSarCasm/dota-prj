@@ -137,3 +137,30 @@ func TestReplay8915936762_WarlockTowerDamage(t *testing.T) {
 		t.Fatalf("tower_damage.total = %d, want 0", h.summary.TowerDamage.Total)
 	}
 }
+
+func TestReplay8915936762_WarlockHealing(t *testing.T) {
+	h := parseReplayHeroMatchSummary(t, "8915936762", "Warlock")
+	got := h.summary.Healing.Total
+	want := uint32(4365)
+	if got != want {
+		t.Fatalf("healing.total = %d, want %d", got, want)
+	}
+}
+
+func TestReplay8934466456_DazzleHealing(t *testing.T) {
+	h := parseReplayHeroMatchSummary(t, "8934466456", "Dazzle")
+	got := h.summary.Healing.Total
+	want := uint32(5197)
+	if got != want {
+		t.Fatalf("healing.total = %d, want %d", got, want)
+	}
+}
+
+func TestReplay8941817475_LycanHealing(t *testing.T) {
+	h := parseReplayHeroMatchSummary(t, "8941817475", "Lycan")
+	got := h.summary.Healing.Total
+	want := uint32(3329)
+	if got != want {
+		t.Fatalf("healing.total = %d, want %d", got, want)
+	}
+}

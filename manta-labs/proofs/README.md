@@ -12,5 +12,6 @@ Reproducible scripts that prove parser/replay findings. Each proof has its own R
 | [matchsummary-kda](matchsummary-kda/README.md) | KDA from combat log deaths + `assist_players` (`m_iPlayerID / 2`) | `go test ./parser/internal/matchsummary/ -run KDA` |
 | [matchsummary-hero-damage](matchsummary-hero-damage/README.md) | Hero damage from combat log, credited via `damage_source_name` | `go test ./parser/internal/matchsummary/ -run HeroDamage` |
 | [matchsummary-tower-damage](matchsummary-tower-damage/README.md) | Tower damage = towers + barracks + ancient from combat log | `go test ./parser/internal/matchsummary/ -run TowerDamage` |
+| [matchsummary-healing](matchsummary-healing/README.md) | Hero healing to allies from `DOTA_COMBATLOG_HEAL` | `go test ./parser/internal/matchsummary/ -run Healing` |
 
 When adding a new finding anywhere in the repo, add a row here and a folder under `manta-labs/proofs/` (or a dedicated lab tool) with README + runnable command.

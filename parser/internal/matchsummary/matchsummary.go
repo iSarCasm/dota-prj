@@ -15,6 +15,7 @@ type Summary struct {
 	KDA         KDA         `json:"kda"`
 	HeroDamage  HeroDamage  `json:"hero_damage"`
 	TowerDamage TowerDamage `json:"tower_damage"`
+	Healing     Healing     `json:"healing"`
 }
 
 // Handler implements common.ReplayHandler for end-game match summary stats.
@@ -63,6 +64,8 @@ func (h *Handler) RegisterCallbacks(p *manta.Parser, ctx *common.ParseContext) {
 
 	p.Callbacks.OnCMsgDOTACombatLogEntry(func(m *dota.CMsgDOTACombatLogEntry) error {
 		switch m.GetType() {
+		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_HEAL:
+			h.onHeal(p, m)
 		case dota.DOTA_COMBATLOG_TYPES_DOTA_COMBATLOG_DAMAGE:
 			h.onHeroDamage(p, m)
 			h.onTowerDamage(p, m)
