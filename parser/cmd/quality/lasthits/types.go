@@ -116,6 +116,42 @@ type tagPairKey struct {
 type bucketStat struct {
 	Passed int
 	Total  int
+	TP     int // expected miss, found miss
+	TN     int // expected no miss, no miss
 	FP     int // unexpected miss (ExpectMiss=false)
 	FN     int // expected miss not found (ExpectMiss=true)
+}
+
+func (s bucketStat) accuracy() (float64, bool) {
+	if s.Total == 0 {
+		return 0, false
+	}
+	return float64(s.Passed) / float64(s.Total), true
+}
+
+// FPR = FP / (FP + TN): rate of false alarms among should-not-miss cases.
+func (s bucketStat) fpr() (float64, bool) {
+	denom := s.FP + s.TN
+	if denom == 0 {
+		return 0, false
+	}
+	return float64(s.FP) / float64(denom), true
+}
+
+// FNR = FN / (FN + TP): rate of missed detections among should-miss cases.
+func (s bucketStat) fnr() (float64, bool) {
+	denom := s.FN + s.TP
+	if denom == 0 {
+		return 0, false
+	}
+	return float64(s.FN) / float64(denom), true
+}
+
+// TPR = TP / (TP + FN): rate of detected misses among should-miss cases (recall).
+func (s bucketStat) tpr() (float64, bool) {
+	denom := s.TP + s.FN
+	if denom == 0 {
+		return 0, false
+	}
+	return float64(s.TP) / float64(denom), true
 }

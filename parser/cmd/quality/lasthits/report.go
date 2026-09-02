@@ -143,6 +143,24 @@ func writeReport(w io.Writer, results []caseResult, elapsed time.Duration) {
 	fmt.Fprintf(w, "  Total cases passed: %d/%d\n", totals.Passed, totals.Total)
 	fmt.Fprintf(w, "  False positives:    %d  (unexpected miss)\n", totals.FP)
 	fmt.Fprintf(w, "  False negatives:    %d  (expected miss not found)\n", totals.FN)
+	if acc, ok := totals.accuracy(); ok {
+		fmt.Fprintf(w, "  Accuracy:           %.1f%%\n", acc*100)
+	}
+	if fpr, ok := totals.fpr(); ok {
+		fmt.Fprintf(w, "  FPR:                %.1f%%\n", fpr*100)
+	} else {
+		fmt.Fprintln(w, "  FPR:                n/a")
+	}
+	if fnr, ok := totals.fnr(); ok {
+		fmt.Fprintf(w, "  FNR:                %.1f%%\n", fnr*100)
+	} else {
+		fmt.Fprintln(w, "  FNR:                n/a")
+	}
+	if tpr, ok := totals.tpr(); ok {
+		fmt.Fprintf(w, "  TPR:                %.1f%%\n", tpr*100)
+	} else {
+		fmt.Fprintln(w, "  TPR:                n/a")
+	}
 	fmt.Fprintf(w, "  Elapsed:            %s\n", elapsed.Round(time.Millisecond))
 	fmt.Fprintln(w, strings.Repeat("=", width))
 }
@@ -151,6 +169,11 @@ func addResult(stat bucketStat, r caseResult) bucketStat {
 	stat.Total++
 	if r.Pass {
 		stat.Passed++
+		if r.Case.ExpectMiss {
+			stat.TP++
+		} else {
+			stat.TN++
+		}
 		return stat
 	}
 	if r.Case.ExpectMiss {
