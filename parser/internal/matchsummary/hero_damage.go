@@ -1,23 +1,15 @@
 package matchsummary
 
 import (
-	"sort"
-
 	"github.com/dotabuff/manta"
 	"github.com/dotabuff/manta/dota"
 )
 
-// HeroDamageRow is one row in the damage-by-hero table.
-type HeroDamageRow struct {
-	Hero   string `json:"hero"`
-	Damage uint32 `json:"damage"`
-}
-
 // HeroDamage is hero-vs-hero damage dealt by the analyzed hero (combat-log reconstruction).
 type HeroDamage struct {
-	Total      uint32            `json:"total"`
-	ByType     map[string]uint32 `json:"by_type"`
-	ByHero     []HeroDamageRow   `json:"by_hero,omitempty"`
+	Total   uint32            `json:"total"`
+	ByType  map[string]uint32 `json:"by_type"`
+	Matrix  *InflictorMatrix  `json:"matrix,omitempty"`
 }
 
 func newHeroDamage() HeroDamage {
@@ -56,27 +48,10 @@ func (h *Handler) onHeroDamage(p *manta.Parser, m *dota.CMsgDOTACombatLogEntry) 
 	h.summary.HeroDamage.Total += amount
 	damageType := damageTypeLabel(m.GetDamageType())
 	h.summary.HeroDamage.ByType[damageType] += amount
-	if h.heroDamageByHero == nil {
-		h.heroDamageByHero = make(map[string]uint32)
+	if h.heroDamageMatrix == nil {
+		h.heroDamageMatrix = make(inflictorHeroAccumulator)
 	}
-	h.heroDamageByHero[targetName] += amount
-}
-
-func (h *Handler) heroDamageByHeroTable() []HeroDamageRow {
-	if len(h.heroDamageByHero) == 0 {
-		return nil
-	}
-	rows := make([]HeroDamageRow, 0, len(h.heroDamageByHero))
-	for hero, damage := range h.heroDamageByHero {
-		rows = append(rows, HeroDamageRow{Hero: hero, Damage: damage})
-	}
-	sort.Slice(rows, func(i, j int) bool {
-		if rows[i].Damage != rows[j].Damage {
-			return rows[i].Damage > rows[j].Damage
-		}
-		return rows[i].Hero < rows[j].Hero
-	})
-	return rows
+	h.heroDamageMatrix.add(inflictorKey(p, m), targetName, amount)
 }
 
 func damageTypeLabel(t uint32) string {

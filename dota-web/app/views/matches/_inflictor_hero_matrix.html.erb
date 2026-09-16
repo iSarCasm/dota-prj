@@ -1,0 +1,58 @@
+<% matrix = local_assigns[:matrix] || {} %>
+<% heroes = matrix["heroes"].is_a?(Array) ? matrix["heroes"] : [] %>
+<% rows = matrix["rows"].is_a?(Array) ? matrix["rows"] : [] %>
+
+<% if heroes.any? && rows.any? %>
+  <div style="overflow-x: auto; margin-bottom: 1.5rem;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.3);">
+          <th style="padding: 0.5rem; text-align: left; min-width: 10rem;">Source</th>
+          <% heroes.each do |hero_npc| %>
+            <% display_name = hero_display_name_for_npc(hero_npc.to_s) %>
+            <th style="padding: 0.5rem; text-align: right; min-width: 5rem;">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                <%= dota_named_image_tag(display_name, folders: ["hero_icons"], alt: display_name, style: "width: 56px; height: 32px; object-fit: cover; border: 1px solid #333;") %>
+                <span style="font-size: 0.75rem; font-weight: normal;"><%= display_name %></span>
+              </div>
+            </th>
+          <% end %>
+          <th style="padding: 0.5rem; text-align: right; min-width: 4rem;">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.each do |row| %>
+          <% values = row["values"].is_a?(Array) ? row["values"] : [] %>
+          <% row_total = values.sum { |v| v.to_i } %>
+          <tr style="border-top: 1px solid rgba(255,255,255,0.1);">
+            <td style="padding: 0.5rem;"><%= inflictor_display_name(row["inflictor"]) %></td>
+            <% values.each do |amount| %>
+              <td style="padding: 0.5rem; text-align: right;">
+                <% if amount.to_i > 0 %>
+                  <%= number_with_delimiter(amount.to_i) %>
+                <% else %>
+                  <span style="opacity: 0.35;">—</span>
+                <% end %>
+              </td>
+            <% end %>
+            <td style="padding: 0.5rem; text-align: right; font-weight: bold;"><%= number_with_delimiter(row_total) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot>
+        <tr style="border-top: 1px solid rgba(255,255,255,0.3);">
+          <td style="padding: 0.5rem; font-weight: bold;">Total</td>
+          <% heroes.each_with_index do |_, col_idx| %>
+            <% col_total = rows.sum { |row| Array(row["values"])[col_idx].to_i } %>
+            <td style="padding: 0.5rem; text-align: right; font-weight: bold;"><%= number_with_delimiter(col_total) %></td>
+          <% end %>
+          <td style="padding: 0.5rem; text-align: right; font-weight: bold;">
+            <%= number_with_delimiter(rows.sum { |row| Array(row["values"]).sum { |v| v.to_i } }) %>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+<% else %>
+  <p style="opacity: 0.85; margin-bottom: 1.5rem;">No data recorded.</p>
+<% end %>

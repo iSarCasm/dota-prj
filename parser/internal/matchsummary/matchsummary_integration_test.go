@@ -128,25 +128,35 @@ func heroKillRowsEqual(a, b []HeroKillRow) bool {
 	return true
 }
 
-func heroDamageRowsEqual(a, b []HeroDamageRow) bool {
-	if len(a) != len(b) {
+func inflictorMatrixEqual(a, b *InflictorMatrix) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
 		return false
 	}
-	for i := range a {
-		if a[i] != b[i] {
+	if len(a.Heroes) != len(b.Heroes) {
+		return false
+	}
+	for i := range a.Heroes {
+		if a.Heroes[i] != b.Heroes[i] {
 			return false
 		}
 	}
-	return true
-}
-
-func heroHealingRowsEqual(a, b []HeroHealingRow) bool {
-	if len(a) != len(b) {
+	if len(a.Rows) != len(b.Rows) {
 		return false
 	}
-	for i := range a {
-		if a[i] != b[i] {
+	for i := range a.Rows {
+		if a.Rows[i].Inflictor != b.Rows[i].Inflictor {
 			return false
+		}
+		if len(a.Rows[i].Values) != len(b.Rows[i].Values) {
+			return false
+		}
+		for j := range a.Rows[i].Values {
+			if a.Rows[i].Values[j] != b.Rows[i].Values[j] {
+				return false
+			}
 		}
 	}
 	return true
@@ -168,16 +178,23 @@ func TestReplay8934466456_PhantomAssassinHeroDamage(t *testing.T) {
 	if got != want {
 		t.Fatalf("hero_damage.total = %d, want %d (by_type=%v)", got, want, h.summary.HeroDamage.ByType)
 	}
-	h.summary.HeroDamage.ByHero = h.heroDamageByHeroTable()
-	wantRows := []HeroDamageRow{
-		{Hero: "npc_dota_hero_dark_seer", Damage: 5636},
-		{Hero: "npc_dota_hero_lich", Damage: 3323},
-		{Hero: "npc_dota_hero_ancient_apparition", Damage: 1204},
-		{Hero: "npc_dota_hero_mars", Damage: 373},
-		{Hero: "npc_dota_hero_nevermore", Damage: 365},
+	h.summary.HeroDamage.Matrix = buildInflictorMatrix(h.heroDamageMatrix)
+	wantMatrix := &InflictorMatrix{
+		Heroes: []string{
+			"npc_dota_hero_dark_seer",
+			"npc_dota_hero_lich",
+			"npc_dota_hero_ancient_apparition",
+			"npc_dota_hero_mars",
+			"npc_dota_hero_nevermore",
+		},
+		Rows: []InflictorMatrixRow{
+			{Inflictor: "auto_attack", Values: []uint32{4347, 1269, 461, 0, 365}},
+			{Inflictor: "phantom_assassin_stifling_dagger", Values: []uint32{1255, 1708, 387, 357, 0}},
+			{Inflictor: "item_bfury", Values: []uint32{34, 346, 356, 16, 0}},
+		},
 	}
-	if !heroDamageRowsEqual(h.summary.HeroDamage.ByHero, wantRows) {
-		t.Fatalf("hero_damage.by_hero = %+v, want %+v", h.summary.HeroDamage.ByHero, wantRows)
+	if !inflictorMatrixEqual(h.summary.HeroDamage.Matrix, wantMatrix) {
+		t.Fatalf("hero_damage.matrix = %+v, want %+v", h.summary.HeroDamage.Matrix, wantMatrix)
 	}
 }
 
@@ -222,15 +239,23 @@ func TestReplay8934466456_DazzleHealing(t *testing.T) {
 	if got != want {
 		t.Fatalf("healing.total = %d, want %d", got, want)
 	}
-	h.summary.Healing.ByHero = h.healingByHeroTable()
-	wantRows := []HeroHealingRow{
-		{Hero: "npc_dota_hero_axe", Healing: 1791},
-		{Hero: "npc_dota_hero_lion", Healing: 1390},
-		{Hero: "npc_dota_hero_phantom_assassin", Healing: 1208},
-		{Hero: "npc_dota_hero_obsidian_destroyer", Healing: 808},
+	h.summary.Healing.Matrix = buildInflictorMatrix(h.healingMatrix)
+	wantMatrix := &InflictorMatrix{
+		Heroes: []string{
+			"npc_dota_hero_axe",
+			"npc_dota_hero_lion",
+			"npc_dota_hero_phantom_assassin",
+			"npc_dota_hero_obsidian_destroyer",
+		},
+		Rows: []InflictorMatrixRow{
+			{Inflictor: "dazzle_shadow_wave", Values: []uint32{979, 712, 1208, 583}},
+			{Inflictor: "item_holy_locket", Values: []uint32{537, 678, 0, 0}},
+			{Inflictor: "item_mekansm", Values: []uint32{275, 0, 0, 0}},
+			{Inflictor: "dazzle_shallow_grave", Values: []uint32{0, 0, 0, 225}},
+		},
 	}
-	if !heroHealingRowsEqual(h.summary.Healing.ByHero, wantRows) {
-		t.Fatalf("healing.by_hero = %+v, want %+v", h.summary.Healing.ByHero, wantRows)
+	if !inflictorMatrixEqual(h.summary.Healing.Matrix, wantMatrix) {
+		t.Fatalf("healing.matrix = %+v, want %+v", h.summary.Healing.Matrix, wantMatrix)
 	}
 }
 
